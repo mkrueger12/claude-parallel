@@ -12,6 +12,7 @@ Your task:
 2. Evaluate based on these criteria:
    - Code quality: Clean, maintainable, follows conventions, proper error handling
    - Completeness: Fully implements the requested feature, handles edge cases
+   - Delegate up to 3 subagents to review areas in the codebase.
 
 For each implementation, examine:
 - Git diff to see what changed
@@ -30,4 +31,18 @@ Where:
 - "quality_score" is 0-100
 - "completeness_score" is 0-100
 
-Begin your review now.
+After completing the review, create a draft PR into HEAD with the branch you selected. If you do not select a branch do not create a PR.
+
+The PR should have a descriptive title and have the following body:
+
+- No emojis
+
+```
+Feature Request: [Feature request description]
+
+Summary of changes:
+[Bullet list of changes from the target branch]
+
+Detailed review of changes:
+[Provide an easily digestable review of the changes. Assume the user has some codebase knowledge but not all. Make it clear the important changes the reviewer should look at.]
+```
