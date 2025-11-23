@@ -191,6 +191,8 @@ Implement the following feature request:
     - [ ] Feature works correctly on mobile devices
     ```
 
+AFTER WRITING THE PLAN TO `plan.nmd` IMMEDIATELY CONTINUE TO THE IMPLEMENTATION BY DELEGATING TASK 1 TO A SUBAGENT.
+
 ## Implement Phase
 For each item from @plan.md, delegate one task to one subagent. Once completed, mark the task as complete and delegate the task to another subagent. 
 
