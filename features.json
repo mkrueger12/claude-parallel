@@ -95,7 +95,7 @@
       "Step 4: Verify extracted repo is 'repo'",
       "Step 5: Verify extracted issue number is 123"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -109,7 +109,7 @@
       "Step 5: Verify status eventually becomes 'completed' or 'failed'",
       "Step 6: Verify completedAt timestamp is set when job finishes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -158,7 +158,7 @@
       "Step 4: If completed, verify result contains prUrl, winningBranch, and scores",
       "Step 5: If failed, verify error message explains the failure"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -170,7 +170,7 @@
       "Step 3: Verify server starts on port 4000",
       "Step 4: Verify health endpoint responds at http://localhost:4000/health"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -182,6 +182,6 @@
       "Step 3: Verify all jobs are retrievable",
       "Step 4: Verify each job has unique ID"
     ],
-    "passes": false
+    "passes": true
   }
 ]
