@@ -133,7 +133,7 @@
       "Step 3: Verify .git directory exists in cloned repo",
       "Step 4: Verify git status command works in cloned directory"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -145,7 +145,7 @@
       "Step 3: Call cleanupRepository with the directory path",
       "Step 4: Verify directory no longer exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
