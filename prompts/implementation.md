@@ -7,26 +7,34 @@ Implement the following feature request:
 
 {{FEATURE_REQUEST}}
 
+Start by orienting yourself:
+
+```bash
+# 1. See your working directory
+pwd
+
+# 2. List files to understand project structure
+ls -la
+
+# 3. Review the app spec (if available)
+cat spec.txt
+```
+
 ## Planning Phase (delegate to a subagent)
 1. **Spawn initial research tasks to gather context**:
-   Before asking the user any questions, use specialized agents to research in parallel:
+   Use specialized agents to research in parallel:
 
    - Use the **codebase-locator** agent to find all files related to the ticket/task
    - Use the **codebase-analyzer** agent to understand how the current implementation works
    - Use a **general-purpose** subagent with the deepwiki MCP. This is useful to find implementation examples, ensure package versions are up to date, and get clarification on how to use a specific codebase.
 
-2. **Read all files identified by research tasks**:
-   - After research tasks complete, read ALL files they identified as relevant
-   - Read them FULLY into the main context
-   - This ensures you have complete understanding before proceeding
-
-3. **Analyze and verify understanding**:
-   - Cross-reference the ticket requirements with actual code
+2. **Analyze and verify understanding**:
+   - Cross-reference the issue/feature requirements with actual code
    - Identify any discrepancies or misunderstandings
    - Note assumptions that need verification
    - Determine true scope based on codebase reality
 
-4. **Create /plan.md**
+3. **Create /plan.md**
   - The plan file is the **how** of implementing the features.json. 
 
     1. **Write the plan** to `./plan.md`
@@ -106,7 +114,7 @@ Implement the following feature request:
     - Similar implementation: `[file:line]`
     ```
   
-5. **Create /features.json**
+4. **Create /features.json**
    - Based on the tasks in the plan.md file create N-number of end-to-end test cases in features.json. This file is the single source of truth for what needs to be built.
 
    ```json
