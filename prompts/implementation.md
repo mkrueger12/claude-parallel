@@ -25,8 +25,26 @@ Implement the following feature request:
    - Identify any discrepancies or misunderstandings
    - Note assumptions that need verification
    - Determine true scope based on codebase reality
+  
+4. **Create /features.json**
+   - For each functional feature add it to the features.json following the example below.
 
-4. Create plan.md
+   ```json
+      {
+       "category": "functional",
+       "description": "New chat button creates a fresh conversation",
+       "steps": [
+         "Navigate to main interface",
+         "Click the 'New Chat' button",
+         "Verify a new conversation is created",
+         "Check that chat area shows welcome state",
+         "Verify conversation appears in sidebar"
+       ],
+       "passes": false
+     }
+   ```
+
+6. **Create /plan.md**
 
     1. **Write the plan** to `./plan.md`
     2. **Use this template structure**:
@@ -81,6 +99,7 @@ Implement the following feature request:
     - [ ] Type checking passes: `npm run typecheck`
     - [ ] Linting passes: `make lint`
     - [ ] Integration tests pass: `make test-integration`
+    - [ ] Test "New chat button creates a fresh conversation" from @features.json with the playwright MCP in headless mode
 
     #### Manual Verification:
     - [ ] Feature works as expected when tested via UI
@@ -169,6 +188,8 @@ Implement the following feature request:
     - Specific files that should exist
     - Code compilation/type checking
     - Automated test suites
+    - Use of Playwright MCP in headless mode
+    - Any features in features.json
 
     2. **Manual Verification** (requires human testing):
     - UI/UX functionality
@@ -255,4 +276,4 @@ Refactor to:
 - Add necessary documentation
 - Run the available linting or formatting tools for the codebase on the specific changes.
 
-Once all tasks in the plan are complete, return. Do not return until it is all done. Think hard and verify that it is complete before returning.  
+Once all tasks in the plan and /features.json are complete, return. Do not return until it is all done. Think hard and verify that it is complete before returning.  
