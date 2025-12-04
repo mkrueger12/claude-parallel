@@ -27,31 +27,42 @@ Implement the following feature request:
    - Determine true scope based on codebase reality
   
 4. **Create /features.json**
-   - For each functional feature add it to the features.json following the example below.
+   - Based on the feature, create a file called features.json with detailed end-to-end test cases. This file is the single source of truth for what needs to be built.
 
    ```json
-      {
-       "category": "functional",
-       "description": "New chat button creates a fresh conversation",
-       "steps": [
-         "Navigate to main interface",
-         "Click the 'New Chat' button",
-         "Verify a new conversation is created",
-         "Check that chat area shows welcome state",
-         "Verify conversation appears in sidebar"
-       ],
-       "passes": false
-     }
+            [
+        {
+          "category": "functional",
+          "description": "Brief description of the feature and what this test verifies",
+          "steps": [
+            "Step 1: Navigate to relevant page",
+            "Step 2: Perform action",
+            "Step 3: Verify expected result"
+          ],
+          "passes": false
+        },
+        {
+          "category": "style",
+          "description": "Brief description of UI/UX requirement",
+          "steps": [
+            "Step 1: Navigate to page",
+            "Step 2: Take screenshot",
+            "Step 3: Verify visual requirements"
+          ],
+          "passes": false
+        }
+      ]
    ```
 
+CRITICAL INSTRUCTION: IT IS CATASTROPHIC TO REMOVE OR EDIT FEATURES IN FUTURE SESSIONS. Features can ONLY be marked as passing (change "passes": false to "passes": true). Never remove features, never edit descriptions, never modify testing steps. This ensures no functionality is missed.
+
 6. **Create /plan.md**
+  - The plan file is the **how** of implementing the features.json. 
 
     1. **Write the plan** to `./plan.md`
     2. **Use this template structure**:
 
     ```markdown
-    # [Feature/Task Name] Implementation Plan
-
     ## Overview
 
     [Brief description of what we're implementing and why]
@@ -214,7 +225,7 @@ Implement the following feature request:
     - [ ] Feature works correctly on mobile devices
     ```
 
-AFTER WRITING THE PLAN TO `plan.nmd` IMMEDIATELY CONTINUE TO THE IMPLEMENTATION BY DELEGATING TASK 1 TO A SUBAGENT.
+AFTER WRITING THE PLAN TO `plan.md` IMMEDIATELY CONTINUE TO THE IMPLEMENTATION BY DELEGATING TASK 1 TO A SUBAGENT.
 
 ## Implement Phase
 For each item from @plan.md, delegate one task to one subagent. Once completed, mark the task as complete and delegate the next task to another subagent. Make sure the subagent has tested any feature thoroughly.
