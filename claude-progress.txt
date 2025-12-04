@@ -26,13 +26,34 @@
   - Verified all types compile with no errors and are properly importable
   - All exports tested and working correctly
 
+- Task 3: GitHub Service - COMPLETED
+  - Created src/services/github.ts with 3 core functions:
+    - parseGitHubIssueUrl(url): Parses GitHub issue URLs, extracts owner/repo/issue number
+    - fetchIssueDetails(owner, repo, number): Uses gh CLI to fetch issue details
+    - getRepoCloneUrl(owner, repo): Returns HTTPS clone URL
+  - parseGitHubIssueUrl handles edge cases:
+    - Trailing slashes, query parameters, hash fragments
+    - Validates hostname is github.com
+    - Validates issue number is positive integer
+    - Throws descriptive errors for invalid URLs
+  - fetchIssueDetails uses child_process.execSync:
+    - Executes: gh issue view <number> --repo <owner/repo> --json number,title,body,url
+    - Returns GitHubIssue object with all required fields
+    - Error handling: gh not installed, issue not found, auth failures, rate limits
+  - Testing performed:
+    - 13 test cases for parseGitHubIssueUrl (all passed)
+    - Valid URLs: standard, trailing slash, query params, hash fragments
+    - Invalid URLs: wrong domain, missing number, pull request, invalid number, empty string
+    - Real issue fetch: mkrueger12/claude-parallel#1 (successful)
+  - Build verification: npm run build completes without errors
+  - All TypeScript types compile correctly
+
 ### Status
 - 1 out of 14 tests passing (7%)
-- Type system foundation complete
-- Ready for service implementation
+- Tasks 1-3 complete: Project setup, type definitions, GitHub service
+- Ready for repository management implementation
 
 ### Next Steps
-- Task 3: GitHub Service - Implement URL parsing and issue fetching
 - Task 4: Repository Manager - Implement git clone and cleanup
 - Task 5: Job Processor - Implement job execution and state management
 - Task 6: API Routes - Implement POST /jobs and GET /jobs/:id
