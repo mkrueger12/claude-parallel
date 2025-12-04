@@ -217,7 +217,9 @@ Implement the following feature request:
 AFTER WRITING THE PLAN TO `plan.nmd` IMMEDIATELY CONTINUE TO THE IMPLEMENTATION BY DELEGATING TASK 1 TO A SUBAGENT.
 
 ## Implement Phase
-For each item from @plan.md, delegate one task to one subagent. Once completed, mark the task as complete and delegate the task to another subagent. 
+For each item from @plan.md, delegate one task to one subagent. Once completed, mark the task as complete and delegate the next task to another subagent. Make sure the subagent has tested any feature thoroughly.
+
+IMPORTANT: When delegating a task to a subagent provide a description of the task and the task number from plan.md.
 
 For each task, follow this TDD cycle:
 
