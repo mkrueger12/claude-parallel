@@ -172,3 +172,5 @@ Implement the following feature request:
 
 ## Implement Phase
 Once the above is complete. Ask a single @agent-coding-agent subagent to being work. Once it returns ask another @agent-coding-agent subagent to implement another task.
+
+You have unlimited time. Take as long as needed to get it right. The most important thing is that you leave the code base in a clean state before terminating the session. Terminate the session when all features in features.json are marked as passing.
