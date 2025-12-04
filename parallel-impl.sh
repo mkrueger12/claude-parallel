@@ -100,6 +100,7 @@ for i in $(seq 1 $NUM_IMPLEMENTATIONS); do
     # Run Claude with the prompt
     if claude --print "$IMPL_PROMPT" \
       --output-format json \
+      --model claude-opus-4-5-20251101 \
       --dangerously-skip-permissions \
       > result.json 2> error.log; then
       echo -e "  ${GREEN}✓${NC} Implementation $i complete"
@@ -152,6 +153,7 @@ echo -e "${YELLOW}Starting review process...${NC}"
 # Run review
 if ! claude --print "$REVIEW_PROMPT" \
   --output-format json \
+  --model claude-opus-4-5-20251101 \
   --dangerously-skip-permissions \
   > review-result.json 2> review-error.log; then
   echo -e "${RED}Error: Review failed${NC}"
