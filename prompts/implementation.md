@@ -125,7 +125,7 @@ Implement the following feature request:
         {
           "category": "style",
           "description": "Brief description of UI/UX requirement",
-          "plan_ref": "task 2 - Name of tasK"
+          "plan_ref": "task 2 - Name of task"
           "steps": [
             "Step 1: Navigate to page",
             "Step 2: Take screenshot",
@@ -135,6 +135,7 @@ Implement the following feature request:
         }
       ]
    ```
+6. **create an empty claude-progress.txt in the project root.**
 
 ## Important Guidelines
 
@@ -143,73 +144,31 @@ Implement the following feature request:
     - Identify potential issues early
     - Ask "why" and "what about"
     - Don't assume - verify with code
-
-    2. **Be Interactive**:
-    - Don't write the full plan in one shot
-    - Get buy-in at each major step
-    - Allow course corrections
-    - Work collaboratively
-
-    3. **Be Thorough**:
+    
+    2. **Be Thorough**:
     - Read all context files COMPLETELY before planning
     - Research actual code patterns using parallel sub-tasks
     - Include specific file paths and line numbers
     - Write measurable success criteria with clear automated vs manual distinction
 
-    4. **Be Practical**:
+    3. **Be Practical**:
     - Focus on incremental, testable changes
     - Consider migration and rollback
     - Think about edge cases
     - Include "what we're NOT doing"
 
-    5. **Track Progress**:
+    4. **Track Progress**:
     - Use TodoWrite to track planning tasks
     - Update todos as you complete research
     - Mark planning tasks complete when done
 
-    6. **No Open Questions in Final Plan**:
+    5. **No Open Questions in Final Plan**:
     - If you encounter open questions during planning, STOP
     - Research or ask for clarification immediately
     - Do NOT write the plan with unresolved questions
     - The implementation plan must be complete and actionable
     - Every decision must be made before finalizing the plan
 
-    ## Success Criteria Guidelines
-
-    **Always separate success criteria into two categories:**
-
-    1. **Automated Verification** (can be run by execution agents):
-    - Commands that can be run: `make test`, `npm run lint`, etc.
-    - Specific files that should exist
-    - Code compilation/type checking
-    - Automated test suites
-    - Use of Playwright MCP in headless mode
-    - Any features in features.json
-
-    2. **Manual Verification** (requires human testing):
-    - UI/UX functionality
-    - Performance under real conditions
-    - Edge cases that are hard to automate
-    - User acceptance criteria
-
-    **Format example:**
-    ```markdown
-    ### Success Criteria:
-
-    #### Automated Verification:
-    - [ ] Database migration runs successfully: `make migrate`
-    - [ ] All unit tests pass: `go test ./...`
-    - [ ] No linting errors: `golangci-lint run`
-    - [ ] API endpoint returns 200: `curl localhost:8080/api/new-endpoint`
-
-    #### Manual Verification:
-    - [ ] New feature appears correctly in the UI
-    - [ ] Performance is acceptable with 1000+ items
-    - [ ] Error messages are user-friendly
-    - [ ] Feature works correctly on mobile devices
-    ```
-
-AFTER WRITING THE PLAN TO `plan.md` IMMEDIATELY CONTINUE TO THE IMPLEMENTATION BY DELEGATING TASK 1 TO A SUBAGENT.
 
 ## Implement Phase
 For each item from @plan.md, delegate one task to one subagent. Once completed, mark the task as complete and delegate the next task to another subagent. Make sure the subagent has tested any feature thoroughly.
