@@ -8,7 +8,7 @@
       "Step 2: Verify server logs show startup message with port number",
       "Step 3: Verify no errors in console output"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -20,7 +20,7 @@
       "Step 3: Verify response status is 200",
       "Step 4: Verify response body contains status: ok and timestamp"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -32,7 +32,7 @@
       "Step 3: Verify response status is 202 Accepted",
       "Step 4: Verify response body contains jobId (UUID format) and status: queued"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -44,7 +44,7 @@
       "Step 3: Verify response status is 400 Bad Request",
       "Step 4: Verify response body contains error message about missing issueUrl"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -56,7 +56,7 @@
       "Step 3: Verify response status is 400 Bad Request",
       "Step 4: Verify error message indicates invalid GitHub issue URL"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -70,7 +70,7 @@
       "Step 5: Verify response status is 200",
       "Step 6: Verify response contains job status and timestamps"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -82,7 +82,7 @@
       "Step 3: Verify response status is 404 Not Found",
       "Step 4: Verify response body contains appropriate error message"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
