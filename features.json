@@ -1,0 +1,150 @@
+[
+  {
+    "category": "functional",
+    "description": "Health endpoint returns OK status - verifies the server is running and responding",
+    "plan_ref": "Task 6 - API Routes - Health Endpoint",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send GET request to http://localhost:3000/health",
+      "Step 3: Verify response status is 200",
+      "Step 4: Verify response body is {\"status\":\"ok\"}"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Jobs endpoint accepts valid GitHub issue URL and returns 202 with job_id",
+    "plan_ref": "Task 7 - API Routes - Jobs Endpoint",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send POST request to http://localhost:3000/jobs with body {\"issue_url\":\"https://github.com/mkrueger12/claude-parallel/issues/1\"}",
+      "Step 3: Verify response status is 202",
+      "Step 4: Verify response body contains job_id field",
+      "Step 5: Verify response body contains status field with value 'accepted'"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Jobs endpoint returns 400 for missing issue_url",
+    "plan_ref": "Task 7 - API Routes - Jobs Endpoint",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send POST request to http://localhost:3000/jobs with empty body {}",
+      "Step 3: Verify response status is 400",
+      "Step 4: Verify response body contains error message"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Jobs endpoint returns 400 for invalid GitHub URL format",
+    "plan_ref": "Task 7 - API Routes - Jobs Endpoint",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send POST request to http://localhost:3000/jobs with body {\"issue_url\":\"not-a-valid-url\"}",
+      "Step 3: Verify response status is 400",
+      "Step 4: Verify response body contains error message about invalid URL"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "GitHub service correctly parses valid issue URLs",
+    "plan_ref": "Task 3 - GitHub Service",
+    "steps": [
+      "Step 1: Import parseIssueUrl from github service",
+      "Step 2: Parse URL https://github.com/owner/repo/issues/123",
+      "Step 3: Verify owner is 'owner'",
+      "Step 4: Verify repo is 'repo'",
+      "Step 5: Verify number is 123"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "GitHub service fetches issue details using gh CLI",
+    "plan_ref": "Task 3 - GitHub Service",
+    "steps": [
+      "Step 1: Set GH_TOKEN environment variable",
+      "Step 2: Call fetchIssueDetails for a known public issue",
+      "Step 3: Verify title is returned and non-empty",
+      "Step 4: Verify body is returned"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Repository service clones repository to target directory",
+    "plan_ref": "Task 4 - Repository Service",
+    "steps": [
+      "Step 1: Call cloneRepository with owner/repo and temp directory",
+      "Step 2: Verify directory exists after clone",
+      "Step 3: Verify .git directory exists in cloned repo",
+      "Step 4: Clean up cloned directory"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Job service creates job with UUID and pending status",
+    "plan_ref": "Task 5 - Job Service",
+    "steps": [
+      "Step 1: Call createJob with an issue URL",
+      "Step 2: Verify returned job has valid UUID format",
+      "Step 3: Verify job status is 'pending'",
+      "Step 4: Verify job has created_at timestamp"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Configuration loads environment variables with defaults",
+    "plan_ref": "Task 2 - Configuration and Types",
+    "steps": [
+      "Step 1: Import config module",
+      "Step 2: Verify PORT defaults to 3000 when not set",
+      "Step 3: Verify WORK_DIR defaults to /tmp/claude-parallel when not set",
+      "Step 4: Verify JOB_TIMEOUT defaults to 600000 when not set"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "TypeScript compilation succeeds with strict mode",
+    "plan_ref": "Task 1 - Project Setup",
+    "steps": [
+      "Step 1: Run npm install to install dependencies",
+      "Step 2: Run npx tsc --noEmit to check types",
+      "Step 3: Verify no TypeScript errors are reported",
+      "Step 4: Run npm run build to compile to JavaScript"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Server starts successfully on configured port",
+    "plan_ref": "Task 8 - Main Entry Point",
+    "steps": [
+      "Step 1: Set PORT environment variable to 4000",
+      "Step 2: Run npm run dev",
+      "Step 3: Verify server logs startup message with port 4000",
+      "Step 4: Send request to http://localhost:4000/health",
+      "Step 5: Verify response is successful"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "End-to-end job submission triggers script execution",
+    "plan_ref": "Task 5 - Job Service",
+    "steps": [
+      "Step 1: Start server with npm run dev",
+      "Step 2: Submit job with valid GitHub issue URL",
+      "Step 3: Verify 202 response with job_id",
+      "Step 4: Check that repository was cloned to work directory",
+      "Step 5: Verify parallel-impl.sh process was spawned"
+    ],
+    "passes": true
+  }
+]
