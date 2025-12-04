@@ -1,0 +1,187 @@
+[
+  {
+    "category": "functional",
+    "description": "Server starts successfully on configured port",
+    "plan_ref": "Task 8 - Server Entry Point",
+    "steps": [
+      "Step 1: Run npm run dev to start the server",
+      "Step 2: Verify server logs show startup message with port number",
+      "Step 3: Verify no errors in console output"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Health endpoint returns OK status",
+    "plan_ref": "Task 7 - Health Check Route",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send GET request to http://localhost:3000/health",
+      "Step 3: Verify response status is 200",
+      "Step 4: Verify response body contains status: ok and timestamp"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "POST /jobs accepts valid GitHub issue URL and returns 202",
+    "plan_ref": "Task 6 - API Routes - Jobs",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send POST request to http://localhost:3000/jobs with body {issueUrl: 'https://github.com/mkrueger12/claude-parallel/issues/1'}",
+      "Step 3: Verify response status is 202 Accepted",
+      "Step 4: Verify response body contains jobId (UUID format) and status: queued"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "POST /jobs rejects invalid request body with 400",
+    "plan_ref": "Task 6 - API Routes - Jobs",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send POST request to http://localhost:3000/jobs with empty body {}",
+      "Step 3: Verify response status is 400 Bad Request",
+      "Step 4: Verify response body contains error message about missing issueUrl"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "POST /jobs rejects invalid GitHub URL format with 400",
+    "plan_ref": "Task 3 - GitHub Service",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send POST request with {issueUrl: 'https://not-github.com/invalid'}",
+      "Step 3: Verify response status is 400 Bad Request",
+      "Step 4: Verify error message indicates invalid GitHub issue URL"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "GET /jobs/:id returns job status for existing job",
+    "plan_ref": "Task 6 - API Routes - Jobs",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Create a job via POST /jobs with valid issue URL",
+      "Step 3: Extract jobId from response",
+      "Step 4: Send GET request to http://localhost:3000/jobs/{jobId}",
+      "Step 5: Verify response status is 200",
+      "Step 6: Verify response contains job status and timestamps"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "GET /jobs/:id returns 404 for non-existent job",
+    "plan_ref": "Task 6 - API Routes - Jobs",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Send GET request to http://localhost:3000/jobs/non-existent-uuid",
+      "Step 3: Verify response status is 404 Not Found",
+      "Step 4: Verify response body contains appropriate error message"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "GitHub issue URL parser extracts owner, repo, and issue number",
+    "plan_ref": "Task 3 - GitHub Service",
+    "steps": [
+      "Step 1: Create unit test for parseGitHubIssueUrl function",
+      "Step 2: Test with URL https://github.com/owner/repo/issues/123",
+      "Step 3: Verify extracted owner is 'owner'",
+      "Step 4: Verify extracted repo is 'repo'",
+      "Step 5: Verify extracted issue number is 123"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Job transitions from queued to processing to completed",
+    "plan_ref": "Task 5 - Job Processor",
+    "steps": [
+      "Step 1: Start the server with npm run dev",
+      "Step 2: Create a job via POST /jobs",
+      "Step 3: Immediately GET /jobs/{id} and verify status is 'queued' or 'processing'",
+      "Step 4: Poll GET /jobs/{id} every 5 seconds",
+      "Step 5: Verify status eventually becomes 'completed' or 'failed'",
+      "Step 6: Verify completedAt timestamp is set when job finishes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "TypeScript project builds without errors",
+    "plan_ref": "Task 1 - Project Setup",
+    "steps": [
+      "Step 1: Run npm install to install dependencies",
+      "Step 2: Run npm run build to compile TypeScript",
+      "Step 3: Verify no TypeScript compilation errors",
+      "Step 4: Verify dist/ directory is created with compiled JavaScript"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Repository cloning creates valid git repository",
+    "plan_ref": "Task 4 - Repository Manager",
+    "steps": [
+      "Step 1: Call cloneRepository with a small test repo URL",
+      "Step 2: Verify target directory is created",
+      "Step 3: Verify .git directory exists in cloned repo",
+      "Step 4: Verify git status command works in cloned directory"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Repository cleanup removes cloned directory",
+    "plan_ref": "Task 4 - Repository Manager",
+    "steps": [
+      "Step 1: Clone a test repository to a temp directory",
+      "Step 2: Verify directory exists",
+      "Step 3: Call cleanupRepository with the directory path",
+      "Step 4: Verify directory no longer exists"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Job processor executes parallel-impl.sh script",
+    "plan_ref": "Task 5 - Job Processor",
+    "steps": [
+      "Step 1: Create a job with a valid GitHub issue URL from a test repository",
+      "Step 2: Monitor job status via GET /jobs/{id}",
+      "Step 3: Wait for job to complete or fail",
+      "Step 4: If completed, verify result contains prUrl, winningBranch, and scores",
+      "Step 5: If failed, verify error message explains the failure"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Environment variables configure server behavior",
+    "plan_ref": "Task 1 - Project Setup, Task 8 - Server Entry Point",
+    "steps": [
+      "Step 1: Set PORT=4000 environment variable",
+      "Step 2: Start server with npm run dev",
+      "Step 3: Verify server starts on port 4000",
+      "Step 4: Verify health endpoint responds at http://localhost:4000/health"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Job store maintains jobs in memory",
+    "plan_ref": "Task 5 - Job Processor",
+    "steps": [
+      "Step 1: Create multiple jobs via POST /jobs",
+      "Step 2: Retrieve each job via GET /jobs/{id}",
+      "Step 3: Verify all jobs are retrievable",
+      "Step 4: Verify each job has unique ID"
+    ],
+    "passes": false
+  }
+]
