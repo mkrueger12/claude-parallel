@@ -46,11 +46,34 @@ cd /home/max/code/claude-parallel
 ./parallel-impl.sh "Add user authentication with JWT tokens"
 ```
 
+### Custom Number of Implementations
+
+Use the `-n` or `--num` flag to specify how many parallel implementations to run (1-10):
+
+```bash
+# Run 2 implementations instead of the default 3
+./parallel-impl.sh -n 2 "Add user authentication with JWT tokens"
+
+# Run 5 implementations for more options
+./parallel-impl.sh --num 5 "Implement dark mode toggle"
+```
+
 ### From Any Git Repository
 
 ```bash
 cd ~/my-project
 /home/max/code/claude-parallel/parallel-impl.sh "Implement dark mode toggle"
+
+# With custom number of implementations
+/home/max/code/claude-parallel/parallel-impl.sh -n 2 "Add feature X"
+```
+
+### Get Help
+
+```bash
+./parallel-impl.sh -h
+# or
+./parallel-impl.sh --help
 ```
 
 ### What Happens
@@ -104,7 +127,13 @@ Available placeholders:
 
 ### Change Number of Implementations
 
-Edit `parallel-impl.sh` and modify:
+**Recommended:** Use the `-n` or `--num` CLI flag:
+
+```bash
+./parallel-impl.sh -n 5 "your feature request"
+```
+
+Alternatively, you can edit `parallel-impl.sh` and modify the default:
 
 ```bash
 NUM_IMPLEMENTATIONS=3  # Change to 2, 4, 5, etc.

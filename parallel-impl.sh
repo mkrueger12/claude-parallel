@@ -18,16 +18,78 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Parse arguments
-FEATURE_REQUEST="$1"
+# Help function
+show_help() {
+  cat << EOF
+Usage: $0 [OPTIONS] 'feature request'
 
+Run parallel Claude Code implementations and automatically select the best.
+
+Options:
+  -n, --num NUM    Number of parallel implementations (1-10, default: 3)
+  -h, --help       Show this help message
+
+Arguments:
+  feature request  Description of the feature to implement (required)
+
+Examples:
+  $0 'Add user authentication with JWT tokens'
+  $0 -n 2 'Implement dark mode toggle'
+  $0 --num 5 'Add rate limiting middleware'
+
+EOF
+  exit 0
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+      show_help
+      ;;
+    -n|--num)
+      if [ -z "$2" ]; then
+        echo -e "${RED}Error: -n/--num requires a numeric argument${NC}"
+        exit 1
+      fi
+      NUM_IMPLEMENTATIONS="$2"
+      shift 2
+      ;;
+    -*)
+      echo -e "${RED}Error: Unknown option: $1${NC}"
+      echo "Use -h or --help for usage information"
+      exit 1
+      ;;
+    *)
+      FEATURE_REQUEST="$1"
+      shift
+      ;;
+  esac
+done
+
+# Validate NUM_IMPLEMENTATIONS
+if ! [[ "$NUM_IMPLEMENTATIONS" =~ ^[0-9]+$ ]]; then
+  echo -e "${RED}Error: NUM_IMPLEMENTATIONS must be a number (got: $NUM_IMPLEMENTATIONS)${NC}"
+  echo "Valid range: 1-10"
+  exit 1
+fi
+
+if [ "$NUM_IMPLEMENTATIONS" -lt 1 ] || [ "$NUM_IMPLEMENTATIONS" -gt 10 ]; then
+  echo -e "${RED}Error: NUM_IMPLEMENTATIONS must be between 1 and 10 (got: $NUM_IMPLEMENTATIONS)${NC}"
+  exit 1
+fi
+
+# Check feature request is provided
 if [ -z "$FEATURE_REQUEST" ]; then
   echo -e "${RED}Error: Feature request is required${NC}"
   echo ""
-  echo "Usage: $0 'your feature request here'"
+  echo "Usage: $0 [OPTIONS] 'your feature request here'"
   echo ""
   echo "Example:"
   echo "  $0 'Add user authentication with JWT tokens'"
+  echo "  $0 -n 5 'Implement dark mode toggle'"
+  echo ""
+  echo "Use -h or --help for more information"
   exit 1
 fi
 
