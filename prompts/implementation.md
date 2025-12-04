@@ -25,38 +25,8 @@ Implement the following feature request:
    - Identify any discrepancies or misunderstandings
    - Note assumptions that need verification
    - Determine true scope based on codebase reality
-  
-4. **Create /features.json**
-   - Based on the feature, create a file called features.json with detailed end-to-end test cases. This file is the single source of truth for what needs to be built.
 
-   ```json
-            [
-        {
-          "category": "functional",
-          "description": "Brief description of the feature and what this test verifies",
-          "steps": [
-            "Step 1: Navigate to relevant page",
-            "Step 2: Perform action",
-            "Step 3: Verify expected result"
-          ],
-          "passes": false
-        },
-        {
-          "category": "style",
-          "description": "Brief description of UI/UX requirement",
-          "steps": [
-            "Step 1: Navigate to page",
-            "Step 2: Take screenshot",
-            "Step 3: Verify visual requirements"
-          ],
-          "passes": false
-        }
-      ]
-   ```
-
-CRITICAL INSTRUCTION: IT IS CATASTROPHIC TO REMOVE OR EDIT FEATURES IN FUTURE SESSIONS. Features can ONLY be marked as passing (change "passes": false to "passes": true). Never remove features, never edit descriptions, never modify testing steps. This ensures no functionality is missed.
-
-6. **Create /plan.md**
+4. **Create /plan.md**
   - The plan file is the **how** of implementing the features.json. 
 
     1. **Write the plan** to `./plan.md`
@@ -126,33 +96,47 @@ CRITICAL INSTRUCTION: IT IS CATASTROPHIC TO REMOVE OR EDIT FEATURES IN FUTURE SE
 
     ---
 
-    ## Testing Strategy
-
-    ### Unit Tests:
-    - [What to test]
-    - [Key edge cases]
-
-    ### Integration Tests:
-    - [End-to-end scenarios]
-
-    ### Manual Testing Steps:
-    1. [Specific step to verify feature]
-    2. [Another verification step]
-    3. [Edge case to test manually]
-
-
     ## Migration Notes
 
     [If applicable, how to handle existing data/systems]
 
     ## References
 
-    - Original ticket: `ticket_XXXX.md`
     - Related research: `[relevant].md`
     - Similar implementation: `[file:line]`
     ```
+  
+5. **Create /features.json**
+   - Based on the tasks in the plan.md file create N-number of end-to-end test cases in features.json. This file is the single source of truth for what needs to be built.
 
-    ## Important Guidelines
+   ```json
+            [
+        {
+          "category": "functional",
+          "description": "Brief description of the feature and what this test verifies",
+          "plan_ref": "The task from plan.md this test is related to"
+          "steps": [
+            "Step 1: Navigate to relevant page",
+            "Step 2: Perform action",
+            "Step 3: Verify expected result"
+          ],
+          "passes": false
+        },
+        {
+          "category": "style",
+          "description": "Brief description of UI/UX requirement",
+          "plan_ref": "task 2 - Name of tasK"
+          "steps": [
+            "Step 1: Navigate to page",
+            "Step 2: Take screenshot",
+            "Step 3: Verify visual requirements"
+          ],
+          "passes": false
+        }
+      ]
+   ```
+
+## Important Guidelines
 
     1. **Be Skeptical**:
     - Question vague requirements
