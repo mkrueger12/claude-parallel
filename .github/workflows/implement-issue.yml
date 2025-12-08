@@ -87,15 +87,20 @@ jobs:
         run: |
           export PATH="$HOME/.claude/bin:$PATH"
 
-          ISSUE_TITLE="${{ steps.issue.outputs.title }}"
-          ISSUE_BODY=$(cat /tmp/issue_body.txt)
+          # Build feature request file
+          echo "${{ steps.issue.outputs.title }}" > /tmp/feature_request.txt
+          echo "" >> /tmp/feature_request.txt
+          cat /tmp/issue_body.txt >> /tmp/feature_request.txt
 
-          FEATURE_REQUEST="$ISSUE_TITLE
-
-          $ISSUE_BODY"
-
-          # Create prompt from template
-          sed "s|{{FEATURE_REQUEST}}|$FEATURE_REQUEST|g" /tmp/implementation-template.md > /tmp/prompt.md
+          # Substitute using awk (handles multiline)
+          awk '
+            BEGIN {
+              while ((getline line < "/tmp/feature_request.txt") > 0) {
+                feature = feature (feature ? "\n" : "") line
+              }
+            }
+            { gsub(/\{\{FEATURE_REQUEST\}\}/, feature); print }
+          ' /tmp/implementation-template.md > /tmp/prompt.md
 
           echo "Starting implementation ${{ matrix.impl }}..."
 
@@ -204,18 +209,25 @@ jobs:
         run: |
           export PATH="$HOME/.claude/bin:$PATH"
 
-          ISSUE_TITLE="${{ steps.issue.outputs.title }}"
-          ISSUE_BODY=$(cat /tmp/issue_body.txt)
+          # Build feature request file
+          echo "${{ steps.issue.outputs.title }}" > /tmp/feature_request.txt
+          echo "" >> /tmp/feature_request.txt
+          cat /tmp/issue_body.txt >> /tmp/feature_request.txt
 
-          FEATURE_REQUEST="$ISSUE_TITLE
-
-          $ISSUE_BODY"
-
-          # Create review prompt
-          sed -e "s|{{FEATURE_REQUEST}}|$FEATURE_REQUEST|g" \
-              -e "s|{{WORKTREES_DIR}}|worktrees|g" \
-              -e "s|{{NUM_IMPLEMENTATIONS}}|3|g" \
-              /tmp/review-template.md > /tmp/review-prompt.md
+          # Substitute using awk (handles multiline)
+          awk '
+            BEGIN {
+              while ((getline line < "/tmp/feature_request.txt") > 0) {
+                feature = feature (feature ? "\n" : "") line
+              }
+            }
+            {
+              gsub(/\{\{FEATURE_REQUEST\}\}/, feature)
+              gsub(/\{\{WORKTREES_DIR\}\}/, "worktrees")
+              gsub(/\{\{NUM_IMPLEMENTATIONS\}\}/, "3")
+              print
+            }
+          ' /tmp/review-template.md > /tmp/review-prompt.md
 
           echo "Starting review..."
 
