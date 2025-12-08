@@ -21,6 +21,7 @@ env:
   NUM_IMPLEMENTATIONS: 3
   PROMPTS_REPO: mkrueger12/claude-parallel
   PROMPTS_REF: main
+  CLAUDE_MODEL: claude-sonnet-4-20250514
 
 jobs:
   implement:
@@ -109,7 +110,7 @@ jobs:
           set +e
           claude --print "$(cat /tmp/prompt.md)" \
             --output-format json \
-            --model claude-sonnet-4-20250514 \
+            --model ${{ env.CLAUDE_MODEL }} \
             --dangerously-skip-permissions \
             > result.json 2>&1
           CLAUDE_EXIT=$?
@@ -247,7 +248,7 @@ jobs:
 
           claude --print "$(cat /tmp/review-prompt.md)" \
             --output-format json \
-            --model claude-sonnet-4-20250514 \
+            --model ${{ env.CLAUDE_MODEL }} \
             --dangerously-skip-permissions \
             > review-result.json 2> review-error.log || true
 
