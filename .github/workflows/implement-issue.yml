@@ -21,7 +21,7 @@ env:
   NUM_IMPLEMENTATIONS: 3
   PROMPTS_REPO: mkrueger12/claude-parallel
   PROMPTS_REF: main
-  CLAUDE_MODEL: claude-haiku-4-5-20251001
+  CLAUDE_MODEL: claude-opus-4-5-20251101
 
 jobs:
   implement:
