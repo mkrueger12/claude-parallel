@@ -147,8 +147,8 @@ Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
 
-    // Health check endpoint
-    if (url.pathname === "/health" || url.pathname === "/") {
+    // Health check endpoint (GET only)
+    if ((url.pathname === "/health" || url.pathname === "/") && req.method === "GET") {
       return new Response(JSON.stringify({ status: "ok", service: "claude-parallel-runner" }), {
         headers: { "Content-Type": "application/json" },
       });
