@@ -258,21 +258,32 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Extract the decision from Claude's response
-          CONTENT=$(jq -r '.content[0].text // .text // .' review-result.json)
+          # The result field contains text with JSON embedded at the end
+          RESULT=$(jq -r '.result // .content[0].text // .text // .' review-result.json)
 
-          # Try to parse as JSON
-          BEST=$(echo "$CONTENT" | jq -r '.best // empty' 2>/dev/null)
+          # Extract JSON object from the result (finds last {...} in the text)
+          DECISION_JSON=$(echo "$RESULT" | grep -oE '\{[^{}]*"best"[^{}]*\}' | tail -1)
 
-          if [ -z "$BEST" ]; then
-            echo "Could not parse review decision"
-            echo "Review output:"
-            echo "$CONTENT"
+          if [ -z "$DECISION_JSON" ]; then
+            echo "::error::Could not find decision JSON in review output"
+            echo "=== Raw result field: ==="
+            echo "$RESULT" | tail -50
             exit 1
           fi
 
-          REASONING=$(echo "$CONTENT" | jq -r '.reasoning // "No reasoning provided"')
-          QUALITY=$(echo "$CONTENT" | jq -r '.quality_score // "N/A"')
-          COMPLETENESS=$(echo "$CONTENT" | jq -r '.completeness_score // "N/A"')
+          echo "Extracted decision: $DECISION_JSON"
+
+          # Parse the extracted JSON
+          BEST=$(echo "$DECISION_JSON" | jq -r '.best // empty')
+
+          if [ -z "$BEST" ]; then
+            echo "::error::Could not parse 'best' from decision JSON"
+            exit 1
+          fi
+
+          REASONING=$(echo "$DECISION_JSON" | jq -r '.reasoning // "No reasoning provided"')
+          QUALITY=$(echo "$DECISION_JSON" | jq -r '.quality_score // "N/A"')
+          COMPLETENESS=$(echo "$DECISION_JSON" | jq -r '.completeness_score // "N/A"')
 
           echo "Selected implementation: $BEST"
           echo "Quality: $QUALITY, Completeness: $COMPLETENESS"
