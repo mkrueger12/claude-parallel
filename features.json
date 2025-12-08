@@ -1,0 +1,24 @@
+[
+  {
+    "category": "functional",
+    "description": "greet function returns correct greeting format",
+    "plan_ref": "Task 1 - Create greeting module",
+    "steps": [
+      "Step 1: Import the greet function from src/greet.py",
+      "Step 2: Call greet('World') and verify it returns 'Hello, World!'",
+      "Step 3: Call greet('Alice') and verify it returns 'Hello, Alice!'"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "pytest test suite passes for greeting function",
+    "plan_ref": "Task 2 - Create test file and Task 4 - Run and verify tests",
+    "steps": [
+      "Step 1: Ensure pytest is installed via requirements.txt",
+      "Step 2: Run pytest command in project directory",
+      "Step 3: Verify all tests pass with exit code 0"
+    ],
+    "passes": true
+  }
+]
