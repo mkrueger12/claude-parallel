@@ -103,19 +103,32 @@ jobs:
           ' /tmp/implementation-template.md > /tmp/prompt.md
 
           echo "Starting implementation ${{ matrix.impl }}..."
+          echo "Prompt size: $(wc -c < /tmp/prompt.md) bytes"
 
+          # Run claude and capture exit code
+          set +e
           claude --print "$(cat /tmp/prompt.md)" \
             --output-format json \
             --model claude-sonnet-4-20250514 \
             --dangerously-skip-permissions \
-            > result.json 2> error.log || true
+            > result.json 2>&1
+          CLAUDE_EXIT=$?
+          set -e
 
-          # Check if we got output
-          if [ -s result.json ]; then
-            echo "Implementation completed"
+          echo "Claude exit code: $CLAUDE_EXIT"
+
+          # Check if we got valid output
+          if [ -s result.json ] && jq -e . result.json > /dev/null 2>&1; then
+            echo "Implementation completed successfully"
           else
-            echo "Implementation failed, check error.log"
-            cat error.log
+            echo "::error::Implementation ${{ matrix.impl }} failed"
+            echo "=== Claude exit code: $CLAUDE_EXIT ==="
+            echo "=== result.json contents (first 500 chars): ==="
+            head -c 500 result.json 2>/dev/null || echo "(empty or missing)"
+            echo ""
+            echo "=== Checking claude installation: ==="
+            which claude || echo "claude not found in PATH"
+            echo "PATH: $PATH"
             exit 1
           fi
 
