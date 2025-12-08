@@ -20,7 +20,7 @@ permissions:
 env:
   NUM_IMPLEMENTATIONS: 3
   PROMPTS_REPO: mkrueger12/claude-parallel
-  PROMPTS_REF: feat/issue-automation
+  PROMPTS_REF: main
 
 jobs:
   implement:
