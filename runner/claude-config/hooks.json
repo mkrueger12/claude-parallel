@@ -1,0 +1,19 @@
+{
+  "hooks": [
+    {
+      "name": "agent-register",
+      "type": "SessionStart",
+      "command": "bash ~/.claude/skills/agent-memory/scripts/session.sh register --session-id \"$CLAUDE_SESSION_ID\" --task \"$CLAUDE_TASK\""
+    },
+    {
+      "name": "record-tool",
+      "type": "PostToolUse",
+      "command": "bash .claude/skills/agent-memory/scripts/session.sh record-tool \"$CLAUDE_SESSION_ID\" \"$TOOL_NAME\" \"$TOOL_INPUT\" \"$TOOL_OUTPUT\" \"$TOOL_DURATION\""
+    },
+    {
+      "name": "session-end",
+      "type": "SessionEnd",
+      "command": "bash .claude/skills/agent-memory/scripts/session.sh end \"$CLAUDE_SESSION_ID\""
+    }
+  ]
+}
