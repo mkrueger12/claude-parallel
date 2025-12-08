@@ -1,0 +1,290 @@
+name: Implement Issue
+
+on:
+  issues:
+    types: [opened]
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to implement'
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
+env:
+  NUM_IMPLEMENTATIONS: 3
+  PROMPTS_REPO: mkrueger12/claude-parallel
+  PROMPTS_REF: main
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        impl: [1, 2, 3]
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get issue details
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ISSUE_NUMBER="${{ inputs.issue_number }}"
+          else
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+          fi
+
+          ISSUE_JSON=$(gh issue view "$ISSUE_NUMBER" --json title,body)
+          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "title=$(echo "$ISSUE_JSON" | jq -r '.title')" >> $GITHUB_OUTPUT
+
+          # Write body to file to handle multiline
+          echo "$ISSUE_JSON" | jq -r '.body // ""' > /tmp/issue_body.txt
+
+      - name: Create implementation branch
+        run: |
+          BRANCH="impl-${{ github.run_id }}-${{ matrix.impl }}"
+          git checkout -b "$BRANCH"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+      - name: Install Claude CLI
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.claude/bin" >> $GITHUB_PATH
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          if [ -f "package.json" ]; then
+            npm ci || npm install
+          fi
+
+      - name: Fetch implementation prompt
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.github/prompts/implementation.md" \
+            -o /tmp/implementation-template.md
+
+      - name: Run implementation
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          export PATH="$HOME/.claude/bin:$PATH"
+
+          ISSUE_TITLE="${{ steps.issue.outputs.title }}"
+          ISSUE_BODY=$(cat /tmp/issue_body.txt)
+
+          FEATURE_REQUEST="$ISSUE_TITLE
+
+          $ISSUE_BODY"
+
+          # Create prompt from template
+          sed "s|{{FEATURE_REQUEST}}|$FEATURE_REQUEST|g" /tmp/implementation-template.md > /tmp/prompt.md
+
+          echo "Starting implementation ${{ matrix.impl }}..."
+
+          claude --print "$(cat /tmp/prompt.md)" \
+            --output-format json \
+            --model claude-sonnet-4-20250514 \
+            --dangerously-skip-permissions \
+            > result.json 2> error.log || true
+
+          # Check if we got output
+          if [ -s result.json ]; then
+            echo "Implementation completed"
+          else
+            echo "Implementation failed, check error.log"
+            cat error.log
+            exit 1
+          fi
+
+      - name: Commit changes
+        run: |
+          git config user.name "Claude Parallel Bot"
+          git config user.email "bot@claude-parallel.dev"
+
+          # Add all changes
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            echo "HAS_CHANGES=false" >> $GITHUB_ENV
+          else
+            git commit -m "Implementation ${{ matrix.impl }}: ${{ steps.issue.outputs.title }}"
+            echo "HAS_CHANGES=true" >> $GITHUB_ENV
+          fi
+
+      - name: Push branch
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          git push origin "$BRANCH"
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: impl-${{ matrix.impl }}
+          path: |
+            result.json
+            error.log
+          retention-days: 1
+
+  review:
+    needs: implement
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get issue details
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ISSUE_NUMBER="${{ inputs.issue_number }}"
+          else
+            ISSUE_NUMBER="${{ github.event.issue.number }}"
+          fi
+
+          ISSUE_JSON=$(gh issue view "$ISSUE_NUMBER" --json title,body)
+          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+          echo "title=$(echo "$ISSUE_JSON" | jq -r '.title')" >> $GITHUB_OUTPUT
+          echo "$ISSUE_JSON" | jq -r '.body // ""' > /tmp/issue_body.txt
+
+      - name: Download all implementation results
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Fetch implementation branches
+        run: |
+          mkdir -p worktrees
+          for i in 1 2 3; do
+            BRANCH="impl-${{ github.run_id }}-$i"
+            if git fetch origin "$BRANCH" 2>/dev/null; then
+              git worktree add "worktrees/impl-$i" "origin/$BRANCH"
+              echo "Fetched impl-$i"
+            else
+              echo "Branch $BRANCH not found (implementation may have failed)"
+            fi
+          done
+
+      - name: Install Claude CLI
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.claude/bin" >> $GITHUB_PATH
+
+      - name: Fetch review prompt
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.github/prompts/review.md" \
+            -o /tmp/review-template.md
+
+      - name: Review implementations
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          export PATH="$HOME/.claude/bin:$PATH"
+
+          ISSUE_TITLE="${{ steps.issue.outputs.title }}"
+          ISSUE_BODY=$(cat /tmp/issue_body.txt)
+
+          FEATURE_REQUEST="$ISSUE_TITLE
+
+          $ISSUE_BODY"
+
+          # Create review prompt
+          sed -e "s|{{FEATURE_REQUEST}}|$FEATURE_REQUEST|g" \
+              -e "s|{{WORKTREES_DIR}}|worktrees|g" \
+              -e "s|{{NUM_IMPLEMENTATIONS}}|3|g" \
+              /tmp/review-template.md > /tmp/review-prompt.md
+
+          echo "Starting review..."
+
+          claude --print "$(cat /tmp/review-prompt.md)" \
+            --output-format json \
+            --model claude-sonnet-4-20250514 \
+            --dangerously-skip-permissions \
+            > review-result.json 2> review-error.log || true
+
+          cat review-result.json
+
+      - name: Parse review and create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Extract the decision from Claude's response
+          CONTENT=$(jq -r '.content[0].text // .text // .' review-result.json)
+
+          # Try to parse as JSON
+          BEST=$(echo "$CONTENT" | jq -r '.best // empty' 2>/dev/null)
+
+          if [ -z "$BEST" ]; then
+            echo "Could not parse review decision"
+            echo "Review output:"
+            echo "$CONTENT"
+            exit 1
+          fi
+
+          REASONING=$(echo "$CONTENT" | jq -r '.reasoning // "No reasoning provided"')
+          QUALITY=$(echo "$CONTENT" | jq -r '.quality_score // "N/A"')
+          COMPLETENESS=$(echo "$CONTENT" | jq -r '.completeness_score // "N/A"')
+
+          echo "Selected implementation: $BEST"
+          echo "Quality: $QUALITY, Completeness: $COMPLETENESS"
+
+          WINNING_BRANCH="impl-${{ github.run_id }}-$BEST"
+
+          # Create PR
+          PR_BODY="## AI-Generated Implementation (Best of 3)
+
+          **Issue:** #${{ steps.issue.outputs.number }}
+          **Selected:** Implementation $BEST
+
+          ### Scores
+          - Quality: $QUALITY/100
+          - Completeness: $COMPLETENESS/100
+
+          ### Reasoning
+          $REASONING
+
+          ---
+          *Generated by Claude Parallel workflow*"
+
+          gh pr create \
+            --head "$WINNING_BRANCH" \
+            --title "Feature: ${{ steps.issue.outputs.title }}" \
+            --body "$PR_BODY" \
+            --draft
+
+      - name: Cleanup losing branches
+        if: always()
+        run: |
+          # Get the winning branch from review
+          CONTENT=$(jq -r '.content[0].text // .text // .' review-result.json 2>/dev/null || echo "{}")
+          BEST=$(echo "$CONTENT" | jq -r '.best // empty' 2>/dev/null)
+
+          for i in 1 2 3; do
+            if [ "$i" != "$BEST" ]; then
+              BRANCH="impl-${{ github.run_id }}-$i"
+              git push origin --delete "$BRANCH" 2>/dev/null || true
+            fi
+          done
