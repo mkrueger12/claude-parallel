@@ -1,0 +1,113 @@
+name: 'Detect Project Runtime'
+description: 'Auto-detects project runtime, package manager, and build/test configuration'
+
+outputs:
+  runtime:
+    description: 'Detected runtime (js, python, go, rust, unknown)'
+    value: ${{ steps.detect.outputs.runtime }}
+  package_manager:
+    description: 'Detected package manager (bun, pnpm, yarn, npm, pip, poetry, go, cargo, unknown)'
+    value: ${{ steps.detect.outputs.package_manager }}
+  has_build:
+    description: 'Whether project has a build script (true/false)'
+    value: ${{ steps.detect.outputs.has_build }}
+  has_tests:
+    description: 'Whether project has tests (true/false)'
+    value: ${{ steps.detect.outputs.has_tests }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect runtime and configuration
+      id: detect
+      shell: bash
+      run: |
+        # Initialize outputs
+        runtime="unknown"
+        package_manager="unknown"
+        has_build="false"
+        has_tests="false"
+
+        # Detect JavaScript/TypeScript
+        if [[ -f "package.json" ]]; then
+          runtime="js"
+
+          # Detect package manager (check lockfiles in order of specificity)
+          if [[ -f "bun.lockb" ]]; then
+            package_manager="bun"
+          elif [[ -f "pnpm-lock.yaml" ]]; then
+            package_manager="pnpm"
+          elif [[ -f "yarn.lock" ]]; then
+            package_manager="yarn"
+          elif [[ -f "package-lock.json" ]]; then
+            package_manager="npm"
+          else
+            # Default to npm if only package.json exists
+            package_manager="npm"
+          fi
+
+          # Check for build script in package.json
+          if grep -q '"build"' package.json; then
+            has_build="true"
+          fi
+
+          # Check for test script in package.json
+          if grep -q '"test"' package.json; then
+            has_tests="true"
+          fi
+
+        # Detect Python
+        elif [[ -f "pyproject.toml" ]] || [[ -f "requirements.txt" ]] || [[ -f "setup.py" ]]; then
+          runtime="python"
+
+          # Detect package manager
+          if [[ -f "poetry.lock" ]]; then
+            package_manager="poetry"
+          else
+            package_manager="pip"
+          fi
+
+          # Check for build-system in pyproject.toml
+          if [[ -f "pyproject.toml" ]] && grep -q '\[build-system\]' pyproject.toml; then
+            has_build="true"
+          fi
+
+          # Check for test directories or pytest
+          if [[ -d "tests" ]] || [[ -d "test" ]] || grep -q "pytest" requirements.txt 2>/dev/null || grep -q "pytest" pyproject.toml 2>/dev/null; then
+            has_tests="true"
+          fi
+
+        # Detect Go
+        elif [[ -f "go.mod" ]]; then
+          runtime="go"
+          package_manager="go"
+          has_build="true"  # Go always has built-in build
+
+          # Check for test files
+          if ls *_test.go >/dev/null 2>&1; then
+            has_tests="true"
+          fi
+
+        # Detect Rust
+        elif [[ -f "Cargo.toml" ]]; then
+          runtime="rust"
+          package_manager="cargo"
+          has_build="true"  # Cargo always has built-in build
+
+          # Check for tests directory or dev-dependencies in Cargo.toml
+          if [[ -d "tests" ]] || grep -q '\[dev-dependencies\]' Cargo.toml; then
+            has_tests="true"
+          fi
+        fi
+
+        # Output results
+        echo "runtime=$runtime" >> $GITHUB_OUTPUT
+        echo "package_manager=$package_manager" >> $GITHUB_OUTPUT
+        echo "has_build=$has_build" >> $GITHUB_OUTPUT
+        echo "has_tests=$has_tests" >> $GITHUB_OUTPUT
+
+        # Log detected configuration
+        echo "Detected runtime: $runtime"
+        echo "Package manager: $package_manager"
+        echo "Has build script: $has_build"
+        echo "Has tests: $has_tests"
