@@ -1,4 +1,4 @@
-name: Implement Issue
+name: Claude Implement Issue
 
 on:
   issues:
