@@ -68,6 +68,16 @@ jobs:
           $HOME/.claude/bin/claude mcp add playwright npx @playwright/mcp@latest
           $HOME/.claude/bin/claude mcp add -s user -t http deepwiki https://mcp.deepwiki.com/mcp
 
+      - name: Fetch custom agents
+        run: |
+          mkdir -p "$HOME/.claude/agents"
+          for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
+            curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.claude/agents/${agent}.md" \
+              -o "$HOME/.claude/agents/${agent}.md"
+          done
+          echo "Installed agents:"
+          ls -la "$HOME/.claude/agents/"
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
@@ -220,6 +230,16 @@ jobs:
           $HOME/.claude/bin/claude mcp add playwright npx @playwright/mcp@latest
           $HOME/.claude/bin/claude mcp add -s user -t http deepwiki https://mcp.deepwiki.com/mcp
 
+      - name: Fetch custom agents
+        run: |
+          mkdir -p "$HOME/.claude/agents"
+          for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
+            curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.claude/agents/${agent}.md" \
+              -o "$HOME/.claude/agents/${agent}.md"
+          done
+          echo "Installed agents:"
+          ls -la "$HOME/.claude/agents/"
+
       - name: Fetch review prompt
         run: |
           curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.github/prompts/review.md" \
@@ -359,6 +379,16 @@ jobs:
           echo "$HOME/.claude/bin" >> $GITHUB_PATH
           $HOME/.claude/bin/claude mcp add playwright npx @playwright/mcp@latest
           $HOME/.claude/bin/claude mcp add -s user -t http deepwiki https://mcp.deepwiki.com/mcp
+
+      - name: Fetch custom agents
+        run: |
+          mkdir -p "$HOME/.claude/agents"
+          for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
+            curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.claude/agents/${agent}.md" \
+              -o "$HOME/.claude/agents/${agent}.md"
+          done
+          echo "Installed agents:"
+          ls -la "$HOME/.claude/agents/"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
