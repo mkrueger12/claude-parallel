@@ -296,8 +296,12 @@ jobs:
 
           echo "Starting review..."
 
+          # Define JSON schema for structured output
+          JSON_SCHEMA='{"type":"object","properties":{"best":{"type":"integer","minimum":1,"maximum":3},"reasoning":{"type":"string"},"quality_score":{"type":"integer","minimum":0,"maximum":100},"completeness_score":{"type":"integer","minimum":0,"maximum":100}},"required":["best","reasoning"]}'
+
           claude --print "$(cat /tmp/review-prompt.md)" \
             --output-format json \
+            --json-schema "$JSON_SCHEMA" \
             --model ${{ env.CLAUDE_MODEL }} \
             --dangerously-skip-permissions \
             > review-result.json 2> review-error.log || true
@@ -311,8 +315,9 @@ jobs:
           WINNER=$(( (RANDOM % 3) + 1 ))
           echo "Mock review selecting implementation $WINNER"
 
-          # Create mock review result (no leading whitespace - matches Claude output format)
-          echo "{\"result\": \"Mock review complete. {\\\"best\\\": $WINNER, \\\"reasoning\\\": \\\"Dry run mock selection\\\", \\\"quality_score\\\": 85, \\\"completeness_score\\\": 90}\"}" > review-result.json
+          # Create mock review result matching --json-schema output format
+          # The result field contains a JSON string that parses to the decision object
+          echo "{\"result\": \"{\\\"best\\\": $WINNER, \\\"reasoning\\\": \\\"Dry run mock selection\\\", \\\"quality_score\\\": 85, \\\"completeness_score\\\": 90}\"}" > review-result.json
           cat review-result.json
 
       - name: Parse review and create PR
@@ -321,79 +326,62 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           # Extract the decision from Claude's response
-          # The result field contains text with JSON embedded
-          RESULT=$(jq -r '.result // .content[0].text // .text // .' review-result.json)
-
+          # With --json-schema, the result should be valid JSON directly
           echo "=== Parsing review result ==="
 
-          # Strategy 1: Try parsing the entire text as JSON directly
-          DECISION_JSON=$(echo "$RESULT" | jq -c 'select(.best != null)' 2>/dev/null || true)
+          # The output format wraps response in {"result": "..."} where result is JSON string
+          # Try multiple extraction paths for robustness
+          DECISION_JSON=""
 
-          # Strategy 2: Extract JSON from markdown code blocks if Strategy 1 failed
-          if [ -z "$DECISION_JSON" ]; then
-            CODE_BLOCK=$(echo "$RESULT" | sed -n '/```\(json\)\?/,/```/p' | sed '1d;$d')
-            if [ -n "$CODE_BLOCK" ]; then
-              DECISION_JSON=$(echo "$CODE_BLOCK" | jq -c 'select(.best != null)' 2>/dev/null || true)
-            fi
+          # Strategy 1: With --json-schema, result field should contain JSON string - parse it
+          RESULT_FIELD=$(jq -r '.result // empty' review-result.json 2>/dev/null)
+          if [ -n "$RESULT_FIELD" ]; then
+            DECISION_JSON=$(echo "$RESULT_FIELD" | jq -c 'select(.best != null)' 2>/dev/null || true)
           fi
 
-          # Strategy 3: Use Python to find JSON object with "best" key (handles nested braces)
+          # Strategy 2: Check if the file itself is the decision JSON (direct output)
           if [ -z "$DECISION_JSON" ]; then
+            DECISION_JSON=$(jq -c 'select(.best != null)' review-result.json 2>/dev/null || true)
+          fi
+
+          # Strategy 3: Fallback - extract from text content (handles non-schema responses)
+          if [ -z "$DECISION_JSON" ]; then
+            RESULT=$(jq -r '.result // .content[0].text // .text // .' review-result.json 2>/dev/null || cat review-result.json)
             DECISION_JSON=$(echo "$RESULT" | python3 -c '
-import sys
-import json
-
+import sys, json
 text = sys.stdin.read()
-
-# Find all potential JSON objects (matching outermost braces properly)
-def find_json_objects(s):
-    objects = []
-    i = 0
-    while i < len(s):
-        if s[i] == "{":
-            depth = 1
-            start = i
+# Find JSON objects with proper brace matching
+i = 0
+while i < len(text):
+    if text[i] == "{":
+        depth, start, in_str, esc = 1, i, False, False
+        i += 1
+        while i < len(text) and depth > 0:
+            c = text[i]
+            if esc: esc = False
+            elif c == "\\" and in_str: esc = True
+            elif c == "\"": in_str = not in_str
+            elif not in_str:
+                if c == "{": depth += 1
+                elif c == "}": depth -= 1
             i += 1
-            in_string = False
-            escape = False
-            while i < len(s) and depth > 0:
-                c = s[i]
-                if escape:
-                    escape = False
-                elif c == "\\" and in_string:
-                    escape = True
-                elif c == "\"" and not escape:
-                    in_string = not in_string
-                elif not in_string:
-                    if c == "{":
-                        depth += 1
-                    elif c == "}":
-                        depth -= 1
-                i += 1
-            if depth == 0:
-                objects.append(s[start:i])
-        else:
-            i += 1
-    return objects
-
-# Try each potential JSON object
-for obj_str in find_json_objects(text):
-    try:
-        obj = json.loads(obj_str)
-        if isinstance(obj, dict) and "best" in obj:
-            print(json.dumps(obj))
-            sys.exit(0)
-    except json.JSONDecodeError:
-        continue
-
+        if depth == 0:
+            try:
+                obj = json.loads(text[start:i])
+                if isinstance(obj, dict) and "best" in obj:
+                    print(json.dumps(obj))
+                    sys.exit(0)
+            except: pass
+    else:
+        i += 1
 sys.exit(1)
 ' 2>/dev/null || true)
           fi
 
           if [ -z "$DECISION_JSON" ]; then
             echo "::error::Could not find decision JSON in review output"
-            echo "=== Raw result field: ==="
-            echo "$RESULT" | tail -100
+            echo "=== Raw review-result.json: ==="
+            cat review-result.json | tail -100
             exit 1
           fi
 
