@@ -1,10 +1,6 @@
 name: Claude Implement Issue
 
 on:
-  issues:
-    types: [opened]
-
-  # Allow manual trigger for testing and debugging
   workflow_dispatch:
     inputs:
       issue_number:
