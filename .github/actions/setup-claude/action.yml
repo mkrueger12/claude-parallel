@@ -1,0 +1,45 @@
+name: 'Setup Claude CLI'
+description: 'Install Claude CLI and configure authentication'
+inputs:
+  claude_code_oauth_token:
+    description: 'OAuth token for Claude CLI (preferred method)'
+    required: false
+  anthropic_api_key:
+    description: 'Anthropic API key for Claude CLI (alternative to OAuth)'
+    required: false
+outputs:
+  auth_method:
+    description: 'Authentication method being used (oauth or api_key)'
+    value: ${{ steps.set-auth.outputs.auth_method }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate authentication
+      shell: bash
+      run: |
+        if [[ -z "${{ inputs.claude_code_oauth_token }}" ]] && [[ -z "${{ inputs.anthropic_api_key }}" ]]; then
+          echo "Error: At least one authentication method must be provided"
+          echo "Please provide either claude_code_oauth_token or anthropic_api_key"
+          exit 1
+        fi
+
+    - name: Install Claude CLI
+      shell: bash
+      run: |
+        curl -fsSL https://claude.ai/install.sh | bash
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Set authentication method
+      id: set-auth
+      shell: bash
+      run: |
+        if [[ -n "${{ inputs.claude_code_oauth_token }}" ]]; then
+          echo "CLAUDE_CODE_OAUTH_TOKEN=${{ inputs.claude_code_oauth_token }}" >> $GITHUB_ENV
+          echo "auth_method=oauth" >> $GITHUB_OUTPUT
+          echo "Using OAuth token for authentication"
+        elif [[ -n "${{ inputs.anthropic_api_key }}" ]]; then
+          echo "ANTHROPIC_API_KEY=${{ inputs.anthropic_api_key }}" >> $GITHUB_ENV
+          echo "auth_method=api_key" >> $GITHUB_OUTPUT
+          echo "Using API key for authentication"
+        fi
