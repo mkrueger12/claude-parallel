@@ -21,7 +21,7 @@ env:
   NUM_IMPLEMENTATIONS: 3
   PROMPTS_REPO: mkrueger12/claude-parallel
   PROMPTS_REF: main
-  CLAUDE_MODEL: claude-haiku-4-5-20251001
+  CLAUDE_MODEL: claude-opus-4-5-20251101
 
 jobs:
   implement:
@@ -346,11 +346,11 @@ jobs:
           echo "Created PR #$PR_NUMBER"
 
       - name: Cleanup losing branches
-        if: always()
+        if: always() && steps.create_pr.outputs.winning_branch != ''
         run: |
-          # Get the winning branch from review
-          CONTENT=$(jq -r '.content[0].text // .text // .' review-result.json 2>/dev/null || echo "{}")
-          BEST=$(echo "$CONTENT" | jq -r '.best // empty' 2>/dev/null)
+          WINNING="${{ steps.create_pr.outputs.winning_branch }}"
+          # Extract impl number (last character after final dash)
+          BEST="${WINNING##*-}"
 
           for i in 1 2 3; do
             if [ "$i" != "$BEST" ]; then
