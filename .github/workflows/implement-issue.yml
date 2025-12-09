@@ -321,16 +321,79 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           # Extract the decision from Claude's response
-          # The result field contains text with JSON embedded at the end
+          # The result field contains text with JSON embedded
           RESULT=$(jq -r '.result // .content[0].text // .text // .' review-result.json)
 
-          # Extract JSON object from the result (finds last {...} in the text)
-          DECISION_JSON=$(echo "$RESULT" | grep -oE '\{[^{}]*"best"[^{}]*\}' | tail -1)
+          echo "=== Parsing review result ==="
+
+          # Strategy 1: Try parsing the entire text as JSON directly
+          DECISION_JSON=$(echo "$RESULT" | jq -c 'select(.best != null)' 2>/dev/null || true)
+
+          # Strategy 2: Extract JSON from markdown code blocks if Strategy 1 failed
+          if [ -z "$DECISION_JSON" ]; then
+            CODE_BLOCK=$(echo "$RESULT" | sed -n '/```\(json\)\?/,/```/p' | sed '1d;$d')
+            if [ -n "$CODE_BLOCK" ]; then
+              DECISION_JSON=$(echo "$CODE_BLOCK" | jq -c 'select(.best != null)' 2>/dev/null || true)
+            fi
+          fi
+
+          # Strategy 3: Use Python to find JSON object with "best" key (handles nested braces)
+          if [ -z "$DECISION_JSON" ]; then
+            DECISION_JSON=$(echo "$RESULT" | python3 -c '
+import sys
+import json
+
+text = sys.stdin.read()
+
+# Find all potential JSON objects (matching outermost braces properly)
+def find_json_objects(s):
+    objects = []
+    i = 0
+    while i < len(s):
+        if s[i] == "{":
+            depth = 1
+            start = i
+            i += 1
+            in_string = False
+            escape = False
+            while i < len(s) and depth > 0:
+                c = s[i]
+                if escape:
+                    escape = False
+                elif c == "\\" and in_string:
+                    escape = True
+                elif c == "\"" and not escape:
+                    in_string = not in_string
+                elif not in_string:
+                    if c == "{":
+                        depth += 1
+                    elif c == "}":
+                        depth -= 1
+                i += 1
+            if depth == 0:
+                objects.append(s[start:i])
+        else:
+            i += 1
+    return objects
+
+# Try each potential JSON object
+for obj_str in find_json_objects(text):
+    try:
+        obj = json.loads(obj_str)
+        if isinstance(obj, dict) and "best" in obj:
+            print(json.dumps(obj))
+            sys.exit(0)
+    except json.JSONDecodeError:
+        continue
+
+sys.exit(1)
+' 2>/dev/null || true)
+          fi
 
           if [ -z "$DECISION_JSON" ]; then
             echo "::error::Could not find decision JSON in review output"
             echo "=== Raw result field: ==="
-            echo "$RESULT" | tail -50
+            echo "$RESULT" | tail -100
             exit 1
           fi
 
