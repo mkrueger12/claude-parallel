@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PAT }}
 
       - name: Get issue details
         id: issue
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             ISSUE_NUMBER="${{ inputs.issue_number }}"
@@ -187,11 +187,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
 
       - name: Get issue details
         id: issue
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             ISSUE_NUMBER="${{ inputs.issue_number }}"
@@ -281,7 +282,7 @@ jobs:
       - name: Parse review and create PR
         id: create_pr
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           # Extract the decision from Claude's response
           # The result field contains text with JSON embedded at the end
@@ -369,6 +370,7 @@ jobs:
         with:
           ref: ${{ needs.review.outputs.winning_branch }}
           fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
 
       - name: Install Claude CLI
         run: |
@@ -461,7 +463,7 @@ jobs:
       - name: Get issue details
         id: issue
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           ISSUE_JSON=$(gh issue view "${{ needs.review.outputs.issue_number }}" --json title,body)
           echo "title=$(echo "$ISSUE_JSON" | jq -r '.title')" >> $GITHUB_OUTPUT
@@ -526,7 +528,7 @@ jobs:
 
       - name: Post verification results to PR
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           # Use pre-computed build results
           BUILD="${{ steps.build_checks.outputs.BUILD_STATUS }}"
