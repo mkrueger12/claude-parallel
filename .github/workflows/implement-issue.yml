@@ -11,6 +11,10 @@ on:
         description: 'Issue number to implement'
         required: true
         type: number
+      dry_run:
+        description: 'Skip Claude, use mock responses for testing'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -63,11 +67,13 @@ jobs:
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
       - name: Install Claude CLI
+        if: ${{ inputs.dry_run != true }}
         run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Fetch custom agents
+        if: ${{ inputs.dry_run != true }}
         run: |
           mkdir -p "$HOME/.claude/agents"
           for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
@@ -87,11 +93,13 @@ jobs:
           fi
 
       - name: Fetch implementation prompt
+        if: ${{ inputs.dry_run != true }}
         run: |
           curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.github/prompts/implementation.md" \
             -o /tmp/implementation-template.md
 
       - name: Run implementation
+        if: ${{ inputs.dry_run != true }}
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
@@ -141,6 +149,19 @@ jobs:
             echo "PATH: $PATH"
             exit 1
           fi
+
+      - name: Mock implementation (dry run)
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          # Create mock result
+          echo '{"result": "Mock implementation ${{ matrix.impl }} completed"}' > result.json
+
+          # Create a mock change to test the workflow
+          echo "# Mock Implementation ${{ matrix.impl }}" >> MOCK_CHANGES.md
+          echo "" >> MOCK_CHANGES.md
+          echo "Issue: ${{ steps.issue.outputs.title }}" >> MOCK_CHANGES.md
+          echo "Run ID: ${{ github.run_id }}" >> MOCK_CHANGES.md
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> MOCK_CHANGES.md
 
       - name: Commit changes
         run: |
@@ -224,11 +245,13 @@ jobs:
           done
 
       - name: Install Claude CLI
+        if: ${{ inputs.dry_run != true }}
         run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Fetch custom agents
+        if: ${{ inputs.dry_run != true }}
         run: |
           mkdir -p "$HOME/.claude/agents"
           for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
@@ -239,11 +262,13 @@ jobs:
           ls -la "$HOME/.claude/agents/"
 
       - name: Fetch review prompt
+        if: ${{ inputs.dry_run != true }}
         run: |
           curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.github/prompts/review.md" \
             -o /tmp/review-template.md
 
       - name: Review implementations
+        if: ${{ inputs.dry_run != true }}
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
@@ -277,6 +302,17 @@ jobs:
             --dangerously-skip-permissions \
             > review-result.json 2> review-error.log || true
 
+          cat review-result.json
+
+      - name: Mock review (dry run)
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          # Pick a random winner (1-3) for testing
+          WINNER=$(( (RANDOM % 3) + 1 ))
+          echo "Mock review selecting implementation $WINNER"
+
+          # Create mock review result (no leading whitespace - matches Claude output format)
+          echo "{\"result\": \"Mock review complete. {\\\"best\\\": $WINNER, \\\"reasoning\\\": \\\"Dry run mock selection\\\", \\\"quality_score\\\": 85, \\\"completeness_score\\\": 90}\"}" > review-result.json
           cat review-result.json
 
       - name: Parse review and create PR
@@ -373,11 +409,13 @@ jobs:
           token: ${{ secrets.GH_PAT }}
 
       - name: Install Claude CLI
+        if: ${{ inputs.dry_run != true }}
         run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Fetch custom agents
+        if: ${{ inputs.dry_run != true }}
         run: |
           mkdir -p "$HOME/.claude/agents"
           for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
@@ -470,11 +508,13 @@ jobs:
           echo "$ISSUE_JSON" | jq -r '.body // ""' > /tmp/issue_body.txt
 
       - name: Fetch verify prompt
+        if: ${{ inputs.dry_run != true }}
         run: |
           curl -fsSL "https://raw.githubusercontent.com/${{ env.PROMPTS_REPO }}/${{ env.PROMPTS_REF }}/.github/prompts/verify.md" \
             -o /tmp/verify-template.md
 
       - name: Run verification
+        if: ${{ inputs.dry_run != true }}
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
@@ -524,6 +564,25 @@ jobs:
             --dangerously-skip-permissions \
             > verify-result.json 2> verify-error.log || true
 
+          cat verify-result.json
+
+      - name: Mock verification (dry run)
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          # Create mock verification result based on build checks
+          BUILD="${{ steps.build_checks.outputs.BUILD_STATUS }}"
+          TESTS="${{ steps.build_checks.outputs.TESTS_STATUS }}"
+
+          if [ "$BUILD" = "pass" ] || [ "$BUILD" = "skip" ]; then
+            VERIFIED="true"
+            SUMMARY="Dry run verification passed"
+          else
+            VERIFIED="false"
+            SUMMARY="Dry run verification failed due to build errors"
+          fi
+
+          # Create mock result (no leading whitespace - matches Claude output format)
+          echo "{\"result\": \"Mock verification complete. {\\\"verified\\\": $VERIFIED, \\\"summary\\\": \\\"$SUMMARY\\\", \\\"issues\\\": []}\"}" > verify-result.json
           cat verify-result.json
 
       - name: Post verification results to PR
