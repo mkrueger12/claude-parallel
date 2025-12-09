@@ -1,0 +1,34 @@
+name: 'Fetch Claude Agents'
+description: 'Downloads custom Claude agents from a central repository'
+
+inputs:
+  repo:
+    description: 'Source repository for agents (format: owner/repo)'
+    required: false
+    default: 'mkrueger12/claude-parallel'
+  ref:
+    description: 'Git ref (branch, tag, or commit) to fetch from'
+    required: false
+    default: 'main'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Create agents directory
+      shell: bash
+      run: |
+        mkdir -p "$HOME/.claude/agents"
+
+    - name: Download agents
+      shell: bash
+      run: |
+        for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
+          curl -fsSL "https://raw.githubusercontent.com/${{ inputs.repo }}/${{ inputs.ref }}/.claude/agents/${agent}.md" \
+            -o "$HOME/.claude/agents/${agent}.md"
+        done
+
+    - name: List installed agents
+      shell: bash
+      run: |
+        echo "Installed agents:"
+        ls -la "$HOME/.claude/agents/"
