@@ -100,7 +100,7 @@ jobs:
 
       - name: Get issue details
         id: issue
-        uses: ./.github/actions/get-issue-details
+        uses: mkrueger12/claude-parallel/.github/actions/get-issue-details@main
         with:
           issue_number: ${{ inputs.issue_number }}
           github_token: ${{ secrets.GH_PAT }}
@@ -115,21 +115,21 @@ jobs:
 
       - name: Setup Claude CLI
         if: ${{ inputs.dry_run != true }}
-        uses: ./.github/actions/setup-claude
+        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}
-        uses: ./.github/actions/fetch-agents
+        uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
         with:
           repo: ${{ inputs.prompts_repo }}
           ref: ${{ inputs.prompts_ref }}
 
       - name: Detect runtime
         id: runtime
-        uses: ./.github/actions/detect-runtime
+        uses: mkrueger12/claude-parallel/.github/actions/detect-runtime@main
 
       - name: Setup Bun
         if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager == 'bun'
@@ -311,7 +311,7 @@ jobs:
 
       - name: Get issue details
         id: issue
-        uses: ./.github/actions/get-issue-details
+        uses: mkrueger12/claude-parallel/.github/actions/get-issue-details@main
         with:
           issue_number: ${{ inputs.issue_number }}
           github_token: ${{ secrets.GH_PAT }}
@@ -338,14 +338,14 @@ jobs:
 
       - name: Setup Claude CLI
         if: ${{ inputs.dry_run != true }}
-        uses: ./.github/actions/setup-claude
+        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}
-        uses: ./.github/actions/fetch-agents
+        uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
         with:
           repo: ${{ inputs.prompts_repo }}
           ref: ${{ inputs.prompts_ref }}
@@ -611,21 +611,21 @@ jobs:
 
       - name: Setup Claude CLI
         if: ${{ inputs.dry_run != true }}
-        uses: ./.github/actions/setup-claude
+        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}
-        uses: ./.github/actions/fetch-agents
+        uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
         with:
           repo: ${{ inputs.prompts_repo }}
           ref: ${{ inputs.prompts_ref }}
 
       - name: Detect runtime
         id: runtime
-        uses: ./.github/actions/detect-runtime
+        uses: mkrueger12/claude-parallel/.github/actions/detect-runtime@main
 
       - name: Setup Bun
         if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager == 'bun'
@@ -870,7 +870,7 @@ jobs:
 
       - name: Get issue details
         id: issue
-        uses: ./.github/actions/get-issue-details
+        uses: mkrueger12/claude-parallel/.github/actions/get-issue-details@main
         with:
           issue_number: ${{ needs.review.outputs.issue_number }}
           github_token: ${{ secrets.GH_PAT }}
