@@ -65,8 +65,6 @@ jobs:
         run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.claude/bin" >> $GITHUB_PATH
-          $HOME/.claude/bin/claude mcp add playwright npx @playwright/mcp@latest
-          $HOME/.claude/bin/claude mcp add -s user -t http deepwiki https://mcp.deepwiki.com/mcp
 
       - name: Fetch custom agents
         run: |
@@ -227,8 +225,6 @@ jobs:
         run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.claude/bin" >> $GITHUB_PATH
-          $HOME/.claude/bin/claude mcp add playwright npx @playwright/mcp@latest
-          $HOME/.claude/bin/claude mcp add -s user -t http deepwiki https://mcp.deepwiki.com/mcp
 
       - name: Fetch custom agents
         run: |
@@ -377,8 +373,6 @@ jobs:
         run: |
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.claude/bin" >> $GITHUB_PATH
-          $HOME/.claude/bin/claude mcp add playwright npx @playwright/mcp@latest
-          $HOME/.claude/bin/claude mcp add -s user -t http deepwiki https://mcp.deepwiki.com/mcp
 
       - name: Fetch custom agents
         run: |
