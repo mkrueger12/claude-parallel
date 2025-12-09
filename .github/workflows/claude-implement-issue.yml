@@ -354,6 +354,20 @@ jobs:
           echo ""
           echo "=== End raw contents ==="
 
+          # Check for Claude CLI errors (rate limits, auth issues, etc.)
+          if jq -e '.is_error == true' review-result.json >/dev/null 2>&1; then
+            ERROR_MSG=$(jq -r '.result // "Unknown error"' review-result.json)
+            echo ""
+            echo "::error::Claude CLI returned an error: $ERROR_MSG"
+            echo ""
+            echo "This is NOT a parsing issue - Claude failed to generate a response."
+            echo "Common causes:"
+            echo "  - Rate limit exceeded (wait for reset time shown above)"
+            echo "  - Authentication issues (check CLAUDE_CODE_OAUTH_TOKEN secret)"
+            echo "  - API outage"
+            exit 1
+          fi
+
           # The output format wraps response in {"result": "..."} where result is JSON string
           # Try multiple extraction paths for robustness
           DECISION_JSON=""
