@@ -34,10 +34,6 @@ For each implementation:
 
 After reviewing all implementations, select the best one.
 
-Respond with ONLY valid JSON (no markdown, no code blocks):
-
-{"best": 1, "reasoning": "Detailed comparison of all implementations explaining why this one is best"}
-
-Where:
-- "best" is 1, 2, or 3
-- "reasoning" is a detailed explanation
+Your response will be validated against a JSON schema. Provide:
+- "best": The implementation number (1, 2, or 3)
+- "reasoning": A detailed comparison explaining why this implementation is best
