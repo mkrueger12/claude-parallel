@@ -347,35 +347,8 @@ jobs:
           # Strategy 3: Fallback - extract from text content (handles non-schema responses)
           if [ -z "$DECISION_JSON" ]; then
             RESULT=$(jq -r '.result // .content[0].text // .text // .' review-result.json 2>/dev/null || cat review-result.json)
-            DECISION_JSON=$(echo "$RESULT" | python3 -c '
-import sys, json
-text = sys.stdin.read()
-# Find JSON objects with proper brace matching
-i = 0
-while i < len(text):
-    if text[i] == "{":
-        depth, start, in_str, esc = 1, i, False, False
-        i += 1
-        while i < len(text) and depth > 0:
-            c = text[i]
-            if esc: esc = False
-            elif c == "\\" and in_str: esc = True
-            elif c == "\"": in_str = not in_str
-            elif not in_str:
-                if c == "{": depth += 1
-                elif c == "}": depth -= 1
-            i += 1
-        if depth == 0:
-            try:
-                obj = json.loads(text[start:i])
-                if isinstance(obj, dict) and "best" in obj:
-                    print(json.dumps(obj))
-                    sys.exit(0)
-            except: pass
-    else:
-        i += 1
-sys.exit(1)
-' 2>/dev/null || true)
+            # Use grep with perl regex to extract JSON with "best" field
+            DECISION_JSON=$(echo "$RESULT" | grep -oP '\{[^{}]*"best"\s*:\s*\d+[^{}]*\}' | head -1 || true)
           fi
 
           if [ -z "$DECISION_JSON" ]; then
