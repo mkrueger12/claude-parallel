@@ -1,0 +1,31 @@
+# Claude Parallel Implementation Workflow
+
+> A lightweight tool to run 3 parallel Claude Code implementations, automatically review them, and create a draft PR with the best implementation.
+
+This tool uses git worktrees to create isolated development environments where Claude Code can work on the same feature request independently. After all implementations complete, another Claude instance reviews the code changes and selects the best implementation based on code quality and completeness.
+
+## Key Features
+
+- **Parallel Execution**: Creates 3 git worktrees with separate branches and runs Claude Code simultaneously
+- **Automated Review**: Uses Claude to evaluate all implementations against quality and completeness criteria
+- **Best Selection**: Automatically identifies the highest-quality implementation
+- **GitHub Integration**: Creates a draft PR for the winning implementation
+- **Customizable**: Edit prompts and configuration to fit your workflow
+
+## Prerequisites
+
+- `git` - Version control
+- `claude` - Claude Code CLI with headless mode support
+- `gh` - GitHub CLI for creating PRs
+- `jq` - JSON parsing
+
+## Documentation
+
+- [README.md](README.md): Complete installation guide, usage instructions, configuration options, and troubleshooting
+- [parallel-impl.sh](parallel-impl.sh): Main shell script that orchestrates parallel implementations
+- [prompts/implementation.md](prompts/implementation.md): Template prompt for Claude Code when implementing features
+- [prompts/review.md](prompts/review.md): Template prompt for reviewing and selecting the best implementation
+
+## Optional
+
+- [coding-agent.md](coding-agent.md): Agent instructions for autonomous development tasks with step-by-step workflow

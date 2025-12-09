@@ -1,0 +1,36 @@
+[
+  {
+    "category": "functional",
+    "description": "llms.txt file exists at project root with correct format",
+    "plan_ref": "Task 1 - Create llms.txt file",
+    "steps": [
+      "Step 1: Check that llms.txt file exists in project root",
+      "Step 2: Verify file starts with H1 heading containing project name",
+      "Step 3: Verify file contains a blockquote with project description",
+      "Step 4: Verify file contains H2 sections with documentation links"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "All links in llms.txt reference existing files",
+    "plan_ref": "Task 1 - Create llms.txt file",
+    "steps": [
+      "Step 1: Parse all markdown links from llms.txt",
+      "Step 2: Verify each linked file exists in the repository",
+      "Step 3: Confirm no broken links"
+    ],
+    "passes": true
+  },
+  {
+    "category": "content",
+    "description": "llms.txt content accurately describes the project",
+    "plan_ref": "Task 1 - Create llms.txt file",
+    "steps": [
+      "Step 1: Read llms.txt content",
+      "Step 2: Verify description matches README.md project overview",
+      "Step 3: Confirm key project features are mentioned (parallel implementations, review, PR creation)"
+    ],
+    "passes": true
+  }
+]
