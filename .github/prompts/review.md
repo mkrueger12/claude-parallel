@@ -36,10 +36,8 @@ After reviewing all implementations, select the best one.
 
 Respond with ONLY valid JSON (no markdown, no code blocks):
 
-{"best": 1, "reasoning": "Detailed comparison of all implementations explaining why this one is best", "quality_score": 85, "completeness_score": 90}
+{"best": 1, "reasoning": "Detailed comparison of all implementations explaining why this one is best"}
 
 Where:
 - "best" is 1, 2, or 3
 - "reasoning" is a detailed explanation
-- "quality_score" is 0-100
-- "completeness_score" is 0-100
