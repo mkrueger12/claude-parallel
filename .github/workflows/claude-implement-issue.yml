@@ -382,9 +382,9 @@ jobs:
             RESULT_FIELD=$(jq -r '.result // empty' review-result.json 2>/dev/null)
             echo "  .result = ${RESULT_FIELD:0:200}..."
             if [ -n "$RESULT_FIELD" ]; then
-              PARSED=$(echo "$RESULT_FIELD" | jq -c 'select(.best != null)' 2>/dev/null || true)
-              if [ -n "$PARSED" ]; then
-                DECISION_JSON="$PARSED"
+              # Parse result field as JSON and check if it has .best
+              if echo "$RESULT_FIELD" | jq -e '.best' >/dev/null 2>&1; then
+                DECISION_JSON=$(echo "$RESULT_FIELD" | jq -c '.')
                 echo "  ✓ Found valid decision in .result"
               else
                 STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 2: .result exists but is not JSON with 'best' field"
@@ -397,9 +397,8 @@ jobs:
           # Strategy 3: Check if the file itself is the decision JSON (direct output)
           if [ -z "$DECISION_JSON" ]; then
             echo "Trying Strategy 3: root-level JSON with 'best' field..."
-            ROOT_CHECK=$(jq -c 'select(.best != null)' review-result.json 2>/dev/null || true)
-            if [ -n "$ROOT_CHECK" ]; then
-              DECISION_JSON="$ROOT_CHECK"
+            if jq -e '.best' review-result.json >/dev/null 2>&1; then
+              DECISION_JSON=$(jq -c '.' review-result.json)
               echo "  ✓ Found valid decision at root level"
             else
               STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 3: root JSON does not have 'best' field"
