@@ -315,9 +315,30 @@ jobs:
           WINNER=$(( (RANDOM % 3) + 1 ))
           echo "Mock review selecting implementation $WINNER"
 
-          # Create mock review result matching --json-schema output format
-          # The result field contains a JSON string that parses to the decision object
-          echo "{\"result\": \"{\\\"best\\\": $WINNER, \\\"reasoning\\\": \\\"Dry run mock selection\\\"}\"}" > review-result.json
+          # Cycle through different response formats to test all parsing strategies
+          # This ensures the parser is exercised with different formats across dry runs
+          FORMAT_SELECTOR=$(( ${{ github.run_id }} % 3 ))
+
+          case $FORMAT_SELECTOR in
+            0)
+              # Format 1: structured_output field (primary --json-schema format)
+              echo "Testing parsing Strategy 1: structured_output format"
+              echo "{\"type\":\"result\",\"result\":\"\",\"structured_output\":{\"best\":$WINNER,\"reasoning\":\"Dry run mock - testing structured_output parsing\"}}" > review-result.json
+              ;;
+            1)
+              # Format 2: Direct root-level JSON (tests Strategy 3)
+              echo "Testing parsing Strategy 3: root-level JSON format"
+              echo "{\"best\":$WINNER,\"reasoning\":\"Dry run mock - testing root-level JSON parsing\"}" > review-result.json
+              ;;
+            2)
+              # Format 3: JSON embedded in result string (tests Strategy 2)
+              echo "Testing parsing Strategy 2: result field as JSON string"
+              # The result field contains a JSON string that needs parsing
+              echo "{\"type\":\"result\",\"result\":\"{\\\"best\\\":$WINNER,\\\"reasoning\\\":\\\"Dry run mock - testing result field parsing\\\"}\"}" > review-result.json
+              ;;
+          esac
+
+          echo "=== Mock review-result.json (format $FORMAT_SELECTOR): ==="
           cat review-result.json
 
       - name: Parse review and create PR
@@ -328,37 +349,99 @@ jobs:
           # Extract the decision from Claude's response
           # With --json-schema, the result should be valid JSON directly
           echo "=== Parsing review result ==="
+          echo "=== Raw review-result.json contents: ==="
+          cat review-result.json
+          echo ""
+          echo "=== End raw contents ==="
 
           # The output format wraps response in {"result": "..."} where result is JSON string
           # Try multiple extraction paths for robustness
           DECISION_JSON=""
+          STRATEGIES_TRIED=""
 
-          # Strategy 1: With --json-schema, result field should contain JSON string - parse it
-          RESULT_FIELD=$(jq -r '.result // empty' review-result.json 2>/dev/null)
-          if [ -n "$RESULT_FIELD" ]; then
-            DECISION_JSON=$(echo "$RESULT_FIELD" | jq -c 'select(.best != null)' 2>/dev/null || true)
+          # Strategy 1: Check for structured_output field (primary method with --json-schema)
+          echo "Trying Strategy 1: .structured_output field..."
+          STRUCTURED_OUTPUT=$(jq -c '.structured_output' review-result.json 2>/dev/null || echo "null")
+          echo "  .structured_output = $STRUCTURED_OUTPUT"
+          if [ "$STRUCTURED_OUTPUT" != "null" ] && [ -n "$STRUCTURED_OUTPUT" ]; then
+            # Verify it has the 'best' field
+            if echo "$STRUCTURED_OUTPUT" | jq -e '.best' >/dev/null 2>&1; then
+              DECISION_JSON="$STRUCTURED_OUTPUT"
+              echo "  ✓ Found valid decision in .structured_output"
+            else
+              echo "  ✗ .structured_output exists but missing 'best' field"
+              STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 1: .structured_output exists but missing 'best' field (value: $STRUCTURED_OUTPUT)"
+            fi
+          else
+            STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 1: .structured_output is null or empty"
           fi
 
-          # Strategy 2: Check if the file itself is the decision JSON (direct output)
+          # Strategy 2: With --json-schema, result field should contain JSON string - parse it
           if [ -z "$DECISION_JSON" ]; then
-            DECISION_JSON=$(jq -c 'select(.best != null)' review-result.json 2>/dev/null || true)
+            echo "Trying Strategy 2: .result field as JSON string..."
+            RESULT_FIELD=$(jq -r '.result // empty' review-result.json 2>/dev/null)
+            echo "  .result = ${RESULT_FIELD:0:200}..."
+            if [ -n "$RESULT_FIELD" ]; then
+              PARSED=$(echo "$RESULT_FIELD" | jq -c 'select(.best != null)' 2>/dev/null || true)
+              if [ -n "$PARSED" ]; then
+                DECISION_JSON="$PARSED"
+                echo "  ✓ Found valid decision in .result"
+              else
+                STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 2: .result exists but is not JSON with 'best' field"
+              fi
+            else
+              STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 2: .result is empty"
+            fi
           fi
 
-          # Strategy 3: Fallback - extract from text content (handles non-schema responses)
+          # Strategy 3: Check if the file itself is the decision JSON (direct output)
           if [ -z "$DECISION_JSON" ]; then
+            echo "Trying Strategy 3: root-level JSON with 'best' field..."
+            ROOT_CHECK=$(jq -c 'select(.best != null)' review-result.json 2>/dev/null || true)
+            if [ -n "$ROOT_CHECK" ]; then
+              DECISION_JSON="$ROOT_CHECK"
+              echo "  ✓ Found valid decision at root level"
+            else
+              STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 3: root JSON does not have 'best' field"
+            fi
+          fi
+
+          # Strategy 4: Fallback - extract from text content (handles non-schema responses)
+          if [ -z "$DECISION_JSON" ]; then
+            echo "Trying Strategy 4: regex extraction from text content..."
             RESULT=$(jq -r '.result // .content[0].text // .text // .' review-result.json 2>/dev/null || cat review-result.json)
             # Use grep with perl regex to extract JSON with "best" field
-            DECISION_JSON=$(echo "$RESULT" | grep -oP '\{[^{}]*"best"\s*:\s*\d+[^{}]*\}' | head -1 || true)
+            REGEX_MATCH=$(echo "$RESULT" | grep -oP '\{[^{}]*"best"\s*:\s*\d+[^{}]*\}' | head -1 || true)
+            if [ -n "$REGEX_MATCH" ]; then
+              DECISION_JSON="$REGEX_MATCH"
+              echo "  ✓ Found decision via regex extraction"
+            else
+              STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 4: no JSON with 'best' field found in text content"
+            fi
           fi
 
           if [ -z "$DECISION_JSON" ]; then
-            echo "::error::Could not find decision JSON in review output"
-            echo "=== Raw review-result.json: ==="
-            cat review-result.json | tail -100
+            echo ""
+            echo "::error::Could not find decision JSON in review output after trying all strategies"
+            echo ""
+            echo "=== Strategies attempted: ===$STRATEGIES_TRIED"
+            echo ""
+            echo "=== Debug info ==="
+            echo "File size: $(wc -c < review-result.json) bytes"
+            echo "Is valid JSON: $(jq -e . review-result.json >/dev/null 2>&1 && echo 'yes' || echo 'no')"
+            echo "Top-level keys: $(jq -r 'keys | join(", ")' review-result.json 2>/dev/null || echo 'N/A')"
+            echo ""
+            echo "Expected format (with --json-schema):"
+            echo '  {"type":"result","result":"","structured_output":{"best":N,"reasoning":"..."}}'
+            echo ""
+            echo "=== Last 50 lines of review-result.json: ==="
+            tail -50 review-result.json
             exit 1
           fi
 
-          echo "Extracted decision: $DECISION_JSON"
+          echo ""
+          echo "=== Successfully extracted decision ==="
+          echo "DECISION_JSON: $DECISION_JSON"
 
           # Parse the extracted JSON
           BEST=$(echo "$DECISION_JSON" | jq -r '.best // empty')
