@@ -1,0 +1,67 @@
+[
+  {
+    "category": "functional",
+    "description": "Verify llm.txt file exists in project root and is readable",
+    "plan_ref": "Task 1 - Create llm.txt File",
+    "steps": [
+      "Step 1: Check if llm.txt exists in project root",
+      "Step 2: Verify file is readable as text",
+      "Step 3: Confirm file size is greater than 0 bytes"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Verify llm.txt follows llms.txt standard markdown format with proper heading structure",
+    "plan_ref": "Task 1 - Create llm.txt File",
+    "steps": [
+      "Step 1: Read llm.txt file",
+      "Step 2: Verify H1 heading exists (# Project Name)",
+      "Step 3: Verify H2 section headings exist (## Section Names)",
+      "Step 4: Verify markdown link format is used ([text](url))",
+      "Step 5: Verify file has valid markdown syntax with no formatting errors"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Verify llm.txt contains key project resources and accurate links",
+    "plan_ref": "Task 1 - Create llm.txt File",
+    "steps": [
+      "Step 1: Read llm.txt content",
+      "Step 2: Verify README.md is referenced",
+      "Step 3: Verify coding-agent.md is referenced",
+      "Step 4: Verify parallel-impl.sh is referenced",
+      "Step 5: Verify prompts directory is referenced",
+      "Step 6: Check that all linked files/paths exist in the project"
+    ],
+    "passes": true
+  },
+  {
+    "category": "style",
+    "description": "Verify llm.txt content is clear, concise, and helpful for understanding the project",
+    "plan_ref": "Task 1 - Create llm.txt File",
+    "steps": [
+      "Step 1: Read llm.txt file",
+      "Step 2: Verify the H1 heading clearly identifies the project",
+      "Step 3: Verify project purpose is briefly summarized (blockquote or intro section)",
+      "Step 4: Check that descriptions are concise and avoid jargon",
+      "Step 5: Verify content would help an LLM understand the project's purpose and structure",
+      "Step 6: Ensure formatting is professional and well-organized"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Verify llm.txt includes resource organization sections and proper structure",
+    "plan_ref": "Task 1 - Create llm.txt File",
+    "steps": [
+      "Step 1: Read llm.txt file",
+      "Step 2: Verify resources are organized into logical sections (e.g., Getting Started, Core Documentation, etc.)",
+      "Step 3: Verify each section has an H2 heading",
+      "Step 4: Verify sections contain relevant links and descriptions",
+      "Step 5: Confirm organization makes sense for an LLM to navigate the project"
+    ],
+    "passes": true
+  }
+]
