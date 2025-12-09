@@ -37,5 +37,3 @@ After reviewing all implementations, select the best one.
 Your response will be validated against a JSON schema. Provide:
 - "best": The implementation number (1, 2, or 3)
 - "reasoning": A detailed comparison explaining why this implementation is best
-- "quality_score": Code quality score from 0-100 (optional)
-- "completeness_score": How complete the implementation is from 0-100 (optional)

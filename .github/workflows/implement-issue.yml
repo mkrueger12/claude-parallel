@@ -297,7 +297,7 @@ jobs:
           echo "Starting review..."
 
           # Define JSON schema for structured output
-          JSON_SCHEMA='{"type":"object","properties":{"best":{"type":"integer","minimum":1,"maximum":3},"reasoning":{"type":"string"},"quality_score":{"type":"integer","minimum":0,"maximum":100},"completeness_score":{"type":"integer","minimum":0,"maximum":100}},"required":["best","reasoning"]}'
+          JSON_SCHEMA='{"type":"object","properties":{"best":{"type":"integer","minimum":1,"maximum":3},"reasoning":{"type":"string"}},"required":["best","reasoning"]}'
 
           claude --print "$(cat /tmp/review-prompt.md)" \
             --output-format json \
@@ -317,7 +317,7 @@ jobs:
 
           # Create mock review result matching --json-schema output format
           # The result field contains a JSON string that parses to the decision object
-          echo "{\"result\": \"{\\\"best\\\": $WINNER, \\\"reasoning\\\": \\\"Dry run mock selection\\\", \\\"quality_score\\\": 85, \\\"completeness_score\\\": 90}\"}" > review-result.json
+          echo "{\"result\": \"{\\\"best\\\": $WINNER, \\\"reasoning\\\": \\\"Dry run mock selection\\\"}\"}" > review-result.json
           cat review-result.json
 
       - name: Parse review and create PR
@@ -396,11 +396,8 @@ sys.exit(1)
           fi
 
           REASONING=$(echo "$DECISION_JSON" | jq -r '.reasoning // "No reasoning provided"')
-          QUALITY=$(echo "$DECISION_JSON" | jq -r '.quality_score // "N/A"')
-          COMPLETENESS=$(echo "$DECISION_JSON" | jq -r '.completeness_score // "N/A"')
 
           echo "Selected implementation: $BEST"
-          echo "Quality: $QUALITY, Completeness: $COMPLETENESS"
 
           WINNING_BRANCH="impl-${{ github.run_id }}-$BEST"
           echo "winning_branch=$WINNING_BRANCH" >> $GITHUB_OUTPUT
@@ -410,10 +407,6 @@ sys.exit(1)
 
           **Issue:** #${{ steps.issue.outputs.number }}
           **Selected:** Implementation $BEST
-
-          ### Scores
-          - Quality: $QUALITY/100
-          - Completeness: $COMPLETENESS/100
 
           ### Reasoning
           $REASONING
