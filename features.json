@@ -1,0 +1,48 @@
+[
+  {
+    "category": "functional",
+    "description": "llm.txt file exists in project root",
+    "plan_ref": "Task 1 - Create llm.txt file",
+    "steps": [
+      "Step 1: Check if llm.txt file exists at project root",
+      "Step 2: Verify file is readable and non-empty",
+      "Step 3: Confirm file location is correct (./llm.txt)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "llm.txt follows llms.txt specification format",
+    "plan_ref": "Task 1 - Create llm.txt file",
+    "steps": [
+      "Step 1: Read llm.txt file content",
+      "Step 2: Verify file starts with H1 header (# Project Name)",
+      "Step 3: Verify file contains blockquote summary (> description)",
+      "Step 4: Verify file contains markdown sections with links"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "llm.txt contains accurate project information",
+    "plan_ref": "Task 1 - Create llm.txt file",
+    "steps": [
+      "Step 1: Read llm.txt file content",
+      "Step 2: Verify project name matches 'Claude Parallel Implementation Workflow'",
+      "Step 3: Verify description accurately describes parallel implementation functionality",
+      "Step 4: Verify all linked files exist in the repository"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "llm.txt is valid UTF-8 encoded",
+    "plan_ref": "Task 1 - Create llm.txt file",
+    "steps": [
+      "Step 1: Check file encoding using file command or similar",
+      "Step 2: Verify no encoding errors when reading file",
+      "Step 3: Confirm file contains only valid UTF-8 characters"
+    ],
+    "passes": true
+  }
+]

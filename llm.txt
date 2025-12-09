@@ -1,0 +1,32 @@
+# Claude Parallel Implementation Workflow
+
+> A shell-based tool that runs 3 parallel Claude Code implementations for feature requests and automatically selects the best one.
+
+This tool streamlines feature development by creating parallel git worktrees, running Claude Code instances simultaneously, reviewing all implementations, and creating a draft PR with the winning solution. It leverages git worktrees to enable concurrent development without conflicts.
+
+## Main Script
+
+- [parallel-impl.sh](parallel-impl.sh): Main shell script entry point that orchestrates the entire parallel implementation workflow including worktree creation, parallel Claude execution, review, and PR creation.
+
+## Documentation
+
+- [README.md](README.md): Comprehensive project documentation covering installation, usage, configuration, troubleshooting, and examples.
+- [coding-agent.md](coding-agent.md): Instructions and guidelines for the coding agent that implements features.
+
+## Prompts
+
+- [prompts/implementation.md](prompts/implementation.md): Template for the implementation prompt sent to each parallel Claude Code instance.
+- [prompts/review.md](prompts/review.md): Template for the review prompt that evaluates and selects the best implementation.
+
+## GitHub Integration
+
+- [.github/prompts/implementation.md](.github/prompts/implementation.md): GitHub-specific implementation prompt template.
+- [.github/prompts/review.md](.github/prompts/review.md): GitHub-specific review prompt template.
+- [.github/prompts/verify.md](.github/prompts/verify.md): GitHub-specific verification prompt template.
+
+## Agent Configurations
+
+- [.claude/agents/codebase-analyzer.md](.claude/agents/codebase-analyzer.md): Agent configuration for analyzing codebase structure and patterns.
+- [.claude/agents/codebase-locator.md](.claude/agents/codebase-locator.md): Agent configuration for locating specific code elements.
+- [.claude/agents/coding-agent.md](.claude/agents/coding-agent.md): Agent configuration for the main coding agent.
+- [.claude/agents/debug-agent.md](.claude/agents/debug-agent.md): Agent configuration for debugging and troubleshooting.
