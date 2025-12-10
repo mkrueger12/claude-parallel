@@ -970,18 +970,23 @@ jobs:
           # Create formatted transcript
           TRANSCRIPT_MD=$(mktemp)
 
-          cat > "$TRANSCRIPT_MD" << 'EOF'
-<details>
-<summary>Claude Code Verification Transcript</summary>
+          cat > "$TRANSCRIPT_MD" << EOF
+## Claude Code Verification Transcript
 
-```
+<details>
+<summary>Session details</summary>
+
+- **Session ID:** \`$SESSION_ID\`
+- **Transcript:** \`$TRANSCRIPT_FILE\`
+
+</details>
+
+---
+
 EOF
 
-          echo "Session ID: $SESSION_ID" >> "$TRANSCRIPT_MD"
-          echo "---" >> "$TRANSCRIPT_MD"
-          echo "" >> "$TRANSCRIPT_MD"
-
           # Process JSONL file and extract conversation
+          msg_count=0
           while IFS= read -r line; do
             [ -z "$line" ] && continue
 
@@ -994,9 +999,13 @@ EOF
                 if [ "$content_type" = "string" ]; then
                   content=$(echo "$line" | jq -r '.message.content // ""' 2>/dev/null)
                   if [ -n "$content" ]; then
-                    echo "USER:" >> "$TRANSCRIPT_MD"
-                    echo "$content" >> "$TRANSCRIPT_MD"
-                    echo "" >> "$TRANSCRIPT_MD"
+                    msg_count=$((msg_count + 1))
+                    {
+                      echo "### Prompt"
+                      echo ""
+                      echo "$content"
+                      echo ""
+                    } >> "$TRANSCRIPT_MD"
                   fi
                 fi
                 ;;
@@ -1014,19 +1023,22 @@ EOF
                   end
                 ' 2>/dev/null)
                 if [ -n "$content" ]; then
-                  echo "ASSISTANT:" >> "$TRANSCRIPT_MD"
-                  echo "$content" >> "$TRANSCRIPT_MD"
-                  echo "" >> "$TRANSCRIPT_MD"
+                  msg_count=$((msg_count + 1))
+                  {
+                    echo "### Claude"
+                    echo ""
+                    echo "$content"
+                    echo ""
+                    echo "---"
+                    echo ""
+                  } >> "$TRANSCRIPT_MD"
                 fi
                 ;;
             esac
           done < "$TRANSCRIPT_FILE"
 
-          cat >> "$TRANSCRIPT_MD" << 'EOF'
-```
-
-</details>
-EOF
+          # Add footer with message count
+          echo "_${msg_count} messages in transcript_" >> "$TRANSCRIPT_MD"
 
           # Post to PR
           gh pr comment "$PR_NUMBER" --body-file "$TRANSCRIPT_MD" || echo "Failed to post transcript to PR"

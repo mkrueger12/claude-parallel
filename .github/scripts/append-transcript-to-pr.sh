@@ -39,20 +39,24 @@ TRANSCRIPT_MD=$(mktemp)
 trap "rm -f $TRANSCRIPT_MD" EXIT
 
 # Write header
-cat >> "$TRANSCRIPT_MD" << 'EOF'
+cat >> "$TRANSCRIPT_MD" << EOF
+## Claude Code Verification Transcript
+
 <details>
-<summary>Claude Code Verification Transcript</summary>
+<summary>Session details</summary>
 
-```
+- **Session ID:** \`$session_id\`
+- **Transcript:** \`$transcript_path\`
+
+</details>
+
+---
+
 EOF
-
-# Add session info
-echo "Session ID: $session_id" >> "$TRANSCRIPT_MD"
-echo "---" >> "$TRANSCRIPT_MD"
-echo "" >> "$TRANSCRIPT_MD"
 
 # Process JSONL file and extract conversation
 # Format: Each line is a JSON object with type, message content, etc.
+msg_count=0
 while IFS= read -r line; do
   [ -z "$line" ] && continue
 
@@ -66,9 +70,13 @@ while IFS= read -r line; do
       if [ "$content_type" = "string" ]; then
         content=$(echo "$line" | jq -r '.message.content // ""' 2>/dev/null)
         if [ -n "$content" ]; then
-          echo "USER:" >> "$TRANSCRIPT_MD"
-          echo "$content" >> "$TRANSCRIPT_MD"
-          echo "" >> "$TRANSCRIPT_MD"
+          msg_count=$((msg_count + 1))
+          {
+            echo "### Prompt"
+            echo ""
+            echo "$content"
+            echo ""
+          } >> "$TRANSCRIPT_MD"
         fi
       fi
       # Skip tool_result arrays - they're internal protocol messages
@@ -87,20 +95,22 @@ while IFS= read -r line; do
         end
       ' 2>/dev/null)
       if [ -n "$content" ]; then
-        echo "ASSISTANT:" >> "$TRANSCRIPT_MD"
-        echo "$content" >> "$TRANSCRIPT_MD"
-        echo "" >> "$TRANSCRIPT_MD"
+        msg_count=$((msg_count + 1))
+        {
+          echo "### Claude"
+          echo ""
+          echo "$content"
+          echo ""
+          echo "---"
+          echo ""
+        } >> "$TRANSCRIPT_MD"
       fi
       ;;
   esac
 done < "$transcript_path"
 
-# Close the code block and details
-cat >> "$TRANSCRIPT_MD" << 'EOF'
-```
-
-</details>
-EOF
+# Add footer with message count
+echo "_${msg_count} messages in transcript_" >> "$TRANSCRIPT_MD"
 
 # Post to PR using GitHub CLI
 if command -v gh &> /dev/null; then
