@@ -1022,13 +1022,33 @@ EOF
                     ""
                   end
                 ' 2>/dev/null)
-                if [ -n "$content" ]; then
+
+                # Extract tool names used in this message
+                tools=$(echo "$line" | jq -r '
+                  if .message.content then
+                    if (.message.content | type) == "array" then
+                      [.message.content[] | select(.type=="tool_use") | .name] | unique | join(", ")
+                    else
+                      ""
+                    end
+                  else
+                    ""
+                  end
+                ' 2>/dev/null)
+
+                if [ -n "$content" ] || [ -n "$tools" ]; then
                   msg_count=$((msg_count + 1))
                   {
                     echo "### Claude"
                     echo ""
-                    echo "$content"
-                    echo ""
+                    if [ -n "$content" ]; then
+                      echo "$content"
+                      echo ""
+                    fi
+                    if [ -n "$tools" ]; then
+                      echo "> **Tools used:** $tools"
+                      echo ""
+                    fi
                     echo "---"
                     echo ""
                   } >> "$TRANSCRIPT_MD"
