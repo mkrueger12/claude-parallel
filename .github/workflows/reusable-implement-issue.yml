@@ -884,6 +884,9 @@ jobs:
 
       - name: Run verification
         if: ${{ inputs.dry_run != true }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          APPEND_TRANSCRIPT_TO_PR: ${{ needs.review.outputs.pr_number }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
@@ -925,13 +928,142 @@ jobs:
 
           echo "Starting verification..."
 
+          # Generate a UUID for reliable transcript lookup
+          VERIFY_SESSION_ID=$(cat /proc/sys/kernel/random/uuid)
+          echo "VERIFY_SESSION_ID=$VERIFY_SESSION_ID" >> "$GITHUB_ENV"
+          echo "Using session ID: $VERIFY_SESSION_ID"
+
           claude --print "$(cat /tmp/verify-prompt.md)" \
             --output-format json \
             --model ${{ inputs.claude_model }} \
+            --session-id "$VERIFY_SESSION_ID" \
             --dangerously-skip-permissions \
             > verify-result.json 2> verify-error.log || true
 
           cat verify-result.json
+
+      - name: Post verification transcript to PR
+        if: ${{ inputs.dry_run != true }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          PR_NUMBER="${{ needs.review.outputs.pr_number }}"
+          SESSION_ID="${VERIFY_SESSION_ID:-}"
+
+          if [ -z "$SESSION_ID" ]; then
+            echo "No session ID available, skipping transcript post"
+            exit 0
+          fi
+
+          echo "Looking for transcript with session_id: $SESSION_ID"
+
+          # Find the transcript file - it's stored under ~/.claude/projects/
+          TRANSCRIPT_FILE=$(find ~/.claude/projects -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)
+
+          if [ -z "$TRANSCRIPT_FILE" ] || [ ! -f "$TRANSCRIPT_FILE" ]; then
+            echo "Transcript file not found for session $SESSION_ID"
+            exit 0
+          fi
+
+          echo "Found transcript at: $TRANSCRIPT_FILE"
+
+          # Create formatted transcript
+          TRANSCRIPT_MD=$(mktemp)
+
+          cat > "$TRANSCRIPT_MD" << EOF
+## Claude Code Verification Transcript
+
+<details>
+<summary>Session details</summary>
+
+- **Session ID:** \`$SESSION_ID\`
+- **Transcript:** \`$TRANSCRIPT_FILE\`
+
+</details>
+
+---
+
+EOF
+
+          # Process JSONL file and extract conversation
+          msg_count=0
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+
+            msg_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+
+            case "$msg_type" in
+              "user")
+                # User messages can be plain text or tool results (array)
+                content_type=$(echo "$line" | jq -r '.message.content | type' 2>/dev/null)
+                if [ "$content_type" = "string" ]; then
+                  content=$(echo "$line" | jq -r '.message.content // ""' 2>/dev/null)
+                  if [ -n "$content" ]; then
+                    msg_count=$((msg_count + 1))
+                    {
+                      echo "### Prompt"
+                      echo ""
+                      echo "$content"
+                      echo ""
+                    } >> "$TRANSCRIPT_MD"
+                  fi
+                fi
+                ;;
+              "assistant")
+                # Assistant messages have content as array with text/tool_use/thinking elements
+                content=$(echo "$line" | jq -r '
+                  if .message.content then
+                    if (.message.content | type) == "array" then
+                      [.message.content[] | select(.type=="text") | .text] | join("\n")
+                    else
+                      .message.content
+                    end
+                  else
+                    ""
+                  end
+                ' 2>/dev/null)
+
+                # Extract tool names used in this message
+                tools=$(echo "$line" | jq -r '
+                  if .message.content then
+                    if (.message.content | type) == "array" then
+                      [.message.content[] | select(.type=="tool_use") | .name] | unique | join(", ")
+                    else
+                      ""
+                    end
+                  else
+                    ""
+                  end
+                ' 2>/dev/null)
+
+                if [ -n "$content" ] || [ -n "$tools" ]; then
+                  msg_count=$((msg_count + 1))
+                  {
+                    echo "### Claude"
+                    echo ""
+                    if [ -n "$content" ]; then
+                      echo "$content"
+                      echo ""
+                    fi
+                    if [ -n "$tools" ]; then
+                      echo "> **Tools used:** $tools"
+                      echo ""
+                    fi
+                    echo "---"
+                    echo ""
+                  } >> "$TRANSCRIPT_MD"
+                fi
+                ;;
+            esac
+          done < "$TRANSCRIPT_FILE"
+
+          # Add footer with message count
+          echo "_${msg_count} messages in transcript_" >> "$TRANSCRIPT_MD"
+
+          # Post to PR
+          gh pr comment "$PR_NUMBER" --body-file "$TRANSCRIPT_MD" || echo "Failed to post transcript to PR"
+
+          rm -f "$TRANSCRIPT_MD"
 
       - name: Mock verification (dry run)
         if: ${{ inputs.dry_run == true }}
