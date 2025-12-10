@@ -1,0 +1,116 @@
+#!/bin/bash
+# Stop hook script to append Claude conversation transcript to a PR
+# This script is triggered by Claude Code's Stop hook mechanism
+#
+# Environment variables required:
+#   APPEND_TRANSCRIPT_TO_PR - PR number to append transcript to
+#   GH_TOKEN - GitHub token for authentication (optional, uses gh auth if not set)
+#
+# Input: JSON via stdin with transcript_path, session_id, etc.
+
+set -euo pipefail
+
+# Read JSON input from stdin
+input=$(cat)
+
+# Extract fields using jq
+transcript_path=$(echo "$input" | jq -r '.transcript_path // empty')
+session_id=$(echo "$input" | jq -r '.session_id // empty')
+
+# Check if we should run (PR number must be set)
+if [ -z "${APPEND_TRANSCRIPT_TO_PR:-}" ]; then
+  # No PR number set, silently exit (this hook is optional)
+  echo '{}'
+  exit 0
+fi
+
+# Expand ~ to home directory
+transcript_path="${transcript_path/#\~/$HOME}"
+
+# Check if transcript file exists
+if [ -z "$transcript_path" ] || [ ! -f "$transcript_path" ]; then
+  echo "Warning: Transcript file not found at $transcript_path" >&2
+  echo '{}'
+  exit 0
+fi
+
+# Create temporary file for the formatted transcript
+TRANSCRIPT_MD=$(mktemp)
+trap "rm -f $TRANSCRIPT_MD" EXIT
+
+# Write header
+cat >> "$TRANSCRIPT_MD" << 'EOF'
+<details>
+<summary>Claude Code Verification Transcript</summary>
+
+```
+EOF
+
+# Add session info
+echo "Session ID: $session_id" >> "$TRANSCRIPT_MD"
+echo "---" >> "$TRANSCRIPT_MD"
+echo "" >> "$TRANSCRIPT_MD"
+
+# Process JSONL file and extract conversation
+# Format: Each line is a JSON object with type, message content, etc.
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+
+  # Extract message type and content
+  msg_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+
+  case "$msg_type" in
+    "user")
+      echo "USER:" >> "$TRANSCRIPT_MD"
+      echo "$line" | jq -r '.message.content // .content // ""' 2>/dev/null >> "$TRANSCRIPT_MD"
+      echo "" >> "$TRANSCRIPT_MD"
+      ;;
+    "assistant")
+      echo "ASSISTANT:" >> "$TRANSCRIPT_MD"
+      # Handle assistant messages which may have complex content structure
+      content=$(echo "$line" | jq -r '
+        if .message.content then
+          if (.message.content | type) == "array" then
+            [.message.content[] |
+              if .type == "text" then .text
+              elif .type == "tool_use" then "[\(.name) tool called]"
+              else ""
+              end
+            ] | join("\n")
+          else
+            .message.content
+          end
+        elif .content then
+          .content
+        else
+          ""
+        end
+      ' 2>/dev/null)
+      echo "$content" >> "$TRANSCRIPT_MD"
+      echo "" >> "$TRANSCRIPT_MD"
+      ;;
+    "tool_result")
+      echo "[Tool result received]" >> "$TRANSCRIPT_MD"
+      echo "" >> "$TRANSCRIPT_MD"
+      ;;
+  esac
+done < "$transcript_path"
+
+# Close the code block and details
+cat >> "$TRANSCRIPT_MD" << 'EOF'
+```
+
+</details>
+EOF
+
+# Post to PR using GitHub CLI
+if command -v gh &> /dev/null; then
+  gh pr comment "$APPEND_TRANSCRIPT_TO_PR" --body-file "$TRANSCRIPT_MD" 2>/dev/null || {
+    echo "Warning: Failed to post transcript to PR $APPEND_TRANSCRIPT_TO_PR" >&2
+  }
+else
+  echo "Warning: GitHub CLI (gh) not available" >&2
+fi
+
+# Return empty JSON to allow Claude to stop normally
+echo '{}'

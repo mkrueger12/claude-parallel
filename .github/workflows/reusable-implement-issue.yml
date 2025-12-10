@@ -884,6 +884,9 @@ jobs:
 
       - name: Run verification
         if: ${{ inputs.dry_run != true }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          APPEND_TRANSCRIPT_TO_PR: ${{ needs.review.outputs.pr_number }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
@@ -932,6 +935,96 @@ jobs:
             > verify-result.json 2> verify-error.log || true
 
           cat verify-result.json
+
+      - name: Post verification transcript to PR
+        if: ${{ inputs.dry_run != true }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          PR_NUMBER="${{ needs.review.outputs.pr_number }}"
+
+          # Extract session_id from verify-result.json
+          SESSION_ID=$(jq -r '.session_id // empty' verify-result.json 2>/dev/null)
+
+          if [ -z "$SESSION_ID" ]; then
+            echo "No session_id found in verify-result.json, skipping transcript post"
+            exit 0
+          fi
+
+          echo "Looking for transcript with session_id: $SESSION_ID"
+
+          # Find the transcript file - it's stored under ~/.claude/projects/
+          TRANSCRIPT_FILE=$(find ~/.claude/projects -name "${SESSION_ID}.jsonl" 2>/dev/null | head -1)
+
+          if [ -z "$TRANSCRIPT_FILE" ] || [ ! -f "$TRANSCRIPT_FILE" ]; then
+            echo "Transcript file not found for session $SESSION_ID"
+            exit 0
+          fi
+
+          echo "Found transcript at: $TRANSCRIPT_FILE"
+
+          # Create formatted transcript
+          TRANSCRIPT_MD=$(mktemp)
+
+          cat > "$TRANSCRIPT_MD" << 'HEADER'
+          <details>
+          <summary>Claude Code Verification Transcript</summary>
+
+          ```
+          HEADER
+
+          echo "Session ID: $SESSION_ID" >> "$TRANSCRIPT_MD"
+          echo "---" >> "$TRANSCRIPT_MD"
+          echo "" >> "$TRANSCRIPT_MD"
+
+          # Process JSONL file and extract conversation
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+
+            msg_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
+
+            case "$msg_type" in
+              "user")
+                echo "USER:" >> "$TRANSCRIPT_MD"
+                echo "$line" | jq -r '.message.content // .content // ""' 2>/dev/null >> "$TRANSCRIPT_MD"
+                echo "" >> "$TRANSCRIPT_MD"
+                ;;
+              "assistant")
+                echo "ASSISTANT:" >> "$TRANSCRIPT_MD"
+                content=$(echo "$line" | jq -r '
+                  if .message.content then
+                    if (.message.content | type) == "array" then
+                      [.message.content[] |
+                        if .type == "text" then .text
+                        elif .type == "tool_use" then "[\(.name) tool called]"
+                        else ""
+                        end
+                      ] | join("\n")
+                    else
+                      .message.content
+                    end
+                  elif .content then
+                    .content
+                  else
+                    ""
+                  end
+                ' 2>/dev/null)
+                echo "$content" >> "$TRANSCRIPT_MD"
+                echo "" >> "$TRANSCRIPT_MD"
+                ;;
+            esac
+          done < "$TRANSCRIPT_FILE"
+
+          cat >> "$TRANSCRIPT_MD" << 'FOOTER'
+          ```
+
+          </details>
+          FOOTER
+
+          # Post to PR
+          gh pr comment "$PR_NUMBER" --body-file "$TRANSCRIPT_MD" || echo "Failed to post transcript to PR"
+
+          rm -f "$TRANSCRIPT_MD"
 
       - name: Mock verification (dry run)
         if: ${{ inputs.dry_run == true }}
