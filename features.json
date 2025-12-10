@@ -1,0 +1,111 @@
+[
+  {
+    "category": "functional",
+    "description": "SessionEnd hook script captures transcript path and copies file to working directory",
+    "plan_ref": "Task 1 - Create SessionEnd Hook Script",
+    "steps": [
+      "Step 1: Check that .claude/hooks/capture-transcript.sh exists",
+      "Step 2: Verify script is executable",
+      "Step 3: Test script with mock input: echo '{\"transcript_path\":\"/tmp/test.jsonl\",\"session_id\":\"123\"}' | bash .claude/hooks/capture-transcript.sh",
+      "Step 4: Verify script handles missing transcript gracefully (exits 0)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "JSONL to Markdown converter produces readable conversation output",
+    "plan_ref": "Task 2 - Create JSONL to Markdown Converter",
+    "steps": [
+      "Step 1: Check that .claude/hooks/jsonl-to-markdown.py exists",
+      "Step 2: Verify script has valid Python syntax: python3 -m py_compile .claude/hooks/jsonl-to-markdown.py",
+      "Step 3: Create test JSONL file with sample conversation data",
+      "Step 4: Run converter on test file and verify markdown output contains User and Claude sections",
+      "Step 5: Verify output is truncated if it exceeds 60000 characters"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Claude settings.json configures SessionEnd hook correctly",
+    "plan_ref": "Task 3 - Configure SessionEnd Hook",
+    "steps": [
+      "Step 1: Check that .claude/settings.json exists",
+      "Step 2: Verify file contains valid JSON: jq . .claude/settings.json",
+      "Step 3: Verify hooks.SessionEnd array is defined",
+      "Step 4: Verify hook command references capture-transcript.sh"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "GitHub workflow sets up hooks before Claude invocation",
+    "plan_ref": "Task 4 - Modify Workflow to Capture and Post Transcript",
+    "steps": [
+      "Step 1: Read .github/workflows/reusable-implement-issue.yml",
+      "Step 2: Verify there is a step that creates .claude/hooks directory before Claude invocation",
+      "Step 3: Verify hook scripts are copied and made executable",
+      "Step 4: Verify .claude/settings.json is configured with hook before Claude runs"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "GitHub workflow processes transcript after Claude invocation",
+    "plan_ref": "Task 4 - Modify Workflow to Capture and Post Transcript",
+    "steps": [
+      "Step 1: Read .github/workflows/reusable-implement-issue.yml",
+      "Step 2: Verify there is a step after Claude invocation that checks for verify-transcript.jsonl",
+      "Step 3: Verify converter is run to create verify-transcript.md",
+      "Step 4: Verify transcript content is read for inclusion in PR comment"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "PR comment includes verification conversation section",
+    "plan_ref": "Task 4 - Modify Workflow to Capture and Post Transcript",
+    "steps": [
+      "Step 1: Read .github/workflows/reusable-implement-issue.yml",
+      "Step 2: Find the PR comment generation section",
+      "Step 3: Verify COMMENT variable includes 'Verification Conversation' section",
+      "Step 4: Verify transcript content is included in the comment body"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Transcript files are uploaded as artifacts",
+    "plan_ref": "Task 4 - Modify Workflow to Capture and Post Transcript",
+    "steps": [
+      "Step 1: Read .github/workflows/reusable-implement-issue.yml",
+      "Step 2: Find the artifact upload step in verify job",
+      "Step 3: Verify verify-transcript.jsonl is included in artifact upload",
+      "Step 4: Verify verify-transcript.md is included in artifact upload"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Workflow has include_transcript input for feature toggle",
+    "plan_ref": "Task 5 - Add Workflow Inputs for Feature Toggle",
+    "steps": [
+      "Step 1: Read .github/workflows/reusable-implement-issue.yml",
+      "Step 2: Verify include_transcript input is defined in workflow_call inputs",
+      "Step 3: Verify input has boolean type and defaults to true",
+      "Step 4: Verify transcript-related steps are wrapped with conditional on this input"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Mock dry run workflow correctly handles transcript capture",
+    "plan_ref": "Task 4 - Modify Workflow to Capture and Post Transcript",
+    "steps": [
+      "Step 1: Read .github/workflows/reusable-implement-issue.yml",
+      "Step 2: Find mock verification step for dry_run mode",
+      "Step 3: Verify dry run creates mock transcript file",
+      "Step 4: Verify dry run transcript is processed same as real transcript"
+    ],
+    "passes": false
+  }
+]

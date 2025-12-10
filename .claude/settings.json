@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/capture-transcript.sh",
+        "timeout": 30000
+      }
+    ]
+  }
+}
