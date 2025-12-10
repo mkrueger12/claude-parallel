@@ -46,7 +46,7 @@
       "Step 3: Verify hook scripts are copied and made executable",
       "Step 4: Verify .claude/settings.json is configured with hook before Claude runs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -58,7 +58,7 @@
       "Step 3: Verify converter is run to create verify-transcript.md",
       "Step 4: Verify transcript content is read for inclusion in PR comment"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -70,7 +70,7 @@
       "Step 3: Verify COMMENT variable includes 'Verification Conversation' section",
       "Step 4: Verify transcript content is included in the comment body"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -82,7 +82,7 @@
       "Step 3: Verify verify-transcript.jsonl is included in artifact upload",
       "Step 4: Verify verify-transcript.md is included in artifact upload"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -94,7 +94,7 @@
       "Step 3: Verify input has boolean type and defaults to true",
       "Step 4: Verify transcript-related steps are wrapped with conditional on this input"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -106,6 +106,6 @@
       "Step 3: Verify dry run creates mock transcript file",
       "Step 4: Verify dry run transcript is processed same as real transcript"
     ],
-    "passes": false
+    "passes": true
   }
 ]
