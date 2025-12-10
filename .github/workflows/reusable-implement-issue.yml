@@ -928,9 +928,15 @@ jobs:
 
           echo "Starting verification..."
 
+          # Generate a UUID for reliable transcript lookup
+          VERIFY_SESSION_ID=$(cat /proc/sys/kernel/random/uuid)
+          echo "VERIFY_SESSION_ID=$VERIFY_SESSION_ID" >> "$GITHUB_ENV"
+          echo "Using session ID: $VERIFY_SESSION_ID"
+
           claude --print "$(cat /tmp/verify-prompt.md)" \
             --output-format json \
             --model ${{ inputs.claude_model }} \
+            --session-id "$VERIFY_SESSION_ID" \
             --dangerously-skip-permissions \
             > verify-result.json 2> verify-error.log || true
 
@@ -942,12 +948,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           PR_NUMBER="${{ needs.review.outputs.pr_number }}"
-
-          # Extract session_id from verify-result.json
-          SESSION_ID=$(jq -r '.session_id // empty' verify-result.json 2>/dev/null)
+          SESSION_ID="${VERIFY_SESSION_ID:-}"
 
           if [ -z "$SESSION_ID" ]; then
-            echo "No session_id found in verify-result.json, skipping transcript post"
+            echo "No session ID available, skipping transcript post"
             exit 0
           fi
 
@@ -966,12 +970,12 @@ jobs:
           # Create formatted transcript
           TRANSCRIPT_MD=$(mktemp)
 
-          cat > "$TRANSCRIPT_MD" << 'HEADER'
-          <details>
-          <summary>Claude Code Verification Transcript</summary>
+          cat > "$TRANSCRIPT_MD" << 'EOF'
+<details>
+<summary>Claude Code Verification Transcript</summary>
 
-          ```
-          HEADER
+```
+EOF
 
           echo "Session ID: $SESSION_ID" >> "$TRANSCRIPT_MD"
           echo "---" >> "$TRANSCRIPT_MD"
@@ -985,41 +989,44 @@ jobs:
 
             case "$msg_type" in
               "user")
-                echo "USER:" >> "$TRANSCRIPT_MD"
-                echo "$line" | jq -r '.message.content // .content // ""' 2>/dev/null >> "$TRANSCRIPT_MD"
-                echo "" >> "$TRANSCRIPT_MD"
+                # User messages can be plain text or tool results (array)
+                content_type=$(echo "$line" | jq -r '.message.content | type' 2>/dev/null)
+                if [ "$content_type" = "string" ]; then
+                  content=$(echo "$line" | jq -r '.message.content // ""' 2>/dev/null)
+                  if [ -n "$content" ]; then
+                    echo "USER:" >> "$TRANSCRIPT_MD"
+                    echo "$content" >> "$TRANSCRIPT_MD"
+                    echo "" >> "$TRANSCRIPT_MD"
+                  fi
+                fi
                 ;;
               "assistant")
-                echo "ASSISTANT:" >> "$TRANSCRIPT_MD"
+                # Assistant messages have content as array with text/tool_use/thinking elements
                 content=$(echo "$line" | jq -r '
                   if .message.content then
                     if (.message.content | type) == "array" then
-                      [.message.content[] |
-                        if .type == "text" then .text
-                        elif .type == "tool_use" then "[\(.name) tool called]"
-                        else ""
-                        end
-                      ] | join("\n")
+                      [.message.content[] | select(.type=="text") | .text] | join("\n")
                     else
                       .message.content
                     end
-                  elif .content then
-                    .content
                   else
                     ""
                   end
                 ' 2>/dev/null)
-                echo "$content" >> "$TRANSCRIPT_MD"
-                echo "" >> "$TRANSCRIPT_MD"
+                if [ -n "$content" ]; then
+                  echo "ASSISTANT:" >> "$TRANSCRIPT_MD"
+                  echo "$content" >> "$TRANSCRIPT_MD"
+                  echo "" >> "$TRANSCRIPT_MD"
+                fi
                 ;;
             esac
           done < "$TRANSCRIPT_FILE"
 
-          cat >> "$TRANSCRIPT_MD" << 'FOOTER'
-          ```
+          cat >> "$TRANSCRIPT_MD" << 'EOF'
+```
 
-          </details>
-          FOOTER
+</details>
+EOF
 
           # Post to PR
           gh pr comment "$PR_NUMBER" --body-file "$TRANSCRIPT_MD" || echo "Failed to post transcript to PR"

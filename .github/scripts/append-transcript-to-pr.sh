@@ -56,42 +56,41 @@ echo "" >> "$TRANSCRIPT_MD"
 while IFS= read -r line; do
   [ -z "$line" ] && continue
 
-  # Extract message type and content
+  # Extract message type
   msg_type=$(echo "$line" | jq -r '.type // empty' 2>/dev/null)
 
   case "$msg_type" in
     "user")
-      echo "USER:" >> "$TRANSCRIPT_MD"
-      echo "$line" | jq -r '.message.content // .content // ""' 2>/dev/null >> "$TRANSCRIPT_MD"
-      echo "" >> "$TRANSCRIPT_MD"
+      # User messages can be plain text or tool results (array)
+      content_type=$(echo "$line" | jq -r '.message.content | type' 2>/dev/null)
+      if [ "$content_type" = "string" ]; then
+        content=$(echo "$line" | jq -r '.message.content // ""' 2>/dev/null)
+        if [ -n "$content" ]; then
+          echo "USER:" >> "$TRANSCRIPT_MD"
+          echo "$content" >> "$TRANSCRIPT_MD"
+          echo "" >> "$TRANSCRIPT_MD"
+        fi
+      fi
+      # Skip tool_result arrays - they're internal protocol messages
       ;;
     "assistant")
-      echo "ASSISTANT:" >> "$TRANSCRIPT_MD"
-      # Handle assistant messages which may have complex content structure
+      # Assistant messages have content as array with text/tool_use/thinking elements
       content=$(echo "$line" | jq -r '
         if .message.content then
           if (.message.content | type) == "array" then
-            [.message.content[] |
-              if .type == "text" then .text
-              elif .type == "tool_use" then "[\(.name) tool called]"
-              else ""
-              end
-            ] | join("\n")
+            [.message.content[] | select(.type=="text") | .text] | join("\n")
           else
             .message.content
           end
-        elif .content then
-          .content
         else
           ""
         end
       ' 2>/dev/null)
-      echo "$content" >> "$TRANSCRIPT_MD"
-      echo "" >> "$TRANSCRIPT_MD"
-      ;;
-    "tool_result")
-      echo "[Tool result received]" >> "$TRANSCRIPT_MD"
-      echo "" >> "$TRANSCRIPT_MD"
+      if [ -n "$content" ]; then
+        echo "ASSISTANT:" >> "$TRANSCRIPT_MD"
+        echo "$content" >> "$TRANSCRIPT_MD"
+        echo "" >> "$TRANSCRIPT_MD"
+      fi
       ;;
   esac
 done < "$transcript_path"
