@@ -1,44 +1,95 @@
 # Claude Parallel Implementation Workflow
 
-A lightweight tool to run 3 parallel Claude Code implementations, automatically review them, and create a draft PR with the best implementation.
+A reusable GitHub Actions workflow that runs parallel Claude Code implementations, automatically reviews them, and creates a draft PR with the best implementation.
 
 ## How It Works
 
-1. **Creates 3 git worktrees** with separate branches
-2. **Runs Claude Code in parallel** in each worktree with your feature request
-3. **Reviews all implementations** with another Claude Code instance
-4. **Automatically selects the best** based on code quality and completeness
-5. **Creates a draft PR** for the winning implementation
-6. **Cleans up** non-winning worktrees
+1. **Triggered by Linear issues** or manual dispatch
+2. **Runs N parallel implementations** (default: 3) using GitHub Actions matrix
+3. **Auto-detects runtime** (Node.js, Python, Go, Rust, etc.) and sets up the environment
+4. **Reviews all implementations** with Claude Code
+5. **Automatically selects the best** based on code quality and completeness
+6. **Creates a draft PR** for the winning implementation
 
-## Prerequisites
+## Quick Start (GitHub Actions)
 
-Ensure you have these commands installed:
+Add this workflow to your repository:
+
+```yaml
+# .github/workflows/claude-implement.yml
+name: Claude Implement Issue
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to implement'
+        required: true
+        type: number
+
+jobs:
+  implement:
+    if: github.event.label.name == 'claude-implement' || github.event_name == 'workflow_dispatch'
+    uses: mkrueger12/claude-parallel/.github/workflows/reusable-implement-issue.yml@main
+    with:
+      issue_number: ${{ github.event.inputs.issue_number }}
+      event_name: ${{ github.event_name }}
+      event_issue_number: ${{ github.event.issue.number }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GH_PAT: ${{ secrets.GH_PAT }}
+```
+
+### Required Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `ANTHROPIC_API_KEY` | Your Anthropic API key |
+| `GH_PAT` | GitHub Personal Access Token with repo permissions |
+
+Alternatively, use `CLAUDE_CODE_OAUTH_TOKEN` instead of `ANTHROPIC_API_KEY`.
+
+### Workflow Inputs
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `num_implementations` | `3` | Number of parallel implementations |
+| `claude_model` | `claude-opus-4-5-20251101` | Claude model to use |
+| `prompts_repo` | `mkrueger12/claude-parallel` | Repository containing prompts |
+| `prompts_ref` | `main` | Git ref for prompts repository |
+| `bot_name` | `Claude Parallel Bot` | Git author name for commits |
+| `bot_email` | `bot@claude-parallel.dev` | Git author email |
+| `dry_run` | `false` | Skip Claude, use mock responses |
+
+### Usage
+
+1. **Via Label**: Add the `claude-implement` label to any issue
+2. **Via Manual Trigger**: Go to Actions → Claude Implement Issue → Run workflow
+
+---
+
+## Local CLI Usage (Alternative)
+
+You can also run implementations locally using the shell script.
+
+### Prerequisites
+
 - `git` - Version control
 - `claude` - Claude Code CLI (headless mode support)
 - `gh` - GitHub CLI (for creating PRs)
 - `jq` - JSON parsing
 
-## Installation
-
-1. Add to your PATH or create an alias:
+### Installation
 
 ```bash
 # Option 1: Add to PATH
-export PATH="$PATH:/home/max/code/claude-parallel"
+export PATH="$PATH:/path/to/claude-parallel"
 
 # Option 2: Create alias
-alias parallel-impl="/home/max/code/claude-parallel/parallel-impl.sh"
+alias parallel-impl="/path/to/claude-parallel/parallel-impl.sh"
 ```
-
-2. Or use directly:
-
-```bash
-cd /home/max/code/claude-parallel
-./parallel-impl.sh "your feature request"
-```
-
-## Usage
 
 ### Basic Usage
 
@@ -50,7 +101,7 @@ cd /home/max/code/claude-parallel
 
 ```bash
 cd ~/my-project
-/home/max/code/claude-parallel/parallel-impl.sh "Implement dark mode toggle"
+/path/to/claude-parallel/parallel-impl.sh "Implement dark mode toggle"
 ```
 
 ### What Happens
@@ -240,13 +291,18 @@ gh pr create --draft
 
 ## Advanced Usage
 
-### Running from CI/CD
+### Customizing for Your Organization
 
-```bash
-#!/bin/bash
-# .github/workflows/parallel-feature.yml concept
+Fork this repository and customize:
 
-/path/to/parallel-impl.sh "$FEATURE_REQUEST"
+1. **Prompts**: Edit files in `prompts/` to match your coding standards
+2. **Review criteria**: Modify `prompts/review.md` for your quality metrics
+3. **Runtime detection**: Add support for additional languages in `.github/actions/detect-runtime/`
+
+Then reference your fork:
+
+```yaml
+uses: your-org/claude-parallel/.github/workflows/reusable-implement-issue.yml@main
 ```
 
 ### Custom Review Logic
@@ -298,6 +354,15 @@ Monitor your usage and adjust `NUM_IMPLEMENTATIONS` accordingly.
 ```bash
 ./parallel-impl.sh "Add comprehensive unit tests for user service"
 ```
+
+## Features
+
+- **Multi-language support**: Auto-detects Node.js, Python, Go, Rust, Java, Ruby, PHP, and more
+- **Parallel execution**: Runs implementations concurrently using GitHub Actions matrix
+- **Automatic review**: Claude evaluates all implementations and picks the best
+- **Draft PRs**: Creates ready-to-review pull requests
+- **Customizable prompts**: Tailor implementation and review criteria to your needs
+- **Reusable workflow**: Use in any repository with minimal setup
 
 ## Credits
 
