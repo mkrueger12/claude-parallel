@@ -42,6 +42,11 @@ on:
         required: false
         type: boolean
         default: false
+      include_transcript:
+        description: 'Include conversation transcript in PR comment'
+        required: false
+        type: boolean
+        default: true
       event_name:
         description: 'The github.event_name from caller'
         required: false
@@ -882,6 +887,41 @@ jobs:
           curl -fsSL "https://raw.githubusercontent.com/${{ inputs.prompts_repo }}/${{ inputs.prompts_ref }}/.github/prompts/verify.md" \
             -o /tmp/verify-template.md
 
+      - name: Setup transcript capture hooks
+        if: ${{ inputs.include_transcript != false }}
+        run: |
+          # Create hooks directory in home
+          mkdir -p ~/.claude/hooks
+
+          # Copy hook scripts from repo to home directory
+          cp .claude/hooks/capture-transcript.sh ~/.claude/hooks/
+          cp .claude/hooks/jsonl-to-markdown.py ~/.claude/hooks/
+
+          # Make scripts executable
+          chmod +x ~/.claude/hooks/capture-transcript.sh
+          chmod +x ~/.claude/hooks/jsonl-to-markdown.py
+
+          # Create settings.json with hook configuration
+          cat > ~/.claude/settings.json << 'EOF'
+          {
+            "hooks": {
+              "SessionEnd": [
+                {
+                  "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/capture-transcript.sh",
+                  "timeout": 30000
+                }
+              ]
+            }
+          }
+          EOF
+
+          # Set environment variable for hook to find project directory
+          echo "CLAUDE_PROJECT_DIR=$(pwd)" >> $GITHUB_ENV
+
+          echo "Transcript capture hooks configured"
+          ls -la ~/.claude/hooks/
+          cat ~/.claude/settings.json
+
       - name: Run verification
         if: ${{ inputs.dry_run != true }}
         run: |
@@ -952,6 +992,39 @@ jobs:
           echo "{\"result\": \"Mock verification complete. {\\\"verified\\\": $VERIFIED, \\\"summary\\\": \\\"$SUMMARY\\\", \\\"issues\\\": []}\"}" > verify-result.json
           cat verify-result.json
 
+          # Create mock transcript for dry run testing
+          if [ "${{ inputs.include_transcript }}" != "false" ]; then
+            cat > verify-transcript.jsonl << 'JSONL_EOF'
+          {"type":"user","content":[{"type":"text","text":"Please verify the implementation meets requirements"}]}
+          {"type":"assistant","content":[{"type":"text","text":"I'll verify the implementation. Let me check the code and run tests."},{"type":"tool_use","id":"toolu_1","name":"Read","input":{"file_path":"/tmp/test.js"}}]}
+          {"type":"tool_result","tool_use_id":"toolu_1","content":"Mock file content","is_error":false}
+          {"type":"assistant","content":[{"type":"text","text":"The implementation looks good. All checks passed."}]}
+          JSONL_EOF
+          fi
+
+      - name: Process transcript
+        if: ${{ inputs.include_transcript != false }}
+        run: |
+          # Check if transcript was captured
+          if [ -f "verify-transcript.jsonl" ]; then
+            echo "Transcript found, converting to markdown..."
+
+            # Run converter
+            python3 .claude/hooks/jsonl-to-markdown.py verify-transcript.jsonl verify-transcript.md
+
+            # Read transcript content into environment variable
+            # Use delimiter to handle multiline content safely
+            echo "TRANSCRIPT_CONTENT<<TRANSCRIPT_EOF" >> $GITHUB_ENV
+            cat verify-transcript.md >> $GITHUB_ENV
+            echo "TRANSCRIPT_EOF" >> $GITHUB_ENV
+
+            echo "Transcript processed successfully"
+            echo "Transcript size: $(wc -c < verify-transcript.md) characters"
+          else
+            echo "No transcript file found, setting default message"
+            echo "TRANSCRIPT_CONTENT=No transcript captured during verification." >> $GITHUB_ENV
+          fi
+
       - name: Post verification results to PR
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
@@ -1016,13 +1089,30 @@ jobs:
           $ISSUES"
           fi
 
+          # Add verification conversation if transcript was captured
+          if [ "${{ inputs.include_transcript }}" != "false" ] && [ -n "$TRANSCRIPT_CONTENT" ]; then
+            COMMENT="$COMMENT
+
+          ### Verification Conversation
+
+          <details>
+          <summary>Click to expand full conversation transcript</summary>
+
+          $TRANSCRIPT_CONTENT
+
+          </details>"
+          fi
+
           gh pr comment "${{ needs.review.outputs.pr_number }}" --body "$COMMENT"
 
       - name: Upload verification result
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: verify-result
           path: |
             verify-result.json
             verify-error.log
+            verify-transcript.jsonl
+            verify-transcript.md
           retention-days: 7
