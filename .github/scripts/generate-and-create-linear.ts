@@ -614,13 +614,22 @@ async function main() {
     config: {
       provider: {
         anthropic: {
-          options: { apiKey: process.env.CLAUDE_CODE_OAUTH_TOKEN },
+          options: {
+            apiKey: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+            timeout: 600_000, // 10 minutes
+          },
         },
         openai: {
-          options: { apiKey: process.env.OPENAI_API_KEY },
+          options: {
+            apiKey: process.env.OPENAI_API_KEY,
+            timeout: 600_000, // 10 minutes
+          },
         },
         google: {
-          options: { apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY },
+          options: {
+            apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+            timeout: 600_000, // 10 minutes
+          },
         },
       },
       mcp: {
