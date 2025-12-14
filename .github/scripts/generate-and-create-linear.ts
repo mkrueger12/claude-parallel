@@ -86,7 +86,7 @@ const PROVIDERS: ProviderConfig[] = [
     name: 'anthropic',
     providerID: 'anthropic',
     modelEnvVar: 'ANTHROPIC_MODEL',
-    apiKeyEnvVar: 'ANTHROPIC_API_KEY',
+    apiKeyEnvVar: 'CLAUDE_CODE_OAUTH_TOKEN',
     defaultModel: 'claude-sonnet-4-20250514',
   },
   {
@@ -100,7 +100,7 @@ const PROVIDERS: ProviderConfig[] = [
     name: 'google',
     providerID: 'google',
     modelEnvVar: 'GOOGLE_MODEL',
-    apiKeyEnvVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
+    apiKeyEnvVar: 'GEMINI_API_KEY',
     defaultModel: 'gemini-pro',
   },
 ];
@@ -148,7 +148,7 @@ function extractTextFromParts(parts: any[]): string {
  * Read the plan generation prompt template
  */
 async function preparePlanPrompt(issueTitle: string, issueBody: string): Promise<string> {
-  const promptPath = join(__dirname, '..', 'prompts', 'plan-generation.md');
+  const promptPath = join(__dirname, '..', '..', 'prompts', 'plan-generation.md');
   const template = await readFile(promptPath, 'utf-8');
 
   return template
@@ -168,7 +168,7 @@ async function prepareConsolidationPrompt(
     issueTitle: string;
   }
 ): Promise<string> {
-  const promptPath = join(__dirname, '..', 'prompts', 'consolidate-and-create-linear.md');
+  const promptPath = join(__dirname, '..', '..', 'prompts', 'consolidate-and-create-linear.md');
   let template = await readFile(promptPath, 'utf-8');
 
   // Substitute plan placeholders
@@ -452,13 +452,13 @@ async function main() {
     config: {
       provider: {
         anthropic: {
-          options: { apiKey: process.env.ANTHROPIC_API_KEY },
+          options: { apiKey: process.env.CLAUDE_CODE_OAUTH_TOKEN },
         },
         openai: {
           options: { apiKey: process.env.OPENAI_API_KEY },
         },
         google: {
-          options: { apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY },
+          options: { apiKey: process.env.GEMINI_API_KEY },
         },
       },
       mcp: {
