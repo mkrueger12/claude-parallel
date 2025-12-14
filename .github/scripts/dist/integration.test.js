@@ -92,7 +92,7 @@ function validateEnvironment() {
     const requiredVars = [
         'CLAUDE_CODE_OAUTH_TOKEN',
         'OPENAI_API_KEY',
-        'GEMINI_API_KEY',
+        'GOOGLE_GENERATIVE_AI_API_KEY',
     ];
     const missing = requiredVars.filter((v) => !process.env[v]);
     if (missing.length > 0) {
@@ -128,7 +128,7 @@ async function runTests() {
                     },
                     google: {
                         options: {
-                            apiKey: process.env.GEMINI_API_KEY,
+                            apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
                         },
                     },
                 },
@@ -343,8 +343,8 @@ async function runTests() {
                 if (!process.env.OPENAI_API_KEY) {
                     throw new Error('Missing OPENAI_API_KEY');
                 }
-                if (!process.env.GEMINI_API_KEY) {
-                    throw new Error('Missing GEMINI_API_KEY');
+                if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+                    throw new Error('Missing GOOGLE_GENERATIVE_AI_API_KEY');
                 }
             });
         });
