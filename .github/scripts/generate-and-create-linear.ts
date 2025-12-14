@@ -90,7 +90,7 @@ const PROVIDERS: ProviderConfig[] = [
     name: 'google',
     providerID: 'google',
     modelEnvVar: 'GOOGLE_MODEL',
-    apiKeyEnvVar: 'GEMINI_API_KEY',
+    apiKeyEnvVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
     defaultModel: 'gemini-3-pro-preview',
   },
 ];
@@ -506,7 +506,7 @@ async function main() {
           options: { apiKey: process.env.OPENAI_API_KEY },
         },
         google: {
-          options: { apiKey: process.env.GEMINI_API_KEY },
+          options: { apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY },
         },
       },
       mcp: {
