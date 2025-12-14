@@ -1,0 +1,99 @@
+[
+  {
+    "category": "functional",
+    "description": "Plan generation prompt template exists and contains required placeholder",
+    "plan_ref": "Task 1 - Create Plan Generation Prompt Template",
+    "steps": [
+      "Step 1: Check that prompts/plan-generation.md exists",
+      "Step 2: Verify file contains {{FEATURE_REQUEST}} placeholder",
+      "Step 3: Verify file requests JSON output format"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Plan consolidation prompt template exists and contains required placeholders",
+    "plan_ref": "Task 2 - Create Plan Consolidation Prompt Template",
+    "steps": [
+      "Step 1: Check that prompts/plan-consolidation.md exists",
+      "Step 2: Verify file contains {{PLAN_1}}, {{PLAN_2}}, {{PLAN_3}} placeholders",
+      "Step 3: Verify file contains {{FEATURE_REQUEST}} placeholder",
+      "Step 4: Verify file requests JSON output format with sub-issues"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "package.json exists with required dependencies",
+    "plan_ref": "Task 3 - Create package.json for Dependencies",
+    "steps": [
+      "Step 1: Check that package.json exists",
+      "Step 2: Verify @opencode-ai/sdk dependency is present",
+      "Step 3: Verify @linear/sdk dependency is present",
+      "Step 4: Run npm install and verify it succeeds"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Plan generation script exists and has correct structure",
+    "plan_ref": "Task 4 - Create Plan Generation Script",
+    "steps": [
+      "Step 1: Check that scripts/generate-plan.js exists",
+      "Step 2: Verify script imports OpenCode SDK",
+      "Step 3: Verify script imports Linear SDK",
+      "Step 4: Verify script has parallel plan generation logic",
+      "Step 5: Verify script has Linear issue creation logic",
+      "Step 6: Run syntax check: node --check scripts/generate-plan.js"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "GitHub Actions workflow exists and is properly configured",
+    "plan_ref": "Task 5 - Create GitHub Actions Workflow",
+    "steps": [
+      "Step 1: Check that .github/workflows/generate-plan.yml exists",
+      "Step 2: Verify workflow triggers on issues with label",
+      "Step 3: Verify workflow has workflow_dispatch trigger with issue_number input",
+      "Step 4: Verify workflow references all required secrets",
+      "Step 5: Verify workflow sets up Node.js",
+      "Step 6: Verify workflow runs the generate-plan.js script"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "README.md documents the new plan generation feature",
+    "plan_ref": "Task 6 - Update README Documentation",
+    "steps": [
+      "Step 1: Check README.md for plan generation section",
+      "Step 2: Verify all required secrets are documented",
+      "Step 3: Verify setup instructions are present",
+      "Step 4: Verify Linear integration is documented"
+    ],
+    "passes": false
+  },
+  {
+    "category": "integration",
+    "description": "Workflow file is valid YAML and references existing actions correctly",
+    "plan_ref": "Task 5 - Create GitHub Actions Workflow",
+    "steps": [
+      "Step 1: Parse YAML to verify it is valid",
+      "Step 2: Verify get-issue-details action is referenced correctly",
+      "Step 3: Verify all job dependencies are correct"
+    ],
+    "passes": false
+  },
+  {
+    "category": "integration",
+    "description": "Script can be executed with Node.js without runtime errors",
+    "plan_ref": "Task 4 - Create Plan Generation Script",
+    "steps": [
+      "Step 1: Install dependencies with npm install",
+      "Step 2: Run node --check scripts/generate-plan.js",
+      "Step 3: Verify script handles missing environment variables gracefully"
+    ],
+    "passes": false
+  }
+]

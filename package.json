@@ -1,0 +1,22 @@
+{
+  "name": "claude-parallel-plan-generator",
+  "version": "1.0.0",
+  "description": "Multi-provider AI plan generation with Linear integration",
+  "type": "module",
+  "main": "scripts/generate-plan.js",
+  "scripts": {
+    "generate": "node scripts/generate-plan.js"
+  },
+  "keywords": [
+    "ai",
+    "planning",
+    "linear",
+    "opencode"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@opencode-ai/sdk": "^1.0.0",
+    "@linear/sdk": "^36.0.0"
+  }
+}
