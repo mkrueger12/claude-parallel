@@ -32,17 +32,7 @@ interface ProviderConfig {
 }
 
 interface Plan {
-  overview: string;
-  steps: Array<{
-    title: string;
-    description: string;
-    priority: string;
-  }>;
-  risks: Array<{
-    description: string;
-    mitigation: string;
-  }>;
-  dependencies: string[];
+  content: string;
 }
 
 interface PlanResult {
@@ -110,29 +100,6 @@ const PROVIDERS: ProviderConfig[] = [
 // ============================================================================
 
 /**
- * Extract JSON from a code block in the response
- */
-function extractJSON(response: string): any {
-  if (!response) {
-    throw new Error('Empty response');
-  }
-
-  // Try to find JSON in a code block
-  const codeBlockMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    return JSON.parse(codeBlockMatch[1]);
-  }
-
-  // Try to find raw JSON object
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
-  if (jsonMatch && jsonMatch[0]) {
-    return JSON.parse(jsonMatch[0]);
-  }
-
-  throw new Error('No valid JSON found in response');
-}
-
-/**
  * Extract text from message parts
  */
 function extractTextFromParts(parts: any[]): string {
@@ -172,9 +139,9 @@ async function prepareConsolidationPrompt(
   let template = await readFile(promptPath, 'utf-8');
 
   // Substitute plan placeholders
-  template = template.replace('{{ANTHROPIC_PLAN}}', JSON.stringify(plans.anthropic, null, 2));
-  template = template.replace('{{OPENAI_PLAN}}', JSON.stringify(plans.openai, null, 2));
-  template = template.replace('{{GOOGLE_PLAN}}', JSON.stringify(plans.google, null, 2));
+  template = template.replace('{{ANTHROPIC_PLAN}}', plans.anthropic.content);
+  template = template.replace('{{OPENAI_PLAN}}', plans.openai.content);
+  template = template.replace('{{GOOGLE_PLAN}}', plans.google.content);
 
   // Substitute Linear and GitHub context
   template = template.replaceAll('{{LINEAR_TEAM_ID}}', env.linearTeamId);
@@ -371,9 +338,10 @@ async function generatePlanFromProvider(
     }
 
     const responseText = extractTextFromParts(promptResponse.data.parts);
-    const plan = extractJSON(responseText);
+    // Treat the raw response text as the plan content
+    const plan: Plan = { content: responseText };
 
-    console.log(`[${provider.name}] ✓ Generated plan with ${plan.steps?.length || 0} steps`);
+    console.log(`[${provider.name}] ✓ Generated plan (${plan.content.length} chars)`);
 
     return {
       provider: provider.name,
@@ -507,10 +475,7 @@ async function main() {
 
     // Use placeholder for any failed plans
     const placeholderPlan: Plan = {
-      overview: 'Plan generation failed for this provider',
-      steps: [],
-      risks: [],
-      dependencies: []
+      content: 'Plan generation failed for this provider'
     };
 
     // ========================================
