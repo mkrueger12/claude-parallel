@@ -137,7 +137,7 @@ jobs:
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
       LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
       LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
       LINEAR_PROJECT_ID: ${{ secrets.LINEAR_PROJECT_ID }}
@@ -150,7 +150,7 @@ jobs:
 |--------|----------|-------------|
 | `CLAUDE_CODE_OAUTH_TOKEN` | Yes | Claude Code OAuth token for Claude authentication |
 | `OPENAI_API_KEY` | Yes | OpenAI API key for GPT-4 |
-| `GEMINI_API_KEY` | Yes | Google AI API key for Gemini |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Yes | Google AI API key for Gemini |
 | `LINEAR_API_KEY` | Yes | Linear Personal API key ([get yours here](https://linear.app/settings/api)) |
 | `LINEAR_TEAM_ID` | Yes | Linear team ID or name for issue creation |
 | `LINEAR_PROJECT_ID` | No | Linear project to add issues to (optional) |
