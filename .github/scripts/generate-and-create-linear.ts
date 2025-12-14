@@ -349,7 +349,7 @@ async function generatePlanFromProvider(
       const errorData = 'data' in err ? err.data : {};
       const errorMessage = 'message' in errorData ? errorData.message : JSON.stringify(errorData);
 
-      console.error(`[${provider.name}] ✗ Provider error: ${errorName}`);
+      console.error(`[${provider.name}] ERROR: Provider error: ${errorName}`);
       console.error(`[${provider.name}]   Message: ${errorMessage}`);
 
       // Log additional details for API errors
@@ -377,7 +377,7 @@ async function generatePlanFromProvider(
 
     // Treat empty responses as errors - providers should always return content
     if (responseText.length === 0) {
-      console.error(`[${provider.name}] ✗ Empty response (0 chars) - provider returned no text content`);
+      console.error(`[${provider.name}] ERROR: Empty response (0 chars) - provider returned no text content`);
       console.error(`[${provider.name}]   Debug: parts=${partsCount}, types=[${partsTypes}], finish=${finishReason}`);
 
       // Log token usage if available - helps diagnose if request was received but returned empty
@@ -394,7 +394,7 @@ async function generatePlanFromProvider(
 
       // Check for finish reasons that indicate problems
       if (finishReason === 'unknown' || !responseInfo) {
-        console.error(`[${provider.name}]   ⚠️  Provider may have failed silently (no finish reason or response info)`);
+        console.error(`[${provider.name}]   WARNING: Provider may have failed silently (no finish reason or response info)`);
       }
 
       return {
@@ -407,7 +407,7 @@ async function generatePlanFromProvider(
     // Treat the raw response text as the plan content
     const plan: Plan = { content: responseText };
 
-    console.log(`[${provider.name}] ✓ Generated plan (${plan.content.length} chars)`);
+    console.log(`[${provider.name}] SUCCESS: Generated plan (${plan.content.length} chars)`);
 
     return {
       provider: provider.name,
@@ -416,7 +416,7 @@ async function generatePlanFromProvider(
     };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[${provider.name}] ✗ Error: ${errorMessage}`);
+    console.error(`[${provider.name}] ERROR: ${errorMessage}`);
     if (error instanceof Error && error.stack) {
       console.error(`[${provider.name}]   Stack trace: ${error.stack.split('\n').slice(1, 4).join('\n    ')}`);
     }
@@ -532,14 +532,14 @@ async function main() {
     console.log(`\nPlan generation: ${successCount}/${PROVIDERS.length} successful`);
 
     if (failureCount > 0) {
-      console.error(`\n⚠️  ${failureCount} provider(s) failed:`);
+      console.error(`\nWARNING: ${failureCount} provider(s) failed:`);
       failedResults.forEach(r => {
         console.error(`  - [${r.provider}] ${r.error}`);
       });
     }
 
     if (failureCount === PROVIDERS.length) {
-      console.error('\n❌ All providers failed! Check your API keys and network connection.');
+      console.error('\nFATAL: All providers failed! Check your API keys and network connection.');
       process.exit(1);
     }
 
@@ -617,10 +617,10 @@ async function main() {
     console.log('\n' + '='.repeat(60));
     console.log('SUCCESS! All tasks completed.');
     console.log('='.repeat(60));
-    console.log(`\n✓ Consolidated Plan: ${result.consolidatedPlan.steps.length} implementation steps`);
-    console.log(`✓ Linear Parent Issue: ${result.linearIssues.parent.identifier}`);
+    console.log(`\nSUCCESS: Consolidated Plan: ${result.consolidatedPlan.steps.length} implementation steps`);
+    console.log(`SUCCESS: Linear Parent Issue: ${result.linearIssues.parent.identifier}`);
     console.log(`  URL: ${result.linearIssues.parent.url}`);
-    console.log(`✓ Linear Sub-Issues: ${result.linearIssues.subIssues.length} created`);
+    console.log(`SUCCESS: Linear Sub-Issues: ${result.linearIssues.subIssues.length} created`);
 
     if (result.linearIssues.subIssues.length > 0) {
       console.log('\n  Sub-issues:');
