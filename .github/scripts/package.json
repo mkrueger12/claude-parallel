@@ -1,0 +1,37 @@
+{
+  "name": "github-scripts",
+  "version": "1.0.0",
+  "description": "TypeScript scripts for multi-provider plan generation with Linear integration",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "node --loader ts-node/esm integration.test.ts",
+    "test:jest": "jest",
+    "test:integration": "node --loader ts-node/esm integration.test.ts"
+  },
+  "keywords": [
+    "github-actions",
+    "opencode",
+    "linear",
+    "ai",
+    "multi-provider"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@opencode-ai/sdk": "^1.0.143",
+    "@linear/sdk": "^30.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.11.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
