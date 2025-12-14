@@ -417,21 +417,16 @@ async function generatePlanFromProvider(
     console.log(`[${provider.name}] Sending prompt (${prompt.length} chars) at ${new Date().toISOString()}...`);
     console.log(`[DEBUG] ${provider.name} - Request start time: ${startTime}`);
 
-    const promptResponse = await Promise.race([
-      client.session.prompt({
-        path: { id: session.id },
-        body: {
-          model: {
-            providerID: provider.providerID,
-            modelID: model,
-          },
-          parts: [{ type: 'text', text: prompt }],
+    const promptResponse = await client.session.prompt({
+      path: { id: session.id },
+      body: {
+        model: {
+          providerID: provider.providerID,
+          modelID: model,
         },
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout after 10m')), 600000)
-      ),
-    ]);
+        parts: [{ type: 'text', text: prompt }],
+      },
+    });
 
     const endTime = Date.now();
     const durationMs = endTime - startTime;
@@ -630,19 +625,19 @@ async function main() {
       anthropic: {
         options: {
           apiKey: process.env.CLAUDE_CODE_OAUTH_TOKEN,
-          timeout: 600_000, // 10 minutes
+          timeout: false as const, // Disable timeout - let requests run as long as needed
         },
       },
       openai: {
         options: {
           apiKey: process.env.OPENAI_API_KEY,
-          timeout: 600_000, // 10 minutes
+          timeout: false as const, // Disable timeout - let requests run as long as needed
         },
       },
       google: {
         options: {
           apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-          timeout: 600_000, // 10 minutes
+          timeout: false as const, // Disable timeout - let requests run as long as needed
         },
       },
     },
