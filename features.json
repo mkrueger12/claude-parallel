@@ -46,7 +46,7 @@
       "Step 5: Verify script has Linear issue creation logic",
       "Step 6: Run syntax check: node --check scripts/generate-plan.js"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -94,6 +94,6 @@
       "Step 2: Run node --check scripts/generate-plan.js",
       "Step 3: Verify script handles missing environment variables gracefully"
     ],
-    "passes": false
+    "passes": true
   }
 ]
