@@ -397,6 +397,7 @@ async function generatePlanFromProvider(
   }
 
   const model = process.env[provider.modelEnvVar] || provider.defaultModel;
+  let startTime = 0;
 
   try {
     console.log(`[${provider.name}] Starting plan generation with model ${model}...`);
@@ -412,7 +413,10 @@ async function generatePlanFromProvider(
     const session = sessionResponse.data;
     console.log(`[${provider.name}] Session created: ${session.id}`);
 
-    console.log(`[${provider.name}] Sending prompt (${prompt.length} chars)...`);
+    const startTime = Date.now();
+    console.log(`[${provider.name}] Sending prompt (${prompt.length} chars) at ${new Date().toISOString()}...`);
+    console.log(`[DEBUG] ${provider.name} - Request start time: ${startTime}`);
+
     const promptResponse = await Promise.race([
       client.session.prompt({
         path: { id: session.id },
@@ -428,6 +432,11 @@ async function generatePlanFromProvider(
         setTimeout(() => reject(new Error('Timeout after 10m')), 600000)
       ),
     ]);
+
+    const endTime = Date.now();
+    const durationMs = endTime - startTime;
+    const durationSec = (durationMs / 1000).toFixed(2);
+    console.log(`[DEBUG] ${provider.name} - Request end time: ${endTime}, duration: ${durationMs}ms (${durationSec}s)`);
 
     if (!promptResponse.data) {
       throw new Error('Failed to get response: no data in response');
@@ -515,8 +524,15 @@ async function generatePlanFromProvider(
       plan,
     };
   } catch (error) {
+    const endTime = Date.now();
+    const durationMs = startTime > 0 ? endTime - startTime : 0;
+    const durationSec = (durationMs / 1000).toFixed(2);
+
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[${provider.name}] ERROR: ${errorMessage}`);
+    if (startTime > 0) {
+      console.error(`[DEBUG] ${provider.name} - Error after ${durationMs}ms (${durationSec}s)`);
+    }
     if (error instanceof Error && error.stack) {
       console.error(`[${provider.name}]   Stack trace: ${error.stack.split('\n').slice(1, 4).join('\n    ')}`);
     }
@@ -608,43 +624,57 @@ async function main() {
 
   const planPrompt = await preparePlanPrompt(issueTitle, issueBody);
 
+  // Debug: Log the config being passed to createOpencode
+  const opcodeConfig = {
+    provider: {
+      anthropic: {
+        options: {
+          apiKey: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+          timeout: 600_000, // 10 minutes
+        },
+      },
+      openai: {
+        options: {
+          apiKey: process.env.OPENAI_API_KEY,
+          timeout: 600_000, // 10 minutes
+        },
+      },
+      google: {
+        options: {
+          apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+          timeout: 600_000, // 10 minutes
+        },
+      },
+    },
+    mcp: {
+      linear: {
+        type: "remote" as const,
+        url: "https://mcp.linear.app/mcp",
+        headers: {
+          "Authorization": `Bearer ${linearApiKey}`
+        }
+      }
+    }
+  };
+
+  console.log('[DEBUG] createOpencode config:');
+  console.log(JSON.stringify({
+    provider: {
+      anthropic: { options: { apiKey: '***', timeout: opcodeConfig.provider.anthropic.options.timeout } },
+      openai: { options: { apiKey: '***', timeout: opcodeConfig.provider.openai.options.timeout } },
+      google: { options: { apiKey: '***', timeout: opcodeConfig.provider.google.options.timeout } },
+    }
+  }, null, 2));
+  console.log();
+
   const { client, server } = await createOpencode({
     hostname: '127.0.0.1',
     port: 0,
-    config: {
-      provider: {
-        anthropic: {
-          options: {
-            apiKey: process.env.CLAUDE_CODE_OAUTH_TOKEN,
-            timeout: 600_000, // 10 minutes
-          },
-        },
-        openai: {
-          options: {
-            apiKey: process.env.OPENAI_API_KEY,
-            timeout: 600_000, // 10 minutes
-          },
-        },
-        google: {
-          options: {
-            apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-            timeout: 600_000, // 10 minutes
-          },
-        },
-      },
-      mcp: {
-        linear: {
-          type: "remote",
-          url: "https://mcp.linear.app/mcp",
-          headers: {
-            "Authorization": `Bearer ${linearApiKey}`
-          }
-        }
-      }
-    },
+    config: opcodeConfig,
   });
 
-  console.log(`OpenCode server started at ${server.url}\n`);
+  console.log(`OpenCode server started at ${server.url}`);
+  console.log('[DEBUG] Server process spawned, config passed via OPENCODE_CONFIG_CONTENT env var\n');
 
   try {
     const results = await Promise.all(
