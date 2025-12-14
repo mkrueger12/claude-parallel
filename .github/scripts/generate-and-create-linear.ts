@@ -425,7 +425,7 @@ async function generatePlanFromProvider(
         },
       }),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout after 120s')), 120000)
+        setTimeout(() => reject(new Error('Timeout after 10m')), 600000)
       ),
     ]);
 

@@ -27,7 +27,7 @@ on:
         description: 'Google model to use'
         required: false
         type: string
-        default: 'gemini-3-pro'
+        default: 'gemini-3-pro-preview'
 
 jobs:
   generate-plan:
@@ -63,7 +63,7 @@ jobs:
           linear_project_id: ${{ github.event_name == 'workflow_dispatch' && inputs.linear_project_id || secrets.LINEAR_PROJECT_ID }}
           anthropic_model: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-sonnet-4-20250514' }}
           openai_model: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-4-turbo-preview' }}
-          google_model: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-pro' }}
+          google_model: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-3-pro-preview' }}
 
       - name: Set environment variables
         run: |

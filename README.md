@@ -120,7 +120,7 @@ on:
         description: 'Google model to use'
         required: false
         type: string
-        default: 'gemini-3-pro'
+        default: 'gemini-3-pro-preview'
 
 jobs:
   plan:
@@ -133,7 +133,7 @@ jobs:
       linear_project_id: ${{ github.event.inputs.linear_project_id }}
       anthropic_model: ${{ github.event.inputs.anthropic_model || 'claude-opus-4-5-20251101' }}
       openai_model: ${{ github.event.inputs.openai_model || 'gpt-5.2' }}
-      google_model: ${{ github.event.inputs.google_model || 'gemini-3-pro' }}
+      google_model: ${{ github.event.inputs.google_model || 'gemini-3-pro-preview' }}
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -166,7 +166,7 @@ For manual workflow dispatch (`workflow_dispatch`), you can customize the follow
 | `linear_project_id` | (none) | Linear project ID to add issues to |
 | `anthropic_model` | `claude-opus-4-5-20251101` | Anthropic model to use for plan generation |
 | `openai_model` | `gpt-5.2` | OpenAI model to use for plan generation |
-| `google_model` | `gemini-3-pro` | Google model to use for plan generation |
+| `google_model` | `gemini-3-pro-preview` | Google model to use for plan generation |
 
 ### Usage
 
