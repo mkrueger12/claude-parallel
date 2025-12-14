@@ -386,7 +386,11 @@ async function generatePlanFromProvider(
       }
 
       // Log raw response info for debugging - captures all fields
-      console.error(`[${provider.name}]   Raw responseInfo: ${JSON.stringify(responseInfo, null, 2).split('\n').map(l => `    ${l}`).join('\n')}`);
+      const responseInfoStr = responseInfo ? JSON.stringify(responseInfo, null, 2) : 'undefined';
+      console.error(`[${provider.name}]   Raw responseInfo: ${responseInfoStr.split('\n').map(l => `    ${l}`).join('\n')}`);
+
+      // Also log the full response data when empty - helps debug missing fields
+      console.error(`[${provider.name}]   Full response.data: ${JSON.stringify(promptResponse.data, null, 2).split('\n').map(l => `    ${l}`).join('\n')}`);
 
       if (promptResponse.data.parts && promptResponse.data.parts.length > 0) {
         console.error(`[${provider.name}]   Raw parts preview: ${JSON.stringify(promptResponse.data.parts).slice(0, 500)}`);
