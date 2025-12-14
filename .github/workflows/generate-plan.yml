@@ -1,0 +1,96 @@
+name: Generate Multi-Provider Plan
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to generate plan for'
+        required: true
+        type: number
+
+jobs:
+  generate-plan:
+    # Only run if the label is 'plan-generation' for labeled events, or always for workflow_dispatch
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'plan-generation')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Get issue details
+        id: issue
+        uses: mkrueger12/claude-parallel/.github/actions/get-issue-details@main
+        with:
+          issue_number: ${{ github.event.inputs.issue_number }}
+          github_token: ${{ secrets.GH_PAT }}
+          event_name: ${{ github.event_name }}
+          event_issue_number: ${{ github.event.issue.number }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate multi-provider plan
+        env:
+          ISSUE_TITLE: ${{ steps.issue.outputs.title }}
+          ISSUE_BODY_FILE: ${{ steps.issue.outputs.body_file }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_ID: ${{ vars.LINEAR_TEAM_ID }}
+        run: |
+          export ISSUE_BODY=$(cat "$ISSUE_BODY_FILE")
+          npm run generate
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plan-output
+          path: plan-output.json
+          retention-days: 30
+
+      - name: Comment on issue with Linear links
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # Read the plan output to get Linear issue URLs
+          if [ -f plan-output.json ]; then
+            PARENT_URL=$(jq -r '.parent_issue.url // "N/A"' plan-output.json)
+            SUB_ISSUE_COUNT=$(jq -r '.sub_issues | length // 0' plan-output.json)
+
+            # Create comment body
+            COMMENT="## Multi-Provider Plan Generated 🎯
+
+            **Linear Parent Issue:** $PARENT_URL
+
+            **Sub-issues Created:** $SUB_ISSUE_COUNT
+
+            The implementation plan has been generated using multiple AI providers (Claude, Gemini, GPT) and consolidated into a unified plan. Check Linear for details.
+
+            <details>
+            <summary>View Sub-issue Links</summary>
+
+            $(jq -r '.sub_issues[] | "- [\(.title)](\(.url))"' plan-output.json)
+
+            </details>"
+
+            # Post comment to the issue
+            gh issue comment ${{ steps.issue.outputs.number }} --body "$COMMENT"
+          else
+            echo "Warning: plan-output.json not found, skipping issue comment"
+          fi

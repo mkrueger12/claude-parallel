@@ -70,6 +70,136 @@ Alternatively, use `CLAUDE_CODE_OAUTH_TOKEN` instead of `ANTHROPIC_API_KEY`.
 
 ---
 
+## Multi-Provider Plan Generation
+
+Generate comprehensive implementation plans using multiple AI providers (Claude, Gemini, GPT) before starting implementation. This feature creates a consolidated plan and automatically sets up Linear issues for tracking.
+
+### How It Works
+
+1. **Triggered by issue label** (`plan-generation`) or manual dispatch
+2. **Generates plans in parallel** from 3 AI providers:
+   - Anthropic Claude (claude-sonnet-4-20250514)
+   - Google Gemini (gemini-2.0-flash)
+   - OpenAI GPT (gpt-4o)
+3. **Consolidates plans** into a unified implementation strategy
+4. **Creates Linear parent issue** with the consolidated plan
+5. **Creates Linear sub-issues** for each implementation step
+6. **Comments on GitHub issue** with links to Linear issues
+
+### Setup
+
+Add the plan generation workflow to your repository:
+
+```yaml
+# .github/workflows/generate-plan.yml
+name: Generate Multi-Provider Plan
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to generate plan for'
+        required: true
+        type: number
+
+jobs:
+  generate-plan:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'plan-generation')
+    uses: mkrueger12/claude-parallel/.github/workflows/generate-plan.yml@main
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+      GH_PAT: ${{ secrets.GH_PAT }}
+    vars:
+      LINEAR_TEAM_ID: ${{ vars.LINEAR_TEAM_ID }}
+```
+
+### Required Secrets for Plan Generation
+
+In addition to the secrets listed above, plan generation requires:
+
+| Secret | Description |
+|--------|-------------|
+| `ANTHROPIC_API_KEY` | Anthropic API key for Claude (also used for implementation) |
+| `OPENAI_API_KEY` | OpenAI API key for GPT-4 |
+| `GOOGLE_API_KEY` | Google API key for Gemini |
+| `LINEAR_API_KEY` | Linear API key for issue management |
+| `GH_PAT` | GitHub Personal Access Token with repo permissions |
+
+### Required Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `LINEAR_TEAM_ID` | Linear team ID for creating issues | Optional (will use default team if not set) |
+
+### Usage
+
+**Via Label:**
+1. Create a GitHub issue with your feature request
+2. Add the `plan-generation` label to the issue
+3. The workflow will automatically run and generate the plan
+
+**Via Manual Trigger:**
+1. Go to Actions → Generate Multi-Provider Plan → Run workflow
+2. Enter the issue number
+3. Click "Run workflow"
+
+### Expected Outputs
+
+After the workflow completes, you'll receive:
+
+1. **GitHub Issue Comment** with:
+   - Link to Linear parent issue
+   - Count of sub-issues created
+   - Links to all sub-issues
+
+2. **Linear Parent Issue** containing:
+   - Consolidated implementation plan
+   - Overview of the feature
+   - Task breakdown from all 3 AI providers
+   - Success criteria
+
+3. **Linear Sub-Issues** for each implementation step:
+   - Linked to the parent issue
+   - Detailed description of the step
+   - Dependencies and prerequisites
+
+4. **Artifact Upload** (`plan-output.json`):
+   - Full plan data
+   - Linear issue IDs and URLs
+   - Raw AI responses from each provider
+
+### Setting Up Linear Integration
+
+1. **Get your Linear API key:**
+   - Go to Linear Settings → API → Personal API Keys
+   - Create a new API key with read/write permissions
+
+2. **Find your Team ID (optional):**
+   ```bash
+   # Using Linear CLI
+   linear team list
+
+   # Or via API
+   curl -X POST https://api.linear.app/graphql \
+     -H "Authorization: YOUR_LINEAR_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"query":"{ teams { nodes { id name } } }"}'
+   ```
+
+3. **Add secrets to your GitHub repository:**
+   - Go to Settings → Secrets and variables → Actions
+   - Add `LINEAR_API_KEY`
+   - Add `LINEAR_TEAM_ID` as a variable (optional)
+
+---
+
 ## Local CLI Usage (Alternative)
 
 You can also run implementations locally using the shell script.

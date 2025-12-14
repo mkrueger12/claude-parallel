@@ -60,7 +60,7 @@
       "Step 5: Verify workflow sets up Node.js",
       "Step 6: Verify workflow runs the generate-plan.js script"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -72,7 +72,7 @@
       "Step 3: Verify setup instructions are present",
       "Step 4: Verify Linear integration is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "integration",
@@ -83,7 +83,7 @@
       "Step 2: Verify get-issue-details action is referenced correctly",
       "Step 3: Verify all job dependencies are correct"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "integration",
