@@ -1,1 +1,6 @@
 .env
+node_modules
+
+# Old script files (replaced by generate-and-create-linear.ts)
+.github/scripts/generate-plans.ts
+.github/scripts/consolidate-and-create-linear.ts

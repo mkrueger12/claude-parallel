@@ -77,10 +77,13 @@ A GitHub Actions workflow that generates implementation plans using multiple AI 
 ### How It Works
 
 1. **Triggered by issue label** (`claude-plan`) or manual dispatch
-2. **Generates 3 plans in parallel** using Anthropic Claude, OpenAI GPT-4, and Google Gemini
-3. **Consolidates plans** into a unified implementation strategy
-4. **Creates Linear issues** with parent issue for the plan and sub-issues for each implementation step
-5. **Posts summary comment** on the GitHub issue with links to Linear
+2. **Single workflow job** runs a unified script that:
+   - Generates 3 plans in parallel using Anthropic Claude, OpenAI GPT-4, and Google Gemini
+   - Consolidates plans into a unified implementation strategy
+   - Creates Linear issues (parent + sub-issues) in the same session
+3. **Posts summary comment** on the GitHub issue with links to Linear
+
+The entire process runs in one execution - no intermediate file artifacts or job dependencies.
 
 ### Quick Start
 
@@ -193,18 +196,23 @@ After the workflow completes:
 - Open Linear and navigate to your team to see the issues
 - Sub-issues are linked to the parent issue (visible in Linear's issue hierarchy)
 
-### How Consolidation Works
+### How It Works (Technical Details)
 
-The workflow uses a unique approach where **consolidation and Linear issue creation happen in the same AI session**:
+The workflow uses a streamlined single-script approach:
 
-1. **Plan Generation**: Three AI providers (Claude, GPT-4, Gemini) independently analyze the GitHub issue and generate implementation plans
-2. **Consolidation**: Claude analyzes all three plans and creates a unified strategy that incorporates the best ideas from each
-3. **Linear Integration**: In the same session, Claude uses the Linear MCP (Model Context Protocol) to:
-   - Create a parent Linear issue with the consolidated plan
-   - Create sub-issues for each implementation step
-   - Link sub-issues to the parent
+1. **Plan Generation Phase**: A single OpenCode server instance starts with all 3 provider configurations (Anthropic, OpenAI, Google) plus Linear MCP access
+2. **Parallel Generation**: Three sessions run in parallel, each generating an implementation plan from a different AI provider
+3. **Consolidation Phase**: Once all plans are generated (in memory, no files), a new session starts with Claude that:
+   - Receives all three plans as context
+   - Analyzes and consolidates them into a unified strategy
+   - Uses Linear MCP tools to create parent issue + sub-issues
+   - All in the same AI session for maximum context retention
 
-This approach ensures the AI has full context when creating issues and can adapt descriptions naturally based on its analysis.
+**Key Benefits:**
+- No intermediate file artifacts needed
+- Single workflow job (faster, simpler)
+- AI has full context when creating Linear issues
+- Fewer moving parts = easier to maintain
 
 ### Customization
 
@@ -271,13 +279,14 @@ Example model options:
 To customize which AI providers are used:
 
 1. Fork this repository
-2. Edit `.github/scripts/generate-plans.ts`:
-   - Add/remove provider configurations in the parallel plan generation logic
-   - Update the provider list and API key environment variables
-3. Edit `.github/scripts/consolidate-and-create-linear.ts`:
-   - Update the prompt to reference the correct number of plans
-4. Update `.github/actions/setup-opencode/action.yml`:
+2. Edit `.github/scripts/generate-and-create-linear.ts`:
+   - Update the `PROVIDERS` array to add/remove provider configurations
+   - Adjust the provider configurations in the `createOpencode()` call
+   - Update the consolidation prompt to reference the correct number of plans
+3. Update `.github/actions/setup-opencode/action.yml`:
    - Add/remove API key inputs and environment variables
+4. Update `.github/prompts/consolidate-and-create-linear.md`:
+   - Adjust placeholders to match your providers
 5. Update your workflow secrets accordingly
 
 ### Troubleshooting
