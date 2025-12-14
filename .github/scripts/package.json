@@ -6,9 +6,9 @@
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",
-    "test": "node --loader ts-node/esm integration.test.ts",
+    "test": "bun run integration.test.ts",
     "test:jest": "jest",
-    "test:integration": "node --loader ts-node/esm integration.test.ts"
+    "test:integration": "bun run integration.test.ts"
   },
   "keywords": [
     "github-actions",
@@ -32,6 +32,7 @@
     "typescript": "^5.3.3"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "bun": ">=1.0.0"
   }
 }

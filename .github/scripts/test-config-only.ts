@@ -47,7 +47,7 @@ async function test() {
 async function getOpencodeVersion(): Promise<string> {
   const { exec } = await import('child_process');
   return new Promise((resolve) => {
-    exec('opencode --version', (error, stdout) => {
+    exec('opencode --version', (_error, stdout) => {
       resolve(stdout.trim() || 'unknown');
     });
   });

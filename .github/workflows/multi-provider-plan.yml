@@ -83,7 +83,8 @@ jobs:
           # 2. Consolidates them
           # 3. Creates Linear issues
           # All in one execution - no intermediate files!
-          node --loader ts-node/esm generate-and-create-linear.ts \
+          # Using Bun for native TypeScript execution and proper timeout handling
+          bun run generate-and-create-linear.ts \
             "${{ steps.issue.outputs.title }}" \
             "$ISSUE_BODY"
 
