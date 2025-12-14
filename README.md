@@ -70,6 +70,256 @@ Alternatively, use `CLAUDE_CODE_OAUTH_TOKEN` instead of `ANTHROPIC_API_KEY`.
 
 ---
 
+## Multi-Provider Plan Generation
+
+A GitHub Actions workflow that generates implementation plans using multiple AI providers (Anthropic Claude, Google Gemini, OpenAI GPT-4) and creates Linear issues for tracking.
+
+### How It Works
+
+1. **Triggered by issue label** (`claude-plan`) or manual dispatch
+2. **Generates 3 plans in parallel** using Anthropic Claude, OpenAI GPT-4, and Google Gemini
+3. **Consolidates plans** into a unified implementation strategy
+4. **Creates Linear issues** with parent issue for the plan and sub-issues for each implementation step
+5. **Posts summary comment** on the GitHub issue with links to Linear
+
+### Quick Start
+
+Add this workflow to your repository:
+
+```yaml
+# .github/workflows/multi-provider-plan.yml
+name: Multi-Provider Plan Generation
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to generate plan for'
+        required: true
+        type: number
+      linear_project_id:
+        description: 'Linear project ID to add issues to (optional)'
+        required: false
+        type: string
+      anthropic_model:
+        description: 'Anthropic model to use'
+        required: false
+        type: string
+        default: 'claude-sonnet-4-20250514'
+      openai_model:
+        description: 'OpenAI model to use'
+        required: false
+        type: string
+        default: 'gpt-4-turbo-preview'
+      google_model:
+        description: 'Google model to use'
+        required: false
+        type: string
+        default: 'gemini-pro'
+
+jobs:
+  plan:
+    if: github.event.label.name == 'claude-plan' || github.event_name == 'workflow_dispatch'
+    uses: mkrueger12/claude-parallel/.github/workflows/multi-provider-plan.yml@main
+    with:
+      issue_number: ${{ github.event.inputs.issue_number }}
+      event_name: ${{ github.event_name }}
+      event_issue_number: ${{ github.event.issue.number }}
+      linear_project_id: ${{ github.event.inputs.linear_project_id }}
+      anthropic_model: ${{ github.event.inputs.anthropic_model || 'claude-sonnet-4-20250514' }}
+      openai_model: ${{ github.event.inputs.openai_model || 'gpt-4-turbo-preview' }}
+      google_model: ${{ github.event.inputs.google_model || 'gemini-pro' }}
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+      LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
+      LINEAR_PROJECT_ID: ${{ secrets.LINEAR_PROJECT_ID }}
+      GH_PAT: ${{ secrets.GH_PAT }}
+```
+
+### Required Secrets
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude |
+| `OPENAI_API_KEY` | Yes | OpenAI API key for GPT-4 |
+| `GOOGLE_API_KEY` | Yes | Google AI API key for Gemini |
+| `LINEAR_API_KEY` | Yes | Linear Personal API key ([get yours here](https://linear.app/settings/api)) |
+| `LINEAR_TEAM_ID` | Yes | Linear team ID or name for issue creation |
+| `LINEAR_PROJECT_ID` | No | Linear project to add issues to (optional) |
+| `GH_PAT` | Yes | GitHub Personal Access Token with `issues: write` permission |
+
+### Workflow Inputs
+
+For manual workflow dispatch (`workflow_dispatch`), you can customize the following:
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `issue_number` | (required) | GitHub issue number to generate plan for |
+| `linear_project_id` | (none) | Linear project ID to add issues to |
+| `anthropic_model` | `claude-sonnet-4-20250514` | Anthropic model to use for plan generation |
+| `openai_model` | `gpt-4-turbo-preview` | OpenAI model to use for plan generation |
+| `google_model` | `gemini-pro` | Google model to use for plan generation |
+
+### Usage
+
+#### Via Label (Automatic)
+
+1. Create or open a GitHub issue describing the feature or task
+2. Add the `claude-plan` label to the issue
+3. The workflow automatically triggers and generates plans
+4. Wait for the workflow to complete (usually 2-5 minutes)
+5. Check the issue comments for a summary with Linear issue links
+
+#### Via Manual Dispatch
+
+1. Go to **Actions** → **Multi-Provider Plan Generation** → **Run workflow**
+2. Enter the issue number
+3. (Optional) Override model selections
+4. (Optional) Specify a Linear project ID
+5. Click **Run workflow**
+6. Monitor the workflow in the Actions tab
+
+#### Finding Generated Linear Issues
+
+After the workflow completes:
+- A comment will be posted on the GitHub issue with links to:
+  - **Parent Linear issue**: Contains the consolidated implementation plan
+  - **Sub-issues**: One for each implementation step
+- Open Linear and navigate to your team to see the issues
+- Sub-issues are linked to the parent issue (visible in Linear's issue hierarchy)
+
+### How Consolidation Works
+
+The workflow uses a unique approach where **consolidation and Linear issue creation happen in the same AI session**:
+
+1. **Plan Generation**: Three AI providers (Claude, GPT-4, Gemini) independently analyze the GitHub issue and generate implementation plans
+2. **Consolidation**: Claude analyzes all three plans and creates a unified strategy that incorporates the best ideas from each
+3. **Linear Integration**: In the same session, Claude uses the Linear MCP (Model Context Protocol) to:
+   - Create a parent Linear issue with the consolidated plan
+   - Create sub-issues for each implementation step
+   - Link sub-issues to the parent
+
+This approach ensures the AI has full context when creating issues and can adapt descriptions naturally based on its analysis.
+
+### Customization
+
+#### Customizing Prompts
+
+Prompts are stored in `.github/prompts/` for easy customization:
+
+**Plan Generation Prompt** (`.github/prompts/plan-generation.md`):
+```markdown
+You are a senior software engineer creating an implementation plan.
+
+Issue: {{ISSUE_TITLE}}
+Description: {{ISSUE_BODY}}
+
+Create a detailed plan with:
+- Overview of the approach
+- Step-by-step implementation tasks
+- Potential risks and mitigations
+- Required dependencies
+```
+
+**Consolidation Prompt** (`.github/prompts/consolidate-and-create-linear.md`):
+```markdown
+Analyze these 3 implementation plans:
+
+Anthropic Claude: {{ANTHROPIC_PLAN}}
+OpenAI GPT-4: {{OPENAI_PLAN}}
+Google Gemini: {{GOOGLE_PLAN}}
+
+Consolidate into a unified strategy, then create Linear issues using the
+mcp__linear-server__create_issue tool.
+```
+
+Available placeholders:
+- `{{ISSUE_TITLE}}` - GitHub issue title
+- `{{ISSUE_BODY}}` - GitHub issue description
+- `{{ANTHROPIC_PLAN}}` - Plan from Claude
+- `{{OPENAI_PLAN}}` - Plan from GPT-4
+- `{{GOOGLE_PLAN}}` - Plan from Gemini
+- `{{LINEAR_TEAM_ID}}` - Your Linear team ID
+- `{{LINEAR_PROJECT_ID}}` - Linear project ID (if specified)
+- `{{GITHUB_ISSUE_URL}}` - Link to the original GitHub issue
+
+#### Changing Default Models
+
+You can change the default models used for plan generation:
+
+1. **Via workflow inputs** (manual dispatch):
+   - Use the workflow dispatch UI to select different models each time
+
+2. **Via workflow file** (for your organization):
+   - Fork this repository
+   - Edit `.github/workflows/multi-provider-plan.yml`
+   - Update the `default` values under `workflow_dispatch.inputs`
+   - Reference your fork in your workflows
+
+Example model options:
+- **Anthropic**: `claude-opus-4-5-20251101`, `claude-sonnet-4-20250514`, `claude-3-5-sonnet-20241022`
+- **OpenAI**: `gpt-4-turbo-preview`, `gpt-4`, `gpt-4-32k`
+- **Google**: `gemini-pro`, `gemini-1.5-pro`, `gemini-1.5-flash`
+
+#### Adding or Removing Providers
+
+To customize which AI providers are used:
+
+1. Fork this repository
+2. Edit `.github/scripts/generate-plans.ts`:
+   - Add/remove provider configurations in the parallel plan generation logic
+   - Update the provider list and API key environment variables
+3. Edit `.github/scripts/consolidate-and-create-linear.ts`:
+   - Update the prompt to reference the correct number of plans
+4. Update `.github/actions/setup-opencode/action.yml`:
+   - Add/remove API key inputs and environment variables
+5. Update your workflow secrets accordingly
+
+### Troubleshooting
+
+#### "Linear API key is invalid"
+
+Ensure your `LINEAR_API_KEY` secret is set correctly:
+1. Go to [Linear Settings → API](https://linear.app/settings/api)
+2. Create a new Personal API key
+3. Add it to GitHub Secrets as `LINEAR_API_KEY`
+
+#### "Team not found"
+
+Your `LINEAR_TEAM_ID` should be either:
+- The team's ID (e.g., `abc123...`)
+- The team's key/name (e.g., `ENG` or `PRODUCT`)
+
+Find your team ID in Linear:
+1. Go to your team in Linear
+2. Check the URL: `https://linear.app/{workspace}/{team-key}/...`
+3. Use the `{team-key}` as your `LINEAR_TEAM_ID`
+
+#### Workflow doesn't trigger on label
+
+Make sure:
+1. The label name is exactly `claude-plan` (case-sensitive)
+2. The workflow file is on your default branch (usually `main`)
+3. You have the required secrets configured
+
+#### Plans are similar or identical
+
+This can happen if:
+- The issue description is very specific, leaving little room for interpretation
+- Models have been trained on similar data
+- The prompts are too prescriptive
+
+To get more diverse plans:
+- Edit `.github/prompts/plan-generation.md` to encourage creative approaches
+- Ask providers to focus on different aspects (e.g., performance vs. simplicity)
+
+---
+
 ## Local CLI Usage (Alternative)
 
 You can also run implementations locally using the shell script.
