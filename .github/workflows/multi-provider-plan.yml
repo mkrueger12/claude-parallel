@@ -133,7 +133,7 @@ jobs:
           Please check the [workflow run logs](${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
 
           Common issues:
-          - Missing or invalid API keys (CLAUDE_CODE_OAUTH_TOKEN, OPENAI_API_KEY, GEMINI_API_KEY, LINEAR_API_KEY)
+          - Missing or invalid API keys (CLAUDE_CODE_OAUTH_TOKEN, OPENAI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, LINEAR_API_KEY)
           - Invalid Linear team ID or project ID
           - Provider API rate limits
           - Network connectivity issues

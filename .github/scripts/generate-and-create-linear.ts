@@ -278,6 +278,102 @@ function parseConsolidationResponse(response: string): ConsolidatedResult {
 }
 
 // ============================================================================
+// API Key Validation
+// ============================================================================
+
+interface ApiKeyValidation {
+  provider: string;
+  envVar: string;
+  isSet: boolean;
+  isValid: boolean;
+  error?: string;
+}
+
+/**
+ * Validate API key format for a provider
+ */
+function validateApiKeyFormat(provider: string, apiKey: string): { valid: boolean; error?: string } {
+  if (!apiKey || apiKey.trim() === '') {
+    return { valid: false, error: 'Key is empty' };
+  }
+
+  // Provider-specific format validation
+  switch (provider) {
+    case 'anthropic':
+      // Anthropic keys start with 'sk-ant-' or can be OAuth tokens
+      if (!apiKey.startsWith('sk-ant-') && apiKey.length < 20) {
+        return { valid: false, error: 'Invalid format (expected sk-ant-* or OAuth token)' };
+      }
+      break;
+
+    case 'openai':
+      // OpenAI keys start with 'sk-'
+      if (!apiKey.startsWith('sk-')) {
+        return { valid: false, error: 'Invalid format (expected sk-*)' };
+      }
+      break;
+
+    case 'google':
+      // Google API keys are typically 39 characters
+      if (apiKey.length < 30) {
+        return { valid: false, error: 'Key appears too short for Google API' };
+      }
+      break;
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validate all provider API keys before starting plan generation
+ */
+function validateApiKeys(): { allValid: boolean; results: ApiKeyValidation[] } {
+  console.log('Validating API keys...\n');
+
+  const results: ApiKeyValidation[] = PROVIDERS.map(provider => {
+    const apiKey = process.env[provider.apiKeyEnvVar];
+    const isSet = apiKey !== undefined && apiKey !== '';
+
+    if (!isSet) {
+      return {
+        provider: provider.name,
+        envVar: provider.apiKeyEnvVar,
+        isSet: false,
+        isValid: false,
+        error: 'Not set',
+      };
+    }
+
+    const formatCheck = validateApiKeyFormat(provider.name, apiKey);
+    return {
+      provider: provider.name,
+      envVar: provider.apiKeyEnvVar,
+      isSet: true,
+      isValid: formatCheck.valid,
+      error: formatCheck.error,
+    };
+  });
+
+  // Log results
+  const validCount = results.filter(r => r.isValid).length;
+  const totalCount = results.length;
+
+  results.forEach(r => {
+    const status = r.isValid ? 'OK' : 'INVALID';
+    const details = r.error ? ` (${r.error})` : '';
+    const keyPreview = r.isSet ? `[${process.env[r.envVar]?.slice(0, 8)}...]` : '[not set]';
+    console.log(`  [${r.provider}] ${status} - ${r.envVar} ${keyPreview}${details}`);
+  });
+
+  console.log(`\nAPI key validation: ${validCount}/${totalCount} valid\n`);
+
+  return {
+    allValid: validCount === totalCount,
+    results,
+  };
+}
+
+// ============================================================================
 // Plan Generation
 // ============================================================================
 
@@ -487,10 +583,28 @@ async function main() {
   console.log('');
 
   // ========================================
+  // STEP 0: Validate API Keys
+  // ========================================
+
+  const keyValidation = validateApiKeys();
+  const invalidKeys = keyValidation.results.filter(r => !r.isValid);
+
+  if (invalidKeys.length === PROVIDERS.length) {
+    console.error('FATAL: No valid API keys found. Cannot proceed.');
+    console.error('Please set at least one of:');
+    PROVIDERS.forEach(p => console.error(`  - ${p.apiKeyEnvVar}`));
+    process.exit(1);
+  }
+
+  if (invalidKeys.length > 0) {
+    console.log(`WARNING: ${invalidKeys.length} provider(s) will be skipped due to missing/invalid API keys.\n`);
+  }
+
+  // ========================================
   // STEP 1: Generate Plans from All Providers
   // ========================================
 
-  console.log('STEP 1: Generating plans from 3 providers in parallel...\n');
+  console.log('STEP 1: Generating plans from available providers in parallel...\n');
 
   const planPrompt = await preparePlanPrompt(issueTitle, issueBody);
 
