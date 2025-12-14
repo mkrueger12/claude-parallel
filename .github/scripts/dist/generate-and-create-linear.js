@@ -35,7 +35,7 @@ const PROVIDERS = [
         providerID: 'google',
         modelEnvVar: 'GOOGLE_MODEL',
         apiKeyEnvVar: 'GEMINI_API_KEY',
-        defaultModel: 'gemini-3-pro',
+        defaultModel: 'gemini-3-pro-preview',
     },
 ];
 // ============================================================================
@@ -75,7 +75,7 @@ function extractTextFromParts(parts) {
  * Read the plan generation prompt template
  */
 async function preparePlanPrompt(issueTitle, issueBody) {
-    const promptPath = join(__dirname, '..', '..', 'prompts', 'plan-generation.md');
+    const promptPath = join(__dirname, '..', 'prompts', 'plan-generation.md');
     const template = await readFile(promptPath, 'utf-8');
     return template
         .replace(/\{\{ISSUE_TITLE\}\}/g, issueTitle)
@@ -85,7 +85,7 @@ async function preparePlanPrompt(issueTitle, issueBody) {
  * Read the consolidation prompt template
  */
 async function prepareConsolidationPrompt(plans, env) {
-    const promptPath = join(__dirname, '..', '..', 'prompts', 'consolidate-and-create-linear.md');
+    const promptPath = join(__dirname, '..', 'prompts', 'consolidate-and-create-linear.md');
     let template = await readFile(promptPath, 'utf-8');
     // Substitute plan placeholders
     template = template.replace('{{ANTHROPIC_PLAN}}', JSON.stringify(plans.anthropic, null, 2));
@@ -233,16 +233,21 @@ async function generatePlanFromProvider(client, provider, prompt) {
             throw new Error('Failed to create session: no data in response');
         }
         const session = sessionResponse.data;
-        const promptResponse = await client.session.prompt({
-            path: { id: session.id },
-            body: {
-                model: {
-                    providerID: provider.providerID,
-                    modelID: model,
+        console.log(`[${provider.name}] Session created: ${session.id}`);
+        console.log(`[${provider.name}] Sending prompt (${prompt.length} chars)...`);
+        const promptResponse = await Promise.race([
+            client.session.prompt({
+                path: { id: session.id },
+                body: {
+                    model: {
+                        providerID: provider.providerID,
+                        modelID: model,
+                    },
+                    parts: [{ type: 'text', text: prompt }],
                 },
-                parts: [{ type: 'text', text: prompt }],
-            },
-        });
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout after 120s')), 120000)),
+        ]);
         if (!promptResponse.data) {
             throw new Error('Failed to get response: no data in response');
         }
@@ -402,7 +407,7 @@ async function main() {
             body: {
                 model: {
                     providerID: 'anthropic',
-                    modelID: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
+                    modelID: process.env.ANTHROPIC_MODEL || 'claude-opus-4-5-20251101',
                 },
                 parts: [{ type: 'text', text: consolidationPrompt }],
             },

@@ -10,32 +10,43 @@ import { createOpencode } from '@opencode-ai/sdk';
 let testResults = [];
 let testCount = 0;
 let passCount = 0;
+let testQueue = [];
 async function test(name, fn) {
-    testCount++;
-    const start = Date.now();
-    try {
-        await fn();
-        passCount++;
-        testResults.push({ name, passed: true, duration: Date.now() - start });
-        console.log(`  ✓ ${name}`);
-    }
-    catch (error) {
-        testResults.push({
-            name,
-            passed: false,
-            error: error instanceof Error ? error : new Error(String(error)),
-            duration: Date.now() - start,
-        });
-        console.log(`  ✗ ${name}`);
-        if (error instanceof Error) {
-            console.log(`    ${error.message}`);
+    testQueue.push(async () => {
+        testCount++;
+        const start = Date.now();
+        try {
+            await fn();
+            passCount++;
+            testResults.push({ name, passed: true, duration: Date.now() - start });
+            console.log(`  ✓ ${name}`);
         }
-    }
+        catch (error) {
+            testResults.push({
+                name,
+                passed: false,
+                error: error instanceof Error ? error : new Error(String(error)),
+                duration: Date.now() - start,
+            });
+            console.log(`  ✗ ${name}`);
+            if (error instanceof Error) {
+                console.log(`    ${error.message}`);
+            }
+        }
+    });
 }
 function describe(suiteName, fn) {
     console.log(`\n${suiteName}`);
     fn();
 }
+async function runQueuedTests() {
+    for (const testFn of testQueue) {
+        await testFn();
+    }
+    testQueue = [];
+}
+// TypeScript utility function for test assertions (may be used in future tests)
+// @ts-ignore TS6133
 function expect(value) {
     return {
         toBeDefined() {
@@ -168,6 +179,9 @@ async function runTests() {
                 const sessionResponse = await client.session.create({
                     body: { title: 'Test Response Parsing - Anthropic' },
                 });
+                if (!sessionResponse.data) {
+                    throw new Error('Session creation failed');
+                }
                 const promptResponse = await client.session.prompt({
                     path: { id: sessionResponse.data.id },
                     body: {
@@ -178,6 +192,9 @@ async function runTests() {
                         parts: [{ type: 'text', text: 'Say hello' }],
                     },
                 });
+                if (!promptResponse.data) {
+                    throw new Error('Failed to get response');
+                }
                 const responseText = extractTextFromParts(promptResponse.data.parts);
                 if (!responseText || responseText.length === 0) {
                     throw new Error('Response text is empty');
@@ -226,6 +243,9 @@ async function runTests() {
                 const sessionResponse = await client.session.create({
                     body: { title: 'Test Response Parsing - OpenAI' },
                 });
+                if (!sessionResponse.data) {
+                    throw new Error('Session creation failed');
+                }
                 const promptResponse = await client.session.prompt({
                     path: { id: sessionResponse.data.id },
                     body: {
@@ -236,6 +256,9 @@ async function runTests() {
                         parts: [{ type: 'text', text: 'Say hello' }],
                     },
                 });
+                if (!promptResponse.data) {
+                    throw new Error('Failed to get response');
+                }
                 const responseText = extractTextFromParts(promptResponse.data.parts);
                 if (!responseText || responseText.length === 0) {
                     throw new Error('Response text is empty');
@@ -245,7 +268,7 @@ async function runTests() {
         // ========================================================================
         // Google Provider Tests
         // ========================================================================
-        describe('Google Provider (gemini-3-pro)', () => {
+        describe('Google Provider (gemini-3-pro-preview)', () => {
             test('should create session successfully', async () => {
                 const sessionResponse = await client.session.create({
                     body: { title: 'Test Session - Google Integration' },
@@ -266,7 +289,7 @@ async function runTests() {
                     body: {
                         model: {
                             providerID: 'google',
-                            modelID: 'gemini-3-pro',
+                            modelID: 'gemini-3-pro-preview',
                         },
                         parts: [
                             {
@@ -277,6 +300,7 @@ async function runTests() {
                     },
                 });
                 if (!promptResponse || !promptResponse.data || !promptResponse.data.parts) {
+                    console.log('    [DEBUG] Response:', JSON.stringify(promptResponse, null, 2));
                     throw new Error('Failed to get response');
                 }
             });
@@ -284,18 +308,26 @@ async function runTests() {
                 const sessionResponse = await client.session.create({
                     body: { title: 'Test Response Parsing - Google' },
                 });
+                if (!sessionResponse.data) {
+                    throw new Error('Session creation failed');
+                }
                 const promptResponse = await client.session.prompt({
                     path: { id: sessionResponse.data.id },
                     body: {
                         model: {
                             providerID: 'google',
-                            modelID: 'gemini-3-pro',
+                            modelID: 'gemini-3-pro-preview',
                         },
                         parts: [{ type: 'text', text: 'Say hello' }],
                     },
                 });
+                if (!promptResponse.data) {
+                    console.log('    [DEBUG] Response:', JSON.stringify(promptResponse, null, 2));
+                    throw new Error('Failed to get response');
+                }
                 const responseText = extractTextFromParts(promptResponse.data.parts);
                 if (!responseText || responseText.length === 0) {
+                    console.log('    [DEBUG] Parts:', JSON.stringify(promptResponse.data.parts, null, 2));
                     throw new Error('Response text is empty');
                 }
             });
@@ -332,6 +364,9 @@ async function runTests() {
                         body: { title: 'Parallel Test - Google' },
                     }),
                 ]);
+                if (!anthropicSession.data || !openaiSession.data || !googleSession.data) {
+                    throw new Error('Session creation failed');
+                }
                 const results = await Promise.all([
                     client.session.prompt({
                         path: { id: anthropicSession.data.id },
@@ -358,7 +393,7 @@ async function runTests() {
                         body: {
                             model: {
                                 providerID: 'google',
-                                modelID: 'gemini-3-pro',
+                                modelID: 'gemini-3-pro-preview',
                             },
                             parts: [{ type: 'text', text: 'Say "ok"' }],
                         },
@@ -367,13 +402,18 @@ async function runTests() {
                 if (results.length !== 3) {
                     throw new Error(`Expected 3 results, got ${results.length}`);
                 }
-                for (const result of results) {
-                    if (!result.data || !result.data.parts) {
-                        throw new Error('Invalid response');
+                for (let i = 0; i < results.length; i++) {
+                    const result = results[i];
+                    const providerName = i === 0 ? 'anthropic' : i === 1 ? 'openai' : 'google';
+                    if (!result || !result.data || !result.data.parts) {
+                        console.log(`    [DEBUG] Invalid response from ${providerName}:`, JSON.stringify(result, null, 2));
+                        throw new Error(`Invalid response from ${providerName}`);
                     }
                 }
             });
         });
+        // Run all queued tests
+        await runQueuedTests();
         // Cleanup
         await server.close();
         console.log('✓ OpenCode server closed');
@@ -395,3 +435,4 @@ runTests().catch((error) => {
     console.error('Fatal error:', error);
     process.exit(1);
 });
+//# sourceMappingURL=integration.test.js.map
