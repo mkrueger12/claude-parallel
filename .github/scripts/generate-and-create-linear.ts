@@ -337,6 +337,10 @@ async function generatePlanFromProvider(
       throw new Error('Failed to get response: no data in response');
     }
 
+    // Log raw response structure for debugging
+    const dataKeys = Object.keys(promptResponse.data);
+    console.log(`[${provider.name}] Response data keys: [${dataKeys.join(', ')}]`);
+
     // Check for provider-level errors in the response
     const responseInfo = promptResponse.data.info;
     if (responseInfo?.error) {
@@ -381,9 +385,18 @@ async function generatePlanFromProvider(
         console.error(`[${provider.name}]   Tokens: input=${responseInfo.tokens.input}, output=${responseInfo.tokens.output}`);
       }
 
+      // Log raw response info for debugging - captures all fields
+      console.error(`[${provider.name}]   Raw responseInfo: ${JSON.stringify(responseInfo, null, 2).split('\n').map(l => `    ${l}`).join('\n')}`);
+
       if (promptResponse.data.parts && promptResponse.data.parts.length > 0) {
         console.error(`[${provider.name}]   Raw parts preview: ${JSON.stringify(promptResponse.data.parts).slice(0, 500)}`);
       }
+
+      // Check for finish reasons that indicate problems
+      if (finishReason === 'unknown' || !responseInfo) {
+        console.error(`[${provider.name}]   ⚠️  Provider may have failed silently (no finish reason or response info)`);
+      }
+
       return {
         provider: provider.name,
         success: false,
