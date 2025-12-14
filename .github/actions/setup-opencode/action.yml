@@ -1,8 +1,8 @@
 name: 'Setup OpenCode SDK'
 description: 'Install and configure OpenCode SDK with multi-provider authentication and Linear MCP'
 inputs:
-  anthropic_api_key:
-    description: 'Anthropic API key for Claude provider'
+  claude_code_oauth_token:
+    description: 'Claude Code OAuth token for Claude provider'
     required: true
   openai_api_key:
     description: 'OpenAI API key for GPT-4 provider'
@@ -47,8 +47,8 @@ runs:
         echo "Validating required API keys..."
 
         # Check all required keys are provided
-        if [[ -z "${{ inputs.anthropic_api_key }}" ]]; then
-          echo "Error: anthropic_api_key is required"
+        if [[ -z "${{ inputs.claude_code_oauth_token }}" ]]; then
+          echo "Error: claude_code_oauth_token is required"
           exit 1
         fi
 
@@ -96,9 +96,9 @@ runs:
         echo "Configuring environment variables..."
 
         # Provider API keys
-        echo "ANTHROPIC_API_KEY=${{ inputs.anthropic_api_key }}" >> $GITHUB_ENV
+        echo "CLAUDE_CODE_OAUTH_TOKEN=${{ inputs.claude_code_oauth_token }}" >> $GITHUB_ENV
         echo "OPENAI_API_KEY=${{ inputs.openai_api_key }}" >> $GITHUB_ENV
-        echo "GOOGLE_GENERATIVE_AI_API_KEY=${{ inputs.google_api_key }}" >> $GITHUB_ENV
+        echo "GEMINI_API_KEY=${{ inputs.google_api_key }}" >> $GITHUB_ENV
 
         # Model configuration
         echo "ANTHROPIC_MODEL=${{ inputs.anthropic_model }}" >> $GITHUB_ENV
@@ -111,7 +111,7 @@ runs:
         echo "LINEAR_PROJECT_ID=${{ inputs.linear_project_id }}" >> $GITHUB_ENV
 
         echo "Environment variables configured successfully"
-        echo "- Anthropic model: ${{ inputs.anthropic_model }}"
+        echo "- Claude Code OAuth token configured"
         echo "- OpenAI model: ${{ inputs.openai_model }}"
         echo "- Google model: ${{ inputs.google_model }}"
         echo "- Linear team: ${{ inputs.linear_team_id }}"
