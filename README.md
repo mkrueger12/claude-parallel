@@ -110,17 +110,17 @@ on:
         description: 'Anthropic model to use'
         required: false
         type: string
-        default: 'claude-sonnet-4-20250514'
+        default: 'claude-opus-4-5-20251101'
       openai_model:
         description: 'OpenAI model to use'
         required: false
         type: string
-        default: 'gpt-4-turbo-preview'
+        default: 'gpt-5.2'
       google_model:
         description: 'Google model to use'
         required: false
         type: string
-        default: 'gemini-pro'
+        default: 'gemini-3-pro'
 
 jobs:
   plan:
@@ -131,9 +131,9 @@ jobs:
       event_name: ${{ github.event_name }}
       event_issue_number: ${{ github.event.issue.number }}
       linear_project_id: ${{ github.event.inputs.linear_project_id }}
-      anthropic_model: ${{ github.event.inputs.anthropic_model || 'claude-sonnet-4-20250514' }}
-      openai_model: ${{ github.event.inputs.openai_model || 'gpt-4-turbo-preview' }}
-      google_model: ${{ github.event.inputs.google_model || 'gemini-pro' }}
+      anthropic_model: ${{ github.event.inputs.anthropic_model || 'claude-opus-4-5-20251101' }}
+      openai_model: ${{ github.event.inputs.openai_model || 'gpt-5.2' }}
+      google_model: ${{ github.event.inputs.google_model || 'gemini-3-pro' }}
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -164,9 +164,9 @@ For manual workflow dispatch (`workflow_dispatch`), you can customize the follow
 |-------|---------|-------------|
 | `issue_number` | (required) | GitHub issue number to generate plan for |
 | `linear_project_id` | (none) | Linear project ID to add issues to |
-| `anthropic_model` | `claude-sonnet-4-20250514` | Anthropic model to use for plan generation |
-| `openai_model` | `gpt-4-turbo-preview` | OpenAI model to use for plan generation |
-| `google_model` | `gemini-pro` | Google model to use for plan generation |
+| `anthropic_model` | `claude-opus-4-5-20251101` | Anthropic model to use for plan generation |
+| `openai_model` | `gpt-5.2` | OpenAI model to use for plan generation |
+| `google_model` | `gemini-3-pro` | Google model to use for plan generation |
 
 ### Usage
 
@@ -270,9 +270,9 @@ You can change the default models used for plan generation:
    - Reference your fork in your workflows
 
 Example model options:
-- **Anthropic**: `claude-opus-4-5-20251101`, `claude-sonnet-4-20250514`, `claude-3-5-sonnet-20241022`
-- **OpenAI**: `gpt-4-turbo-preview`, `gpt-4`, `gpt-4-32k`
-- **Google**: `gemini-pro`, `gemini-1.5-pro`, `gemini-1.5-flash`
+- **Anthropic**: `claude-opus-4-5-20251101` (default), `claude-sonnet-4-20250514`, `claude-3-5-sonnet-20241022`
+- **OpenAI**: `gpt-5.2` (default), `gpt-4-turbo`, `gpt-4`
+- **Google**: `gemini-3-pro` (default), `gemini-1.5-pro`, `gemini-1.5-flash`
 
 #### Adding or Removing Providers
 

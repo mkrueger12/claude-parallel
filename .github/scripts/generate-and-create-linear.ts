@@ -87,21 +87,21 @@ const PROVIDERS: ProviderConfig[] = [
     providerID: 'anthropic',
     modelEnvVar: 'ANTHROPIC_MODEL',
     apiKeyEnvVar: 'CLAUDE_CODE_OAUTH_TOKEN',
-    defaultModel: 'claude-sonnet-4-20250514',
+    defaultModel: 'claude-opus-4-5-20251101',
   },
   {
     name: 'openai',
     providerID: 'openai',
     modelEnvVar: 'OPENAI_MODEL',
     apiKeyEnvVar: 'OPENAI_API_KEY',
-    defaultModel: 'gpt-4-turbo-preview',
+    defaultModel: 'gpt-5.2',
   },
   {
     name: 'google',
     providerID: 'google',
     modelEnvVar: 'GOOGLE_MODEL',
     apiKeyEnvVar: 'GEMINI_API_KEY',
-    defaultModel: 'gemini-pro',
+    defaultModel: 'gemini-3-pro',
   },
 ];
 

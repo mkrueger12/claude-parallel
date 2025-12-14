@@ -17,17 +17,17 @@ on:
         description: 'Anthropic model to use'
         required: false
         type: string
-        default: 'claude-sonnet-4-20250514'
+        default: 'claude-opus-4-5-20251101'
       openai_model:
         description: 'OpenAI model to use'
         required: false
         type: string
-        default: 'gpt-4-turbo-preview'
+        default: 'gpt-5.2'
       google_model:
         description: 'Google model to use'
         required: false
         type: string
-        default: 'gemini-pro'
+        default: 'gemini-3-pro'
 
 jobs:
   generate-plan:
