@@ -1,0 +1,39 @@
+name: Test OpenCode CLI Version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          npm install -g opencode-ai@latest
+          echo ""
+          echo "Installed version:"
+          opencode --version
+          echo ""
+
+      - name: Verify version
+        run: |
+          VERSION=$(opencode --version)
+          echo "OpenCode CLI version: $VERSION"
+
+          if [ "$VERSION" = "1.0.153" ]; then
+            echo "✓ CLI version is correct (1.0.153)!"
+            echo "✓ Timeout feature is supported"
+          else
+            echo "⚠ CLI version is $VERSION (expected 1.0.153)"
+            echo "⚠ Timeout feature may not be supported"
+            # Don't fail - just warn
+          fi
