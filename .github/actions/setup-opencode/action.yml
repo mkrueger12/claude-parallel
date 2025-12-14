@@ -82,6 +82,13 @@ runs:
         cache: 'npm'
         cache-dependency-path: .github/scripts/package-lock.json
 
+    - name: Install OpenCode CLI
+      shell: bash
+      run: |
+        echo "Installing OpenCode CLI..."
+        npm install -g opencode-ai@latest
+        echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
     - name: Install dependencies
       shell: bash
       run: |
