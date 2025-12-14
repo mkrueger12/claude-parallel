@@ -337,7 +337,60 @@ async function generatePlanFromProvider(
       throw new Error('Failed to get response: no data in response');
     }
 
+    // Check for provider-level errors in the response
+    const responseInfo = promptResponse.data.info;
+    if (responseInfo?.error) {
+      const err = responseInfo.error;
+      const errorName = err.name;
+      const errorData = 'data' in err ? err.data : {};
+      const errorMessage = 'message' in errorData ? errorData.message : JSON.stringify(errorData);
+
+      console.error(`[${provider.name}] ✗ Provider error: ${errorName}`);
+      console.error(`[${provider.name}]   Message: ${errorMessage}`);
+
+      // Log additional details for API errors
+      if (errorName === 'APIError' && 'statusCode' in errorData) {
+        console.error(`[${provider.name}]   Status code: ${errorData.statusCode}`);
+        if ('responseBody' in errorData && errorData.responseBody) {
+          console.error(`[${provider.name}]   Response body: ${String(errorData.responseBody).slice(0, 500)}`);
+        }
+      }
+
+      return {
+        provider: provider.name,
+        success: false,
+        error: `${errorName}: ${errorMessage}`,
+      };
+    }
+
     const responseText = extractTextFromParts(promptResponse.data.parts);
+
+    // Debug logging for troubleshooting empty responses
+    const partsCount = promptResponse.data.parts?.length ?? 0;
+    const partsTypes = promptResponse.data.parts?.map(p => p.type).join(', ') || 'none';
+    const finishReason = responseInfo?.finish || 'unknown';
+    console.log(`[${provider.name}] Response received: ${partsCount} parts (types: ${partsTypes}), finish: ${finishReason}`);
+
+    // Treat empty responses as errors - providers should always return content
+    if (responseText.length === 0) {
+      console.error(`[${provider.name}] ✗ Empty response (0 chars) - provider returned no text content`);
+      console.error(`[${provider.name}]   Debug: parts=${partsCount}, types=[${partsTypes}], finish=${finishReason}`);
+
+      // Log token usage if available - helps diagnose if request was received but returned empty
+      if (responseInfo?.tokens) {
+        console.error(`[${provider.name}]   Tokens: input=${responseInfo.tokens.input}, output=${responseInfo.tokens.output}`);
+      }
+
+      if (promptResponse.data.parts && promptResponse.data.parts.length > 0) {
+        console.error(`[${provider.name}]   Raw parts preview: ${JSON.stringify(promptResponse.data.parts).slice(0, 500)}`);
+      }
+      return {
+        provider: provider.name,
+        success: false,
+        error: `Empty response from provider (0 chars). Parts: ${partsCount}, types: [${partsTypes}], finish: ${finishReason}`,
+      };
+    }
+
     // Treat the raw response text as the plan content
     const plan: Plan = { content: responseText };
 
@@ -351,6 +404,9 @@ async function generatePlanFromProvider(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[${provider.name}] ✗ Error: ${errorMessage}`);
+    if (error instanceof Error && error.stack) {
+      console.error(`[${provider.name}]   Stack trace: ${error.stack.split('\n').slice(1, 4).join('\n    ')}`);
+    }
     return {
       provider: provider.name,
       success: false,
@@ -455,14 +511,22 @@ async function main() {
       PROVIDERS.map(provider => generatePlanFromProvider(client, provider, planPrompt))
     );
 
-    // Check for failures
+    // Check for failures and log summary
     const successCount = results.filter(r => r.success).length;
-    const failureCount = results.filter(r => !r.success).length;
+    const failedResults = results.filter(r => !r.success);
+    const failureCount = failedResults.length;
 
     console.log(`\nPlan generation: ${successCount}/${PROVIDERS.length} successful`);
 
+    if (failureCount > 0) {
+      console.error(`\n⚠️  ${failureCount} provider(s) failed:`);
+      failedResults.forEach(r => {
+        console.error(`  - [${r.provider}] ${r.error}`);
+      });
+    }
+
     if (failureCount === PROVIDERS.length) {
-      console.error('All providers failed! Check your API keys and network connection.');
+      console.error('\n❌ All providers failed! Check your API keys and network connection.');
       process.exit(1);
     }
 
