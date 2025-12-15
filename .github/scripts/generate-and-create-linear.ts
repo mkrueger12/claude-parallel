@@ -76,7 +76,7 @@ const PROVIDERS: ProviderConfig[] = [
     name: 'anthropic',
     providerID: 'anthropic',
     modelEnvVar: 'ANTHROPIC_MODEL',
-    apiKeyEnvVar: 'CLAUDE_CODE_OAUTH_TOKEN',
+    apiKeyEnvVar: 'ANTHROPIC_API_KEY',
     defaultModel: 'claude-3-5-haiku-20241022',
   },
   {
@@ -624,7 +624,7 @@ async function main() {
     provider: {
       anthropic: {
         options: {
-          apiKey: process.env.CLAUDE_CODE_OAUTH_TOKEN,
+          apiKey: process.env.ANTHROPIC_API_KEY,
           timeout: false as const, // Disable timeout - let requests run as long as needed
         },
       },
