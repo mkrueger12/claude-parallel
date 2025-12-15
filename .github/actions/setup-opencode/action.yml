@@ -102,7 +102,6 @@ runs:
 
         # Provider API keys
         echo "CLAUDE_CODE_OAUTH_TOKEN=${{ inputs.claude_code_oauth_token }}" >> $GITHUB_ENV
-        echo "ANTHROPIC_API_KEY=${{ inputs.claude_code_oauth_token }}" >> $GITHUB_ENV
         echo "OPENAI_API_KEY=${{ inputs.openai_api_key }}" >> $GITHUB_ENV
         echo "GOOGLE_GENERATIVE_AI_API_KEY=${{ inputs.google_api_key }}" >> $GITHUB_ENV
 
