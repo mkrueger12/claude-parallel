@@ -25,6 +25,7 @@ git log -5 --stat
    - Based on the provided issue generate a list of questions you would like to answer.
    - Try answer these by reviewing `spec.txt` and by exploring the codebase in the next steps.
    - If you cannot answer a question, the simpler solution is always better.
+   - If `spec.txt` is not available then do not review it.
 
 2.. **Read all mentioned files immediately and FULLY**:
    - Ticket files
