@@ -12,6 +12,6 @@ set +a
 export GITHUB_ISSUE_URL="https://github.com/mkrueger12/claude-parallel/issues/simple-test"
 
 # Run the script with a simple, quick test
-node --loader ts-node/esm generate-and-create-linear.ts \
+bun generate-and-create-linear.ts \
   "Simple E2E Test" \
   "say hi"

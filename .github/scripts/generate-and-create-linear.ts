@@ -77,21 +77,21 @@ const PROVIDERS: ProviderConfig[] = [
     providerID: 'anthropic',
     modelEnvVar: 'ANTHROPIC_MODEL',
     apiKeyEnvVar: 'CLAUDE_CODE_OAUTH_TOKEN',
-    defaultModel: 'claude-opus-4-5-20251101',
+    defaultModel: 'claude-3-5-haiku-20241022',
   },
   {
     name: 'openai',
     providerID: 'openai',
     modelEnvVar: 'OPENAI_MODEL',
     apiKeyEnvVar: 'OPENAI_API_KEY',
-    defaultModel: 'gpt-5.2',
+    defaultModel: 'gpt-4o-mini',
   },
   {
     name: 'google',
     providerID: 'google',
     modelEnvVar: 'GOOGLE_MODEL',
     apiKeyEnvVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
-    defaultModel: 'gemini-3-pro-preview',
+    defaultModel: 'gemini-2.5-flash',
   },
 ];
 
@@ -749,7 +749,7 @@ async function main() {
       body: {
         model: {
           providerID: 'anthropic',
-          modelID: process.env.ANTHROPIC_MODEL || 'claude-opus-4-5-20251101',
+          modelID: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
         },
         parts: [{ type: 'text', text: consolidationPrompt }],
       },

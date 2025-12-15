@@ -9,6 +9,7 @@
 
 import { createOpencode } from '@opencode-ai/sdk';
 import type { OpencodeClient } from '@opencode-ai/sdk';
+import { exec } from 'child_process';
 
 // ============================================================================
 // Simple Test Framework
@@ -117,6 +118,9 @@ function validateEnvironment(): void {
     'CLAUDE_CODE_OAUTH_TOKEN',
     'OPENAI_API_KEY',
     'GOOGLE_GENERATIVE_AI_API_KEY',
+    'LINEAR_API_KEY',
+    'LINEAR_TEAM_ID',
+    'GITHUB_ISSUE_URL',
   ];
 
   const missing = requiredVars.filter((v) => !process.env[v]);
@@ -165,6 +169,15 @@ async function runTests(): Promise<void> {
             },
           },
         },
+        mcp: {
+          linear: {
+            type: "remote" as const,
+            url: "https://mcp.linear.app/mcp",
+            headers: {
+              "Authorization": `Bearer ${process.env.LINEAR_API_KEY!}`
+            }
+          }
+        }
       },
     });
 
@@ -487,6 +500,62 @@ async function runTests(): Promise<void> {
             console.log(`    [DEBUG] Invalid response from ${providerName}:`, JSON.stringify(result, null, 2));
             throw new Error(`Invalid response from ${providerName}`);
           }
+        }
+      });
+    });
+
+    // ========================================================================
+    // E2E Script Tests
+    // ========================================================================
+
+    describe('E2E Script Tests', () => {
+      test('should create a Linear issue with \'say hi\' description via run-simple-e2e-test.sh', async () => {
+        const scriptPath = '/home/max/workspace/code/claude-parallel/.github/scripts/run-simple-e2e-test.sh';
+        console.log(`Executing E2E script: ${scriptPath}`);
+
+        const { stdout, stderr } = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
+          exec(`bash ${scriptPath}`, (error, stdout, stderr) => {
+            if (error) {
+              console.error(`E2E script failed with error: ${error.message}`);
+              console.error(`Stderr: ${stderr}`);
+              return reject(error);
+            }
+            if (stderr) {
+              console.warn(`E2E script produced stderr: ${stderr}`);
+            }
+            resolve({ stdout, stderr });
+          });
+        });
+
+        console.log(`E2E script stdout: ${stdout}`);
+
+        // Extract parent_issue_id from stdout
+        const parentIssueIdMatch = stdout.match(/::set-output name=parent_issue_id::(LA-\d+)/);
+        if (!parentIssueIdMatch || !parentIssueIdMatch[1]) {
+          throw new Error(`Could not find parent_issue_id in script output: ${stdout}`);
+        }
+        const parentIssueId = parentIssueIdMatch[1];
+
+        console.log(`Extracted Parent Linear Issue ID: ${parentIssueId}`);
+
+        // Initialize Linear client directly
+        const linearClient = new LinearClient({
+          apiKey: process.env.LINEAR_API_KEY!,
+        });
+
+        // Fetch the Linear issue using the Linear SDK
+        const linearIssue = await linearClient.issueGet(parentIssueId);
+
+        if (!linearIssue || !linearIssue.description) {
+          throw new Error(`Failed to get description for Linear issue ${parentIssueId}`);
+        }
+
+        const issueDescription = linearIssue.description;
+        console.log(`Fetched Linear Issue Description: ${issueDescription}`);
+
+        // Assert the description
+        if (issueDescription !== 'say hi') {
+          throw new Error(`Expected Linear issue description to be 'say hi', but got '${issueDescription}'`);
         }
       });
     });
