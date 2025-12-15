@@ -77,14 +77,14 @@ const PROVIDERS: ProviderConfig[] = [
     providerID: 'anthropic',
     modelEnvVar: 'ANTHROPIC_MODEL',
     apiKeyEnvVar: 'ANTHROPIC_API_KEY',
-    defaultModel: 'claude-3-5-haiku-20241022',
+    defaultModel: 'claude-haiku-4-5-20251001',
   },
   {
     name: 'openai',
     providerID: 'openai',
     modelEnvVar: 'OPENAI_MODEL',
     apiKeyEnvVar: 'OPENAI_API_KEY',
-    defaultModel: 'gpt-4o-mini',
+    defaultModel: 'gpt-5.1-codex-mini',
   },
   {
     name: 'google',

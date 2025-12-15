@@ -17,17 +17,17 @@ on:
         description: 'Anthropic model to use'
         required: false
         type: string
-        default: 'claude-opus-4-5-20251101'
+        default: 'claude-haiku-4-5-20251001'
       openai_model:
         description: 'OpenAI model to use'
         required: false
         type: string
-        default: 'gpt-5.2'
+        default: 'gpt-5.1-codex-mini'
       google_model:
         description: 'Google model to use'
         required: false
         type: string
-        default: 'gemini-3-pro-preview'
+        default: 'gemini-2.5-flash'
 
 jobs:
   generate-plan:
@@ -61,9 +61,9 @@ jobs:
           linear_api_key: ${{ secrets.LINEAR_API_KEY }}
           linear_team_id: ${{ secrets.LINEAR_TEAM_ID }}
           linear_project_id: ${{ github.event_name == 'workflow_dispatch' && inputs.linear_project_id || secrets.LINEAR_PROJECT_ID }}
-          anthropic_model: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-sonnet-4-20250514' }}
-          openai_model: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-4-turbo-preview' }}
-          google_model: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-3-pro-preview' }}
+          anthropic_model: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-haiku-4-5-20251001' }}
+          openai_model: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.1-codex-mini' }}
+          google_model: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-2.5-flash' }}
 
       - name: Set environment variables
         run: |
