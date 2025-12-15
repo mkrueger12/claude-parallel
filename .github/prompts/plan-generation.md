@@ -36,8 +36,6 @@ git log -5 --stat
    - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files
    - **CRITICAL**: DO NOT spawn sub-tasks before reading these files yourself in the main context
    - **NEVER** read files partially - if a file is mentioned, read it completely
-  
-3. **Create a research todo list**
 
 3. **Gather codebase context**:
    - Find all files related to the ticket/task
