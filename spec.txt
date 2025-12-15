@@ -1,0 +1,674 @@
+# Claude Parallel - Automated Parallel AI Implementation System
+
+## Project Overview
+A GitHub Actions workflow system that runs parallel Claude Code implementations, automatically reviews them, and creates draft PRs with the best implementation. The system also supports multi-provider AI plan generation using Anthropic Claude, OpenAI GPT, and Google Gemini to create comprehensive implementation plans with Linear issue tracking.
+
+## Technology Stack
+
+### Core Infrastructure
+- **CI/CD**: GitHub Actions with reusable workflows
+- **Scripting**: Bash shell scripts, TypeScript/Node.js
+- **Version Control**: Git with worktree support
+- **AI Integration**: Claude Code CLI, Anthropic API, OpenAI API, Google Gemini API
+- **Issue Tracking**: Linear API integration
+- **Package Manager**: Bun (primary), npm, pnpm, yarn support
+
+### Multi-Language Support
+- **JavaScript/TypeScript**: Node.js, Bun, npm, pnpm, yarn
+- **Python**: pip, poetry, pytest
+- **Go**: go modules, go build, go test
+- **Rust**: cargo build, cargo test
+- **Java**: Maven, Gradle
+- **Ruby**: bundler, gem
+- **PHP**: composer
+
+### GitHub Actions Architecture
+- Reusable workflows for maximum flexibility
+- Custom composite actions for setup and runtime detection
+- Matrix strategy for parallel execution
+- Artifact management for result sharing
+
+## Prerequisites
+- GitHub repository with Actions enabled
+- GitHub Personal Access Token (GH_PAT) with repo permissions
+- At least one AI provider authentication:
+  - CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY (required)
+  - OPENAI_API_KEY (optional, for multi-provider planning)
+  - GOOGLE_GENERATIVE_AI_API_KEY (optional, for multi-provider planning)
+- Linear API credentials (optional, for issue tracking):
+  - LINEAR_API_KEY
+  - LINEAR_TEAM_ID
+  - LINEAR_PROJECT_ID (optional)
+
+## Core Features
+
+### Parallel Implementation Workflow
+- **Trigger Methods**:
+  - GitHub issue label (`claude-implement`)
+  - Manual workflow dispatch with issue number
+- **Matrix-Based Parallel Execution**:
+  - Configurable number of implementations (default: 3)
+  - Independent execution in separate branches
+  - Concurrent runtime for maximum efficiency
+- **Automated Branch Management**:
+  - Branch naming: `impl-{run_id}-{impl_number}`
+  - Automatic cleanup of non-winning branches
+  - Winning branch preserved for PR
+- **Smart Runtime Detection**:
+  - Auto-detects project language and package manager
+  - Sets up appropriate environment (Node.js, Python, Go, Rust, etc.)
+  - Installs dependencies automatically
+  - Supports custom runtime configurations
+
+### AI-Powered Implementation
+- **Claude Code Integration**:
+  - Headless CLI execution
+  - JSON output format for parsing
+  - Configurable model selection (Opus, Sonnet, Haiku)
+  - Custom prompt templates with variable substitution
+  - Structured output with JSON schema validation
+- **Custom Agent System**:
+  - Fetchable from external repositories
+  - Specialized agents for different tasks
+  - Agent delegation for planning and implementation
+  - Research agents (codebase-locator, codebase-analyzer)
+  - Implementation agents (coding-agent)
+- **Prompt Template System**:
+  - Markdown-based prompt templates
+  - Variable substitution (FEATURE_REQUEST, NUM_IMPLEMENTATIONS, etc.)
+  - Template versioning via Git references
+  - Customizable per organization
+
+### Automated Code Review
+- **Multi-Implementation Comparison**:
+  - Reviews all implementations via git diff
+  - Evaluates code quality, completeness, maintainability
+  - Structured decision output with JSON schema
+  - Detailed reasoning for selection
+- **Review Criteria**:
+  - Code quality and style consistency
+  - Feature completeness
+  - Error handling
+  - Test coverage
+  - Documentation
+  - Performance considerations
+- **Robust Parsing**:
+  - Multiple parsing strategies for Claude output
+  - Handles structured_output, result field, and root-level JSON
+  - Fallback regex extraction
+  - Detailed error messages for debugging
+
+### Automated Verification
+- **Build Checks**:
+  - Language-specific build commands
+  - Compilation verification
+  - Build artifact validation
+  - Error output capture
+- **Test Execution**:
+  - Unit tests
+  - Integration tests
+  - Test coverage reporting
+  - Failure diagnostics
+- **Code Quality**:
+  - Linting (ESLint, ruff, golint, clippy)
+  - Type checking (TypeScript, mypy)
+  - Code formatting validation
+  - Style guide compliance
+- **Automated PR Comments**:
+  - Verification status table
+  - Build/test/lint/typecheck results
+  - Summary of issues found
+  - Links to detailed logs
+
+### Multi-Provider Plan Generation
+- **Parallel Plan Generation**:
+  - Anthropic Claude (default: claude-opus-4-5-20251101)
+  - OpenAI GPT (default: gpt-5.2)
+  - Google Gemini (default: gemini-3-pro-preview)
+  - Concurrent execution for speed
+  - Independent context per provider
+- **Plan Consolidation**:
+  - AI-driven analysis of all plans
+  - Unified implementation strategy
+  - Best practices from multiple perspectives
+  - Consensus-based approach selection
+- **Linear Issue Creation**:
+  - Parent issue with consolidated plan
+  - Sub-issues for implementation tasks
+  - Automatic linking and organization
+  - Project assignment support
+  - GitHub issue reference in Linear
+- **Single Workflow Execution**:
+  - No intermediate artifacts
+  - Full context preservation
+  - Streamlined process
+  - Faster completion
+
+### Local CLI Support
+- **Shell Script Execution**:
+  - Direct command-line usage
+  - Git worktree management
+  - Local Claude Code execution
+  - Manual PR creation option
+- **Worktree Management**:
+  - Parallel worktree creation
+  - Independent directory structure
+  - Automatic cleanup options
+  - Result aggregation
+- **Flexible Configuration**:
+  - Configurable implementation count
+  - Custom worktree location
+  - Adjustable review criteria
+  - Keep-all-implementations mode
+
+### Draft PR Creation
+- **Automatic PR Generation**:
+  - Draft status for review
+  - Descriptive title from issue
+  - Implementation selection reasoning
+  - Links to original issue
+  - Generated by workflow attribution
+- **PR Metadata**:
+  - Selected implementation number
+  - Review reasoning
+  - Verification results
+  - Build status badges
+  - Issue references
+
+## GitHub Actions Workflows
+
+### Main Workflows
+
+#### Reusable Implement Issue (`reusable-implement-issue.yml`)
+- **Inputs**:
+  - `issue_number`: Issue to implement
+  - `num_implementations`: Number of parallel runs (default: 3)
+  - `claude_model`: AI model selection (default: claude-opus-4-5-20251101)
+  - `prompts_repo`: Source for prompts (default: mkrueger12/claude-parallel)
+  - `prompts_ref`: Git ref for prompts (default: main)
+  - `bot_name`: Git commit author name
+  - `bot_email`: Git commit author email
+  - `dry_run`: Skip AI, use mocks (default: false)
+  - `event_name`: Trigger event type
+  - `event_issue_number`: Issue number from event
+- **Secrets**:
+  - `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token (alternative auth)
+  - `ANTHROPIC_API_KEY`: API key (alternative auth)
+  - `GH_PAT`: GitHub token (required)
+- **Jobs**:
+  1. `generate-matrix`: Creates implementation matrix
+  2. `implement`: Runs N parallel implementations
+  3. `review`: Compares and selects best implementation
+  4. `verify`: Runs build/test/lint checks and posts results
+
+#### Multi-Provider Plan (`multi-provider-plan.yml`)
+- **Inputs**:
+  - `issue_number`: Issue to plan for
+  - `linear_project_id`: Linear project (optional)
+  - `anthropic_model`: Claude model selection
+  - `openai_model`: GPT model selection
+  - `google_model`: Gemini model selection
+- **Secrets**:
+  - `CLAUDE_CODE_OAUTH_TOKEN`: Claude auth
+  - `OPENAI_API_KEY`: OpenAI auth
+  - `GOOGLE_GENERATIVE_AI_API_KEY`: Google auth
+  - `LINEAR_API_KEY`: Linear auth
+  - `LINEAR_TEAM_ID`: Linear team
+  - `LINEAR_PROJECT_ID`: Linear project (optional)
+  - `GH_PAT`: GitHub token
+- **Jobs**:
+  1. `plan`: Generates 3 plans, consolidates, creates Linear issues
+
+### Custom Actions
+
+#### Get Issue Details (`get-issue-details`)
+- Fetches issue title and body
+- Handles workflow_dispatch and issues events
+- Creates temporary files for content
+- Returns issue metadata
+
+#### Setup Claude (`setup-claude`)
+- Installs Claude Code CLI
+- Configures authentication (OAuth or API key)
+- Validates installation
+- Adds to PATH
+
+#### Fetch Agents (`fetch-agents`)
+- Downloads custom agent definitions
+- Supports external repositories
+- Version control via Git refs
+- Installs to Claude config directory
+
+#### Detect Runtime (`detect-runtime`)
+- Identifies project language
+- Detects package manager
+- Returns runtime configuration
+- Used for environment setup
+
+### Workflow Triggers
+
+#### Via Label
+- Add `claude-implement` label to issue → triggers implementation
+- Add `claude-plan` label to issue → triggers multi-provider planning
+
+#### Via Manual Dispatch
+- Navigate to Actions tab
+- Select workflow
+- Enter issue number and parameters
+- Click "Run workflow"
+
+## Prompt Templates
+
+### Implementation Prompt (`implementation.md`)
+- **Variables**:
+  - `{{FEATURE_REQUEST}}`: Issue title and body
+- **Structure**:
+  - Orientation commands (pwd, ls, cat spec.txt)
+  - Planning phase with subagent delegation
+  - Research task spawning (codebase-locator, codebase-analyzer, general-purpose)
+  - Plan.md creation with template structure
+  - Features.json creation for E2E tests
+  - Implementation phase with coding-agent delegation
+  - Success criteria (automated and manual)
+- **Key Guidelines**:
+  - Be skeptical of vague requirements
+  - Be thorough with research
+  - Be practical with incremental changes
+  - Track progress with TodoWrite
+  - No open questions in final plan
+  - Unlimited time for quality
+
+### Review Prompt (`review.md`)
+- **Variables**:
+  - `{{FEATURE_REQUEST}}`: Original request
+  - `{{WORKTREES_DIR}}`: Path to worktrees
+  - `{{NUM_IMPLEMENTATIONS}}`: Count of implementations
+- **Output Schema**:
+  ```json
+  {
+    "type": "object",
+    "properties": {
+      "best": {"type": "integer", "minimum": 1},
+      "reasoning": {"type": "string"}
+    },
+    "required": ["best", "reasoning"]
+  }
+  ```
+- **Evaluation Criteria**:
+  - Code quality and maintainability
+  - Feature completeness
+  - Test coverage
+  - Documentation quality
+  - Adherence to project conventions
+
+### Verify Prompt (`verify.md`)
+- **Variables**:
+  - `{{FEATURE_REQUEST}}`: Original request
+  - `{{WINNING_BRANCH}}`: Selected branch
+  - `{{PR_NUMBER}}`: PR number
+  - `{{BUILD_STATUS}}`: Build result
+  - `{{TESTS_STATUS}}`: Test result
+  - `{{LINT_STATUS}}`: Lint result
+  - `{{TYPECHECK_STATUS}}`: Typecheck result
+  - `{{BUILD_OUTPUT}}`: Full build logs
+- **Purpose**:
+  - Verify implementation meets requirements
+  - Analyze build/test failures
+  - Provide actionable feedback
+  - Suggest fixes for issues
+
+### Plan Generation Prompt (`plan-generation.md`)
+- **Variables**:
+  - `{{ISSUE_TITLE}}`: Issue title
+  - `{{ISSUE_BODY}}`: Issue description
+- **Output**:
+  - Detailed implementation approach
+  - Step-by-step task breakdown
+  - Risk analysis and mitigations
+  - Required dependencies
+  - Architecture considerations
+
+### Consolidate and Create Linear Prompt (`consolidate-and-create-linear.md`)
+- **Variables**:
+  - `{{ANTHROPIC_PLAN}}`: Plan from Claude
+  - `{{OPENAI_PLAN}}`: Plan from GPT
+  - `{{GOOGLE_PLAN}}`: Plan from Gemini
+  - `{{LINEAR_TEAM_ID}}`: Linear team
+  - `{{LINEAR_PROJECT_ID}}`: Linear project (optional)
+  - `{{GITHUB_ISSUE_URL}}`: Original issue link
+- **Actions**:
+  - Analyze all three plans
+  - Identify common themes and divergences
+  - Consolidate into unified strategy
+  - Create Linear parent issue with consolidated plan
+  - Create Linear sub-issues for tasks
+  - Link issues appropriately
+
+## Local Script Usage
+
+### Shell Script (`parallel-impl.sh`)
+- **Dependencies**: git, claude, gh, jq
+- **Usage**: `./parallel-impl.sh "feature description"`
+- **Workflow**:
+  1. Creates N worktrees in `../parallel-impls/`
+  2. Runs Claude Code in each worktree (parallel)
+  3. Reviews all implementations
+  4. Creates draft PR from winner
+  5. Cleans up losing branches
+- **Configuration**:
+  - `NUM_IMPLEMENTATIONS`: Number of parallel runs
+  - `WORKTREES_DIR`: Worktree location
+  - Edit prompts in `prompts/` directory
+
+### Worktree Structure
+```
+../parallel-impls/
+  impl-{timestamp}-1/
+    - Full git worktree
+    - result.json (Claude output)
+    - error.log (if applicable)
+  impl-{timestamp}-2/
+    - Full git worktree
+    - result.json
+  impl-{timestamp}-3/
+    - Full git worktree
+    - result.json
+```
+
+## Project File Structure
+
+```
+claude-parallel/
+├── .github/
+│   ├── workflows/
+│   │   ├── reusable-implement-issue.yml    # Main implementation workflow
+│   │   ├── claude-implement-issue.yml       # Caller workflow example
+│   │   └── multi-provider-plan.yml          # Multi-provider planning
+│   ├── actions/
+│   │   ├── get-issue-details/              # Fetch issue metadata
+│   │   ├── setup-claude/                   # Install Claude CLI
+│   │   ├── fetch-agents/                   # Download custom agents
+│   │   └── detect-runtime/                 # Detect language/package manager
+│   ├── prompts/
+│   │   ├── implementation.md               # Implementation prompt template
+│   │   ├── review.md                       # Review prompt template
+│   │   ├── verify.md                       # Verification prompt template
+│   │   ├── plan-generation.md              # Single-provider plan template
+│   │   └── consolidate-and-create-linear.md # Multi-provider consolidation
+│   └── scripts/
+│       ├── generate-and-create-linear.ts   # TypeScript plan generation script
+│       └── node_modules/                   # Script dependencies
+├── parallel-impl.sh                        # Local CLI script
+├── spec.txt                                # This file - project specification
+└── README.md                               # User documentation
+
+Additional directories created at runtime:
+../parallel-impls/                          # Worktrees for local execution
+  impl-{timestamp}-{n}/                     # Individual implementation worktrees
+```
+
+## Usage Patterns
+
+### Pattern 1: Label-Triggered Implementation
+1. User creates GitHub issue describing feature
+2. User adds `claude-implement` label
+3. Workflow triggers automatically
+4. N implementations execute in parallel
+5. Best implementation selected via AI review
+6. Draft PR created automatically
+7. Verification runs and posts results to PR
+8. Developer reviews and merges PR
+
+### Pattern 2: Manual Implementation
+1. Developer navigates to Actions tab
+2. Selects "Claude Implement Issue" workflow
+3. Enters issue number
+4. Optionally overrides defaults (num_implementations, model, etc.)
+5. Clicks "Run workflow"
+6. Monitors progress in Actions tab
+7. Reviews draft PR when complete
+8. Checks verification results
+9. Merges or requests changes
+
+### Pattern 3: Multi-Provider Planning
+1. User creates issue with complex feature request
+2. User adds `claude-plan` label
+3. Workflow generates 3 plans in parallel
+4. Plans consolidated by AI
+5. Linear parent issue created with consolidated plan
+6. Linear sub-issues created for tasks
+7. Comment posted on GitHub issue with Linear links
+8. Team reviews plan in Linear
+9. Assigns tasks from sub-issues
+10. Optionally triggers implementation workflow
+
+### Pattern 4: Local CLI Execution
+1. Developer navigates to project directory
+2. Runs `../claude-parallel/parallel-impl.sh "feature"`
+3. Script creates worktrees
+4. Claude Code runs in each worktree
+5. Review selects best implementation
+6. Draft PR created via gh CLI
+7. Developer pushes and reviews locally
+8. Manual merge when satisfied
+
+## Success Criteria
+
+### Implementation Quality
+- Selected implementation fully addresses issue requirements
+- Code follows project conventions and style
+- Tests pass (unit, integration, E2E)
+- No regressions introduced
+- Documentation updated where needed
+- Build succeeds without errors
+- Linting passes
+- Type checking passes (if applicable)
+
+### Workflow Reliability
+- Matrix generation succeeds
+- All parallel jobs complete (may include failures)
+- Review completes and selects winner
+- PR creation succeeds
+- Branch cleanup works correctly
+- Artifacts uploaded and downloadable
+- Error handling graceful
+- Logs provide debugging info
+
+### User Experience
+- Clear PR descriptions with reasoning
+- Verification results visible in PR comments
+- Failed implementations logged for debugging
+- Dry-run mode works for testing
+- Custom prompts easy to modify
+- Documentation clear and complete
+- Setup straightforward for new users
+
+### Multi-Provider Planning
+- All 3 providers generate valid plans
+- Consolidation produces coherent strategy
+- Linear issues created successfully
+- Issue linking works correctly
+- GitHub comment posted with links
+- Plans are diverse and thoughtful
+- Consolidated plan addresses all requirements
+
+### Performance
+- Parallel execution faster than sequential
+- Review completes in reasonable time
+- Cleanup happens promptly
+- No hanging jobs or resource leaks
+- Artifact storage within limits
+- API rate limits respected
+
+## Configuration and Customization
+
+### Changing Default Models
+Edit workflow inputs or workflow_dispatch defaults:
+- Anthropic: claude-opus-4-5-20251101, claude-sonnet-4-20250514
+- OpenAI: gpt-5.2, gpt-4-turbo, gpt-4
+- Google: gemini-3-pro-preview, gemini-1.5-pro
+
+### Adjusting Implementation Count
+Set `num_implementations` input:
+- 1: Single implementation (fastest, no comparison)
+- 2: Quick comparison (moderate cost)
+- 3: Default balance (good diversity)
+- 5+: Maximum diversity (higher cost)
+
+### Custom Prompts
+Fork repository and modify files in `.github/prompts/`:
+- Use placeholders: `{{VARIABLE_NAME}}`
+- Test locally before deploying
+- Version control via Git refs
+- Reference fork in workflows
+
+### Adding New Runtimes
+Edit `.github/actions/detect-runtime/action.yml`:
+- Add new file patterns
+- Add setup steps in workflow
+- Add build/test commands
+- Test with dry-run mode
+
+### Organization-Specific Setup
+1. Fork `mkrueger12/claude-parallel`
+2. Customize prompts in `.github/prompts/`
+3. Adjust review criteria in `review.md`
+4. Add organization-specific agents
+5. Update workflow references to your fork
+6. Configure secrets in organization settings
+7. Deploy to repositories
+
+## Cost Considerations
+
+### Token Usage Estimates
+- Simple feature: ~30k tokens per implementation
+- Complex feature: ~100k tokens per implementation
+- Review: ~50k tokens
+- Verification: ~20k tokens
+- Total for 3 implementations: ~150k-350k tokens
+
+### Multi-Provider Planning
+- Each provider plan: ~50k tokens
+- Consolidation: ~100k tokens
+- Total: ~250k tokens across all providers
+
+### Optimization Strategies
+- Use Haiku model for simple tasks (lower cost)
+- Reduce num_implementations for straightforward features
+- Use dry-run mode for testing workflows
+- Cache dependencies in Actions
+- Clean up artifacts promptly
+- Monitor API usage dashboards
+
+## Troubleshooting
+
+### Common Issues
+
+#### "Not in a git repository"
+- Run from within a git repository
+- Ensure .git directory exists
+- Check git config is valid
+
+#### "Required command not found"
+- Install missing dependencies (git, claude, gh, jq)
+- Check PATH includes executable locations
+- Verify Claude CLI installation
+
+#### "Linear API key is invalid"
+- Get new key from https://linear.app/settings/api
+- Update GitHub secret LINEAR_API_KEY
+- Verify team ID is correct
+
+#### "Claude CLI returned an error"
+- Check rate limits (wait for reset)
+- Verify authentication secrets
+- Check API status
+- Review error logs in artifacts
+
+#### "Could not find decision JSON"
+- Review parsing strategies in logs
+- Check Claude output format
+- Verify JSON schema in prompt
+- Inspect raw review-result.json
+
+#### "Verification failed"
+- Check build logs in /tmp/build-results/
+- Review test failures
+- Fix code and re-run verification
+- Update tests if requirements changed
+
+#### Workflow doesn't trigger on label
+- Verify label name is exact: `claude-implement` or `claude-plan`
+- Check workflow file on default branch
+- Ensure secrets configured
+- Check Actions enabled in repo
+
+## Security Considerations
+
+### Secret Management
+- Use GitHub Secrets for all credentials
+- Never commit API keys to repository
+- Rotate secrets regularly
+- Use organization secrets for shared access
+- Limit secret access to necessary workflows
+
+### Code Review
+- Always review AI-generated code before merging
+- Check for security vulnerabilities
+- Verify input validation
+- Audit dependency changes
+- Review permission changes
+
+### Branch Protection
+- Require PR reviews
+- Require status checks to pass
+- Restrict who can merge
+- Require signed commits (optional)
+- Enable CODEOWNERS (optional)
+
+### Workflow Permissions
+- Use minimal required permissions
+- GH_PAT should have limited scope
+- Review Actions permissions regularly
+- Audit workflow changes
+- Monitor workflow runs
+
+## Future Enhancements
+
+### Potential Features
+- Support for additional AI providers (Cohere, Mistral, etc.)
+- Automated performance benchmarking
+- Visual diff comparison tool
+- Integration with more issue trackers (Jira, Asana)
+- Code quality scoring metrics
+- Automated regression testing
+- Parallel review by multiple reviewers
+- Cost tracking and budgeting
+- Team collaboration features
+- Custom agent marketplace
+
+### Extensibility Points
+- Plugin system for custom actions
+- Webhook integrations
+- Custom review criteria plugins
+- Language-specific templates
+- Organization-specific agents
+- Custom verification steps
+- Report generation
+- Metrics and analytics
+
+## Credits and Inspiration
+
+Inspired by:
+- [incident.io's git worktree + Claude Code workflow](https://incident.io/blog)
+- [Crystal desktop app](https://github.com/stravu/crystal)
+- [Anthropic Claude Quickstarts](https://github.com/anthropics/claude-quickstarts)
+
+Built with:
+- [Claude Code CLI](https://github.com/anthropics/claude-code)
+- [GitHub Actions](https://github.com/features/actions)
+- [Linear API](https://linear.app/docs/api)
+
+## License
+
+MIT License - See LICENSE file for details
