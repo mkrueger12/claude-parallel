@@ -415,7 +415,6 @@ async function generatePlanFromProvider(
 
     const startTime = Date.now();
     console.log(`[${provider.name}] Sending prompt (${prompt.length} chars) at ${new Date().toISOString()}...`);
-    console.log(`[DEBUG] ${provider.name} - Request start time: ${startTime}`);
 
     const promptResponse = await client.session.prompt({
       path: { id: session.id },
@@ -431,7 +430,6 @@ async function generatePlanFromProvider(
     const endTime = Date.now();
     const durationMs = endTime - startTime;
     const durationSec = (durationMs / 1000).toFixed(2);
-    console.log(`[DEBUG] ${provider.name} - Request end time: ${endTime}, duration: ${durationMs}ms (${durationSec}s)`);
 
     if (!promptResponse.data) {
       throw new Error('Failed to get response: no data in response');
@@ -525,9 +523,6 @@ async function generatePlanFromProvider(
 
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[${provider.name}] ERROR: ${errorMessage}`);
-    if (startTime > 0) {
-      console.error(`[DEBUG] ${provider.name} - Error after ${durationMs}ms (${durationSec}s)`);
-    }
     if (error instanceof Error && error.stack) {
       console.error(`[${provider.name}]   Stack trace: ${error.stack.split('\n').slice(1, 4).join('\n    ')}`);
     }
@@ -652,16 +647,6 @@ async function main() {
     }
   };
 
-  console.log('[DEBUG] createOpencode config:');
-  console.log(JSON.stringify({
-    provider: {
-      anthropic: { options: { apiKey: '***', timeout: opcodeConfig.provider.anthropic.options.timeout } },
-      openai: { options: { apiKey: '***', timeout: opcodeConfig.provider.openai.options.timeout } },
-      google: { options: { apiKey: '***', timeout: opcodeConfig.provider.google.options.timeout } },
-    }
-  }, null, 2));
-  console.log();
-
   const { client, server } = await createOpencode({
     hostname: '127.0.0.1',
     port: 0,
@@ -669,7 +654,6 @@ async function main() {
   });
 
   console.log(`OpenCode server started at ${server.url}`);
-  console.log('[DEBUG] Server process spawned, config passed via OPENCODE_CONFIG_CONTENT env var\n');
 
   try {
     const results = await Promise.all(
