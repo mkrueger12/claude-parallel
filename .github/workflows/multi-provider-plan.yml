@@ -55,7 +55,7 @@ jobs:
       - name: Setup OpenCode
         uses: ./.github/actions/setup-opencode
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           google_api_key: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
           linear_api_key: ${{ secrets.LINEAR_API_KEY }}
@@ -134,7 +134,7 @@ jobs:
           Please check the [workflow run logs](${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
 
           Common issues:
-          - Missing or invalid API keys (CLAUDE_CODE_OAUTH_TOKEN, OPENAI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, LINEAR_API_KEY)
+          - Missing or invalid API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, LINEAR_API_KEY)
           - Invalid Linear team ID or project ID
           - Provider API rate limits
           - Network connectivity issues
