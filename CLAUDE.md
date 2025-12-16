@@ -54,14 +54,31 @@ This creates git worktrees and runs Claude Code in parallel locally.
 
 The repository implements two complementary workflows:
 
-#### 1. Multi-Provider Plan Generation (`.github/workflows/multi-provider-plan.yml`)
+#### 1. Multi-Provider Plan Generation
+
+Two implementations are available:
+
+**v1 - Single Job Approach (`.github/workflows/multi-provider-plan.yml`)**
 - **Trigger**: Label `claude-plan` on GitHub issues or manual dispatch
 - **Process**:
   1. Single OpenCode server instance starts with all 3 provider configurations (Anthropic, OpenAI, Google)
   2. Three sessions run in parallel, each generating a plan from a different AI provider
   3. Consolidation phase: Claude receives all three plans and creates Linear issues (parent + sub-issues) in the same session
 - **Key Script**: `.github/scripts/generate-and-create-linear.ts`
-- **No intermediate artifacts**: Everything happens in memory within a single workflow job
+- **Advantages**: No intermediate artifacts, everything in memory, single workflow job
+- **Disadvantages**: Less visibility in GitHub UI, all providers fail if one has issues
+
+**v2 - Parallel Jobs Approach (`.github/workflows/multi-provider-plan-v2.yml`)**
+- **Trigger**: Label `claude-plan-v2` on GitHub issues or manual dispatch
+- **Process**:
+  1. Three separate concurrent GitHub Action jobs, each generating a plan from one provider
+  2. Plans are passed as job outputs between jobs
+  3. Consolidation job depends on all three, receives plans, and creates Linear issues
+- **Key Scripts**:
+  - `.github/scripts/generate-plan-single.ts` - Individual provider plan generation
+  - `.github/scripts/consolidate-plans.ts` - Plan consolidation and Linear issue creation
+- **Advantages**: Better visibility in GitHub UI, individual provider failures don't block others, follows GitHub Actions patterns
+- **Disadvantages**: Plans must be passed via job outputs (size limits), slightly more complex workflow YAML
 
 #### 2. Parallel Implementation Workflow (`.github/workflows/reusable-implement-issue.yml`)
 - **Trigger**: Label `claude-implement` on GitHub issues or manual dispatch
@@ -105,7 +122,7 @@ Supported languages: JavaScript/TypeScript, Python, Go, Rust (extensible for mor
 
 ### OpenCode SDK Integration
 
-The multi-provider workflow uses `@opencode-ai/sdk` to orchestrate multiple AI sessions:
+**v1 Workflow**: The single-job multi-provider workflow uses `@opencode-ai/sdk` to orchestrate multiple AI sessions in one process:
 
 ```typescript
 import { createOpencode } from '@opencode-ai/sdk';
@@ -137,11 +154,33 @@ await opencode.session({
 });
 ```
 
-Key characteristics:
+Key characteristics (v1):
 - All sessions share the same OpenCode server instance
 - Parallel execution without intermediate files
 - MCP tools (like Linear) available to consolidation session
 - Uses Bun for native TypeScript execution
+
+**v2 Workflow**: The parallel jobs approach uses separate OpenCode instances per provider:
+
+```typescript
+// Each provider job runs independently:
+// generate-plan-single.ts anthropic "title" "body"
+// generate-plan-single.ts openai "title" "body"
+// generate-plan-single.ts google "title" "body"
+
+// Then consolidation job receives all plans as env vars:
+// consolidate-plans.ts
+// - Reads ANTHROPIC_PLAN, OPENAI_PLAN, GOOGLE_PLAN from environment
+// - Creates single OpenCode instance with Anthropic provider + Linear MCP
+// - Consolidates plans and creates Linear issues
+```
+
+Key characteristics (v2):
+- Each provider runs in a separate GitHub Actions job
+- Plans passed via job outputs (environment variables)
+- Better visibility: each provider job shows status independently
+- More resilient: one provider failure doesn't block others
+- Follows idiomatic GitHub Actions patterns (job dependencies)
 
 ### Environment Variables
 

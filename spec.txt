@@ -121,10 +121,30 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   - Links to detailed logs
 
 ### Multi-Provider Plan Generation
+
+Two workflow implementations available:
+
+**v1 - Single Job Approach**:
+- Single OpenCode server with all 3 providers
+- Parallel sessions in one process
+- No intermediate artifacts
+- Full context preservation in memory
+- Faster execution (no job overhead)
+- Less visibility in GitHub UI
+
+**v2 - Parallel Jobs Approach**:
+- Three concurrent GitHub Actions jobs
+- Each provider runs independently
+- Plans passed via job outputs
+- Better visibility in GitHub UI
+- More resilient to provider failures
+- Idiomatic GitHub Actions patterns
+
+**Common Features**:
 - **Parallel Plan Generation**:
-  - Anthropic Claude (default: claude-opus-4-5-20251101)
-  - OpenAI GPT (default: gpt-5.2)
-  - Google Gemini (default: gemini-3-pro-preview)
+  - Anthropic Claude (default: claude-haiku-4-5-20251001)
+  - OpenAI GPT (default: gpt-5.1-codex-mini)
+  - Google Gemini (default: gemini-2.5-flash)
   - Concurrent execution for speed
   - Independent context per provider
 - **Plan Consolidation**:
@@ -138,11 +158,6 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   - Automatic linking and organization
   - Project assignment support
   - GitHub issue reference in Linear
-- **Single Workflow Execution**:
-  - No intermediate artifacts
-  - Full context preservation
-  - Streamlined process
-  - Faster completion
 
 ### Local CLI Support
 - **Shell Script Execution**:
@@ -201,7 +216,8 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   3. `review`: Compares and selects best implementation
   4. `verify`: Runs build/test/lint checks and posts results
 
-#### Multi-Provider Plan (`multi-provider-plan.yml`)
+#### Multi-Provider Plan v1 (`multi-provider-plan.yml`)
+- **Trigger**: Label `claude-plan` on issue
 - **Inputs**:
   - `issue_number`: Issue to plan for
   - `linear_project_id`: Linear project (optional)
@@ -209,7 +225,7 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   - `openai_model`: GPT model selection
   - `google_model`: Gemini model selection
 - **Secrets**:
-  - `CLAUDE_CODE_OAUTH_TOKEN`: Claude auth
+  - `ANTHROPIC_API_KEY`: Claude auth
   - `OPENAI_API_KEY`: OpenAI auth
   - `GOOGLE_GENERATIVE_AI_API_KEY`: Google auth
   - `LINEAR_API_KEY`: Linear auth
@@ -217,7 +233,22 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   - `LINEAR_PROJECT_ID`: Linear project (optional)
   - `GH_PAT`: GitHub token
 - **Jobs**:
-  1. `plan`: Generates 3 plans, consolidates, creates Linear issues
+  1. `generate-plan`: Single job generates 3 plans in parallel, consolidates, creates Linear issues
+- **Script**: `generate-and-create-linear.ts`
+
+#### Multi-Provider Plan v2 (`multi-provider-plan-v2.yml`)
+- **Trigger**: Label `claude-plan-v2` on issue
+- **Inputs**: Same as v1
+- **Secrets**: Same as v1
+- **Jobs**:
+  1. `get-issue`: Fetches issue details
+  2. `generate-plan-anthropic`: Generates plan from Claude (parallel)
+  3. `generate-plan-openai`: Generates plan from GPT (parallel)
+  4. `generate-plan-google`: Generates plan from Gemini (parallel)
+  5. `consolidate-and-create-linear`: Consolidates plans and creates Linear issues
+- **Scripts**:
+  - `generate-plan-single.ts`: Individual provider plan generation
+  - `consolidate-plans.ts`: Plan consolidation and Linear issue creation
 
 ### Custom Actions
 
@@ -248,8 +279,9 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 ### Workflow Triggers
 
 #### Via Label
-- Add `claude-implement` label to issue → triggers implementation
-- Add `claude-plan` label to issue → triggers multi-provider planning
+- Add `claude-implement` label to issue → triggers parallel implementation workflow
+- Add `claude-plan` label to issue → triggers multi-provider planning (v1 - single job)
+- Add `claude-plan-v2` label to issue → triggers multi-provider planning (v2 - parallel jobs)
 
 #### Via Manual Dispatch
 - Navigate to Actions tab
@@ -383,10 +415,12 @@ claude-parallel/
 │   ├── workflows/
 │   │   ├── reusable-implement-issue.yml    # Main implementation workflow
 │   │   ├── claude-implement-issue.yml       # Caller workflow example
-│   │   └── multi-provider-plan.yml          # Multi-provider planning
+│   │   ├── multi-provider-plan.yml          # Multi-provider planning (v1 - single job)
+│   │   └── multi-provider-plan-v2.yml       # Multi-provider planning (v2 - parallel jobs)
 │   ├── actions/
 │   │   ├── get-issue-details/              # Fetch issue metadata
 │   │   ├── setup-claude/                   # Install Claude CLI
+│   │   ├── setup-opencode/                 # Setup OpenCode SDK server
 │   │   ├── fetch-agents/                   # Download custom agents
 │   │   └── detect-runtime/                 # Detect language/package manager
 │   ├── prompts/
@@ -396,10 +430,20 @@ claude-parallel/
 │   │   ├── plan-generation.md              # Single-provider plan template
 │   │   └── consolidate-and-create-linear.md # Multi-provider consolidation
 │   └── scripts/
-│       ├── generate-and-create-linear.ts   # TypeScript plan generation script
-│       └── node_modules/                   # Script dependencies
+│       ├── generate-and-create-linear.ts   # v1: Combined plan generation script
+│       ├── generate-plan-single.ts         # v2: Single provider plan generation
+│       ├── consolidate-plans.ts            # v2: Plan consolidation and Linear creation
+│       ├── package.json                    # Script dependencies
+│       └── node_modules/                   # Installed dependencies
+├── .claude/
+│   └── agents/                             # Custom Claude Code agents
+│       ├── coding-agent.md                 # Feature implementation agent
+│       ├── codebase-locator.md             # File/component finder agent
+│       ├── codebase-analyzer.md            # Implementation analysis agent
+│       └── debug-agent.md                  # Debugging agent
 ├── parallel-impl.sh                        # Local CLI script
 ├── spec.txt                                # This file - project specification
+├── CLAUDE.md                               # Claude Code guidance documentation
 └── README.md                               # User documentation
 
 Additional directories created at runtime:
@@ -431,13 +475,27 @@ Additional directories created at runtime:
 9. Merges or requests changes
 
 ### Pattern 3: Multi-Provider Planning
+
+**v1 Approach** (Label: `claude-plan`):
 1. User creates issue with complex feature request
 2. User adds `claude-plan` label
-3. Workflow generates 3 plans in parallel
-4. Plans consolidated by AI
+3. Single workflow job generates 3 plans in parallel (same process)
+4. Plans consolidated by AI in same session
 5. Linear parent issue created with consolidated plan
 6. Linear sub-issues created for tasks
 7. Comment posted on GitHub issue with Linear links
+8. Team reviews plan in Linear
+9. Assigns tasks from sub-issues
+10. Optionally triggers implementation workflow
+
+**v2 Approach** (Label: `claude-plan-v2`):
+1. User creates issue with complex feature request
+2. User adds `claude-plan-v2` label
+3. Three concurrent GitHub jobs generate plans (better visibility)
+4. Plans passed to consolidation job via outputs
+5. Consolidation job creates Linear parent issue
+6. Consolidation job creates Linear sub-issues
+7. Comment posted on GitHub issue with Linear links and provider status
 8. Team reviews plan in Linear
 9. Assigns tasks from sub-issues
 10. Optionally triggers implementation workflow
@@ -598,7 +656,7 @@ Edit `.github/actions/detect-runtime/action.yml`:
 - Update tests if requirements changed
 
 #### Workflow doesn't trigger on label
-- Verify label name is exact: `claude-implement` or `claude-plan`
+- Verify label name is exact: `claude-implement`, `claude-plan`, or `claude-plan-v2`
 - Check workflow file on default branch
 - Ensure secrets configured
 - Check Actions enabled in repo

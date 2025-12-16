@@ -1,0 +1,297 @@
+name: Multi-Provider Plan Generation (v2 - Parallel Jobs)
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to generate plan for'
+        required: true
+        type: number
+      linear_project_id:
+        description: 'Linear project ID to add issues to (optional)'
+        required: false
+        type: string
+      anthropic_model:
+        description: 'Anthropic model to use'
+        required: false
+        type: string
+        default: 'claude-haiku-4-5-20251001'
+      openai_model:
+        description: 'OpenAI model to use'
+        required: false
+        type: string
+        default: 'gpt-5.1-codex-mini'
+      google_model:
+        description: 'Google model to use'
+        required: false
+        type: string
+        default: 'gemini-2.5-flash'
+
+jobs:
+  # Get issue details once and share with all jobs
+  get-issue:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude-plan-v2'))
+    runs-on: ubuntu-latest
+    outputs:
+      number: ${{ steps.issue.outputs.number }}
+      title: ${{ steps.issue.outputs.title }}
+      body: ${{ steps.issue.outputs.body }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get issue details
+        id: issue
+        uses: ./.github/actions/get-issue-details
+        with:
+          issue_number: ${{ github.event_name == 'workflow_dispatch' && inputs.issue_number || github.event.issue.number }}
+          github_token: ${{ secrets.GH_PAT }}
+          event_name: ${{ github.event_name }}
+          event_issue_number: ${{ github.event.issue.number || '' }}
+
+      - name: Read issue body
+        id: body
+        run: |
+          BODY=$(cat ${{ steps.issue.outputs.body_file }})
+          # Use multiline output format for GitHub Actions
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  # Generate plan from Anthropic Claude
+  generate-plan-anthropic:
+    needs: get-issue
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.generate.outputs.plan }}
+      success: ${{ steps.generate.outputs.success }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd .github/scripts
+          bun install
+
+      - name: Generate plan
+        id: generate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-haiku-4-5-20251001' }}
+          ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
+          ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+        run: |
+          cd .github/scripts
+
+          # Generate plan and capture output
+          PLAN=$(bun run generate-plan-single.ts anthropic "$ISSUE_TITLE" "$ISSUE_BODY")
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
+
+      - name: Handle errors
+        if: failure()
+        run: |
+          echo "success=false" >> $GITHUB_OUTPUT
+          echo "plan=Plan generation failed" >> $GITHUB_OUTPUT
+
+  # Generate plan from OpenAI GPT
+  generate-plan-openai:
+    needs: get-issue
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.generate.outputs.plan }}
+      success: ${{ steps.generate.outputs.success }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd .github/scripts
+          bun install
+
+      - name: Generate plan
+        id: generate
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.1-codex-mini' }}
+          ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
+          ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+        run: |
+          cd .github/scripts
+
+          # Generate plan and capture output
+          PLAN=$(bun run generate-plan-single.ts openai "$ISSUE_TITLE" "$ISSUE_BODY")
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
+
+      - name: Handle errors
+        if: failure()
+        run: |
+          echo "success=false" >> $GITHUB_OUTPUT
+          echo "plan=Plan generation failed" >> $GITHUB_OUTPUT
+
+  # Generate plan from Google Gemini
+  generate-plan-google:
+    needs: get-issue
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.generate.outputs.plan }}
+      success: ${{ steps.generate.outputs.success }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd .github/scripts
+          bun install
+
+      - name: Generate plan
+        id: generate
+        env:
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-2.5-flash' }}
+          ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
+          ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+        run: |
+          cd .github/scripts
+
+          # Generate plan and capture output
+          PLAN=$(bun run generate-plan-single.ts google "$ISSUE_TITLE" "$ISSUE_BODY")
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
+
+      - name: Handle errors
+        if: failure()
+        run: |
+          echo "success=false" >> $GITHUB_OUTPUT
+          echo "plan=Plan generation failed" >> $GITHUB_OUTPUT
+
+  # Consolidate all plans and create Linear issues
+  consolidate-and-create-linear:
+    needs: [get-issue, generate-plan-anthropic, generate-plan-openai, generate-plan-google]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd .github/scripts
+          bun install
+
+      - name: Consolidate plans and create Linear issues
+        id: consolidate
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
+          LINEAR_PROJECT_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.linear_project_id || secrets.LINEAR_PROJECT_ID }}
+          GITHUB_ISSUE_URL: ${{ github.event.repository.html_url }}/issues/${{ needs.get-issue.outputs.number }}
+          ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
+          ANTHROPIC_PLAN: ${{ needs.generate-plan-anthropic.outputs.plan }}
+          OPENAI_PLAN: ${{ needs.generate-plan-openai.outputs.plan }}
+          GOOGLE_PLAN: ${{ needs.generate-plan-google.outputs.plan }}
+        run: |
+          cd .github/scripts
+
+          # Run consolidation script
+          bun run consolidate-plans.ts
+
+      - name: Post summary comment on GitHub issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          PARENT_IDENTIFIER="${{ steps.consolidate.outputs.parent_issue_id }}"
+          PARENT_URL="${{ steps.consolidate.outputs.parent_issue_url }}"
+          SUB_ISSUE_COUNT="${{ steps.consolidate.outputs.sub_issues_count }}"
+
+          COMMENT="## Multi-Provider Implementation Plan Generated
+
+          :robot: This issue has been analyzed by three AI providers (Anthropic Claude, OpenAI GPT-4, and Google Gemini), and a consolidated implementation plan has been created.
+
+          ### Linear Parent Issue
+          **[${PARENT_IDENTIFIER}](${PARENT_URL})**
+
+          ### Implementation Steps
+          ${SUB_ISSUE_COUNT} sub-issues have been created in Linear with detailed implementation steps.
+
+          ### Provider Status
+          - Anthropic: ${{ needs.generate-plan-anthropic.outputs.success == 'true' && '✅' || '❌' }}
+          - OpenAI: ${{ needs.generate-plan-openai.outputs.success == 'true' && '✅' || '❌' }}
+          - Google: ${{ needs.generate-plan-google.outputs.success == 'true' && '✅' || '❌' }}
+
+          ---
+
+          *View the full consolidated plan and track progress in Linear.*
+          *Generated by Multi-Provider Plan workflow - Run #${{ github.run_id }}*"
+
+          gh issue comment "${{ needs.get-issue.outputs.number }}" --body "$COMMENT"
+
+      - name: Handle errors
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          ERROR_COMMENT="## Multi-Provider Plan Generation Failed
+
+          :x: The plan generation workflow encountered an error during consolidation.
+
+          **Run ID:** ${{ github.run_id }}
+
+          ### Provider Status
+          - Anthropic: ${{ needs.generate-plan-anthropic.outputs.success == 'true' && '✅' || '❌' }}
+          - OpenAI: ${{ needs.generate-plan-openai.outputs.success == 'true' && '✅' || '❌' }}
+          - Google: ${{ needs.generate-plan-google.outputs.success == 'true' && '✅' || '❌' }}
+
+          Please check the [workflow run logs](${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
+
+          Common issues:
+          - Missing or invalid API keys
+          - Invalid Linear team ID or project ID
+          - Provider API rate limits
+          - Network connectivity issues
+
+          ---
+          *Generated by Multi-Provider Plan workflow*"
+
+          gh issue comment "${{ needs.get-issue.outputs.number }}" --body "$ERROR_COMMENT" || true
