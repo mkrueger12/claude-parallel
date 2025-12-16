@@ -2,35 +2,31 @@
 /**
  * linear-agent.ts
  *
- * Generates an implementation plan using a custom planning agent.
- * The planning agent is configured for read-only operations with web research capabilities.
+ * Consolidates three implementation plans from different AI providers and creates Linear issues.
+ * This is the v2 workflow approach that receives pre-generated plans via environment variables.
  *
  * Usage:
- *   planning-agent.ts <feature-description>
+ *   linear-agent.ts
  *
- * Environment variables:
- *   - PROVIDER (optional, defaults to 'anthropic')
- *     Supported values: anthropic, openai, google
+ * Environment variables (all required):
+ *   - ANTHROPIC_PLAN - Plan from Anthropic provider
+ *   - OPENAI_PLAN - Plan from OpenAI provider
+ *   - GOOGLE_PLAN - Plan from Google provider
+ *   - GITHUB_ISSUE_URL - URL of the GitHub issue
+ *   - ISSUE_TITLE - Title of the GitHub issue
+ *   - LINEAR_TEAM_ID - Linear team ID
+ *   - LINEAR_PROJECT_ID - Linear project ID (optional)
+ *   - ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN - API key for consolidation agent
+ *   - LINEAR_API_KEY - Linear API key for creating issues
  *
- *   API Keys (required based on provider):
- *   - ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN (for provider=anthropic)
- *   - OPENAI_API_KEY (for provider=openai)
- *   - GOOGLE_GENERATIVE_AI_API_KEY (for provider=google)
- *
- *   - MODEL (optional, defaults to provider-specific model)
- *     anthropic: claude-haiku-4-5-20251001
- *     openai: gpt-4o
- *     google: gemini-2.0-flash-exp
+ *   Optional:
+ *   - MODEL (defaults to claude-haiku-4-5-20251001)
  *
  * Examples:
- *   # Use default (Anthropic Claude)
- *   ANTHROPIC_API_KEY=xxx planning-agent.ts "Add user authentication"
- *
- *   # Use OpenAI GPT-4
- *   PROVIDER=openai OPENAI_API_KEY=xxx planning-agent.ts "Add user authentication"
- *
- *   # Use Google Gemini with custom model
- *   PROVIDER=google GOOGLE_GENERATIVE_AI_API_KEY=xxx MODEL=gemini-1.5-pro planning-agent.ts "Add user authentication"
+ *   ANTHROPIC_PLAN="..." OPENAI_PLAN="..." GOOGLE_PLAN="..." \
+ *   GITHUB_ISSUE_URL="..." ISSUE_TITLE="..." LINEAR_TEAM_ID="..." \
+ *   ANTHROPIC_API_KEY=xxx LINEAR_API_KEY=xxx \
+ *   linear-agent.ts
  */
 
 import { createOpencode } from '@opencode-ai/sdk';
@@ -45,16 +41,9 @@ const __dirname = dirname(__filename);
 // Configuration
 // ============================================================================
 
-const AGENT_NAME = "planning-agent";
-
-// Provider-specific default models
-const DEFAULT_MODELS: Record<string, string> = {
-  anthropic: "claude-haiku-4-5-20251001",
-  openai: "gpt-5.1-codex-mini",
-  google: "gemini-2.5-flash",
-};
-
-const PROMPT_FILE = join(__dirname, "..", "prompts", "plan-generation.md");
+const AGENT_NAME = "linear-agent";
+const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const PROMPT_FILE = join(__dirname, "..", "prompts", "consolidate-and-create-linear.md");
 
 // ============================================================================
 // Helper Functions
@@ -83,89 +72,80 @@ function extractTextFromParts(parts: Part[]): string {
 // ============================================================================
 
 async function main() {
-  // Parse command line arguments
-  const args = process.argv.slice(2);
+  // Validate required environment variables
+  const requiredEnvVars = [
+    'ANTHROPIC_PLAN',
+    'OPENAI_PLAN',
+    'GOOGLE_PLAN',
+    'GITHUB_ISSUE_URL',
+    'ISSUE_TITLE',
+    'LINEAR_TEAM_ID',
+    'LINEAR_API_KEY',
+  ];
 
-  if (args.length < 1) {
-    console.error('Usage: planning-agent.ts <feature-description>');
+  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  if (missingVars.length > 0) {
+    console.error('Error: Missing required environment variables:');
+    missingVars.forEach(varName => console.error(`  - ${varName}`));
     console.error('');
-    console.error('Examples:');
-    console.error('  # Use default (Anthropic Claude)');
-    console.error('  ANTHROPIC_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error('');
-    console.error('  # Use OpenAI GPT-4');
-    console.error('  PROVIDER=openai OPENAI_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error('');
-    console.error('  # Use Google Gemini');
-    console.error('  PROVIDER=google GOOGLE_GENERATIVE_AI_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error('');
-    console.error('Environment variables:');
-    console.error('  PROVIDER - anthropic (default), openai, or google');
-    console.error('  MODEL - Override default model for the provider');
+    console.error('Usage: Set all required environment variables and run:');
+    console.error('  bun run linear-agent.ts');
     process.exit(1);
   }
 
-  const featureDescription = args.join(' ');
-
-  // Get provider from environment or use default
-  const provider = (process.env.PROVIDER || 'anthropic').toLowerCase();
-
-  // Validate provider
-  if (!['anthropic', 'openai', 'google'].includes(provider)) {
-    console.error(`Error: Unsupported provider "${provider}". Supported providers: anthropic, openai, google`);
-    process.exit(1);
-  }
-
-  // Get API key from environment based on provider
-  let apiKey: string | undefined;
-
-  if (provider === 'anthropic') {
-    apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_CODE_OAUTH_TOKEN;
-    if (!apiKey) {
-      console.error('Error: ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable is required');
-      process.exit(1);
-    }
-  } else if (provider === 'openai') {
-    apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error('Error: OPENAI_API_KEY environment variable is required');
-      process.exit(1);
-    }
-  } else if (provider === 'google') {
-    apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) {
-      console.error('Error: GOOGLE_GENERATIVE_AI_API_KEY environment variable is required');
-      process.exit(1);
-    }
-  }
-
-  // TypeScript guard: ensure apiKey is defined
+  // Get API key for Anthropic (consolidation provider)
+  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_CODE_OAUTH_TOKEN;
   if (!apiKey) {
-    console.error('Error: API key is required but not set');
+    console.error('Error: ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable is required');
     process.exit(1);
   }
 
-  // Get model from environment or use provider-specific default
-  const model = process.env.MODEL || DEFAULT_MODELS[provider] || 'claude-haiku-4-5-20251001';
+  // Get configuration from environment
+  const anthropicPlan = process.env.ANTHROPIC_PLAN!;
+  const openaiPlan = process.env.OPENAI_PLAN!;
+  const googlePlan = process.env.GOOGLE_PLAN!;
+  const githubIssueUrl = process.env.GITHUB_ISSUE_URL!;
+  const issueTitle = process.env.ISSUE_TITLE!;
+  const linearTeamId = process.env.LINEAR_TEAM_ID!;
+  const linearProjectId = process.env.LINEAR_PROJECT_ID || '';
+  const linearApiKey = process.env.LINEAR_API_KEY!;
+  const model = process.env.MODEL || DEFAULT_MODEL;
+
+  const provider = 'anthropic';
 
   console.error(`\n${'='.repeat(60)}`);
-  console.error(`Planning Agent`);
+  console.error(`Linear Agent - Plan Consolidation`);
   console.error(`${'='.repeat(60)}`);
   console.error(`Provider: ${provider}`);
   console.error(`Model: ${model}`);
-  console.error(`Feature: ${featureDescription}`);
+  console.error(`Issue: ${issueTitle}`);
+  console.error(`GitHub URL: ${githubIssueUrl}`);
+  console.error(`Linear Team: ${linearTeamId}`);
+  console.error(`Linear Project: ${linearProjectId || '(none)'}`);
   console.error('');
 
-  // Read external prompt file
-  let prompt: string;
+  // Read external prompt template file
+  let promptTemplate: string;
   try {
-    prompt = await readFile(PROMPT_FILE, 'utf-8');
-    console.error(`✓ Loaded prompt from ${PROMPT_FILE}`);
+    promptTemplate = await readFile(PROMPT_FILE, 'utf-8');
+    console.error(`✓ Loaded prompt template from ${PROMPT_FILE}`);
   } catch (error) {
     console.error(`✗ Failed to read prompt file: ${PROMPT_FILE}`);
-    console.error("Please create a plan-generation.md file in the prompts directory");
+    console.error("Please create consolidate-and-create-linear.md file in the prompts directory");
     process.exit(1);
   }
+
+  // Replace placeholders in the prompt template
+  const prompt = promptTemplate
+    .replace(/\{\{ANTHROPIC_PLAN\}\}/g, anthropicPlan)
+    .replace(/\{\{OPENAI_PLAN\}\}/g, openaiPlan)
+    .replace(/\{\{GOOGLE_PLAN\}\}/g, googlePlan)
+    .replace(/\{\{GITHUB_ISSUE_URL\}\}/g, githubIssueUrl)
+    .replace(/\{\{ISSUE_TITLE\}\}/g, issueTitle)
+    .replace(/\{\{LINEAR_TEAM_ID\}\}/g, linearTeamId)
+    .replace(/\{\{LINEAR_PROJECT_ID\}\}/g, linearProjectId);
+
+  console.error(`✓ Filled prompt template with plans and context`);
 
   // Create OpenCode configuration with planning agent
   const opcodeConfig: any = {
@@ -177,12 +157,23 @@ async function main() {
         },
       },
     },
+    ...(linearApiKey && {
+      mcp: {
+        linear: {
+          type: 'remote' as const,
+          url: 'https://mcp.linear.app/mcp',
+          headers: {
+            Authorization: `Bearer ${linearApiKey}`,
+          },
+        },
+      },
+    }),
     agent: {
       [AGENT_NAME]: {
         description: "Generate a comprehensive implementation plan for a given feature",
         mode: "subagent",
         model: model,
-        prompt: prompt,
+        prompt: prompt!,
         tools: {
           write: false,    // No file creation
           edit: false,     // No file modification
@@ -192,12 +183,14 @@ async function main() {
           glob: true,      // Allow file pattern matching
           grep: true,      // Allow searching content
           webfetch: true,  // Allow web research
+          ...(linearApiKey && { 'mcp__linear__*': true }), // Enable Linear MCP tools if available
         },
-        maxSteps: 5,      // Limit iterations for planning
+        maxSteps: 10,      // Limit iterations for planning
         permission: {
           edit: "deny",
           bash: "deny",
           webfetch: "allow",
+          ...(linearApiKey && { 'mcp__linear__*': 'allow' }), // Allow Linear MCP tools if available
         }
       }
     }
@@ -273,7 +266,7 @@ async function main() {
     // Create session
     console.error(`Creating session...`);
     const sessionResponse = await client.session.create({
-      body: { title: `Plan generation: ${featureDescription}` },
+      body: { title: `Plan consolidation: ${issueTitle}` },
     });
 
     if (!sessionResponse.data) {
@@ -283,9 +276,9 @@ async function main() {
     const session = sessionResponse.data;
     console.error(`✓ Session created: ${session.id}`);
 
-    // Send prompt to planning agent
-    console.error(`Generating plan with ${AGENT_NAME}...`);
-    console.error(`This may take a few moments while the AI generates the plan...`);
+    // Send prompt to linear agent
+    console.error(`Consolidating plans and creating Linear issues with ${AGENT_NAME}...`);
+    console.error(`This may take a few moments while the AI consolidates the plans...`);
     const promptResponse = await client.session.prompt({
       path: { id: session.id },
       body: {
@@ -293,8 +286,8 @@ async function main() {
           providerID: provider,
           modelID: model,
         },
-        agent: AGENT_NAME,  // Use the planning agent
-        parts: [{ type: 'text', text: featureDescription }],
+        agent: AGENT_NAME,  // Use the linear agent
+        parts: [{ type: 'text', text: prompt }],
       },
     });
 
@@ -313,23 +306,23 @@ async function main() {
       throw new Error(`Provider error: ${errorName}: ${errorMessage}`);
     }
 
-    // Extract plan text
-    const planText = extractTextFromParts(promptResponse.data.parts);
+    // Extract consolidated plan and Linear issue creation results
+    const resultText = extractTextFromParts(promptResponse.data.parts);
 
-    if (planText.length === 0) {
-      throw new Error('Empty response from planning agent');
+    if (resultText.length === 0) {
+      throw new Error('Empty response from linear agent');
     }
 
     console.error('');
     console.error(`${'='.repeat(60)}`);
     console.error(`SUCCESS!`);
     console.error(`${'='.repeat(60)}`);
-    console.error(`Generated plan: ${planText.length} characters`);
+    console.error(`Consolidated plan and Linear issues: ${resultText.length} characters`);
     console.error(`Session ID: ${session.id}`);
     console.error('');
 
-    // Output plan to stdout (this will be captured by scripts)
-    console.log(planText);
+    // Output result to stdout (this will be captured by workflows)
+    console.log(resultText);
 
     process.exit(0);
   } catch (error) {
