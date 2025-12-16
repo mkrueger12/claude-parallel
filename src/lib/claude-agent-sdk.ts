@@ -5,7 +5,7 @@
  * @anthropic-ai/claude-agent-sdk package, mimicking the behavior of the CLI.
  */
 
-import { query, type Options } from '@anthropic-ai/claude-agent-sdk';
+import { query, type Options, type McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
 
 /**
  * Authentication configuration
@@ -38,6 +38,11 @@ export interface ClaudeQueryOptions {
    * JSON schema for structured output (used in review mode)
    */
   outputSchema?: Record<string, unknown>;
+
+  /**
+   * MCP (Model Context Protocol) servers configuration
+   */
+  mcpServers?: Record<string, McpServerConfig>;
 
   /**
    * Additional SDK options to override defaults
@@ -128,6 +133,11 @@ export async function* runClaudeQuery(
     permissionMode: 'bypassPermissions',
     allowDangerouslySkipPermissions: true,
 
+    // Configure MCP servers if provided
+    ...(options.mcpServers
+      ? { mcpServers: options.mcpServers }
+      : {}),
+
     // Configure output format based on mode
     ...(options.mode === 'review' && options.outputSchema
       ? {
@@ -148,6 +158,9 @@ export async function* runClaudeQuery(
   console.error(`[Query]   CWD: ${sdkOptions.cwd}`);
   console.error(`[Query]   Mode: ${options.mode || 'implementation'}`);
   console.error(`[Query]   Permission Mode: ${sdkOptions.permissionMode}`);
+  if (options.mcpServers) {
+    console.error(`[Query]   MCP Servers: ${Object.keys(options.mcpServers).join(', ')}`);
+  }
 
   // Create and yield from the query
   const queryGenerator = query({

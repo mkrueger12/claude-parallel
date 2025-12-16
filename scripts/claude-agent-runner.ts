@@ -196,6 +196,12 @@ async function main() {
     cwd: args.cwd,
     model: args.model,
     mode: args.mode,
+    mcpServers: {
+      deepwiki: {
+        type: 'sse' as const,
+        url: 'https://mcp.deepwiki.com/sse',
+      },
+    },
     ...(args.mode === 'review' ? { outputSchema: REVIEW_DECISION_SCHEMA } : {}),
   };
 
