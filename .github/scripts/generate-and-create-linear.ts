@@ -424,6 +424,7 @@ async function generatePlanFromProvider(
           modelID: model,
         },
         parts: [{ type: 'text', text: prompt }],
+        max_tokens: 2000,
       },
     });
 
@@ -749,6 +750,7 @@ async function main() {
           modelID: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
         },
         parts: [{ type: 'text', text: consolidationPrompt }],
+        max_tokens: 2000,
       },
     });
 
