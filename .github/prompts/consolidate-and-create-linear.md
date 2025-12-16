@@ -27,7 +27,7 @@ Three different senior engineers have analyzed the same GitHub issue and created
 ## Linear Context
 
 - **Team ID**: {{LINEAR_TEAM_ID}}
-- **Project ID**: {{LINEAR_PROJECT_ID}} (use this if provided, otherwise omit)
+- **Project Name**: {{LINEAR_PROJECT_ID}} (use this if provided, otherwise omit)
 
 ### FIRST: Read the Project Specification
 
