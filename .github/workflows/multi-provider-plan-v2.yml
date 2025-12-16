@@ -37,7 +37,7 @@ on:
         description: 'OpenAI model to use'
         required: false
         type: string
-        default: 'gpt-5.1-codex-mini'
+        default: 'gpt-5.1-codex-max'
       google_model:
         description: 'Google model to use'
         required: false
@@ -167,7 +167,7 @@ jobs:
         env:
           PROVIDER: openai
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.1-codex-mini' }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.1-codex-max' }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
         run: |
