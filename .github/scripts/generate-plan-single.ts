@@ -205,9 +205,9 @@ async function main() {
         if (event.type === 'session.status') {
           const status = event.properties.status;
 
-          if (status === 'idle') {
+          if (String(status) === 'idle') {
             console.error(`\n[STATUS] [${provider.name}] Session idle`);
-          } else if (status === 'busy') {
+          } else if (String(status) === 'busy') {
             console.error(`\n[STATUS] [${provider.name}] Session busy (processing)`);
           } else if (typeof status === 'object' && 'attempt' in status) {
             // Retry status

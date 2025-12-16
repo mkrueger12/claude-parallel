@@ -50,8 +50,8 @@ const AGENT_NAME = "planning-agent";
 // Provider-specific default models
 const DEFAULT_MODELS: Record<string, string> = {
   anthropic: "claude-haiku-4-5-20251001",
-  openai: "gpt-4o",
-  google: "gemini-2.0-flash-exp",
+  openai: "gpt-5.1-codex-mini",
+  google: "gemini-2.5-flash",
 };
 
 const PROMPT_FILE = join(__dirname, "..", "prompts", "plan-generation.md");
