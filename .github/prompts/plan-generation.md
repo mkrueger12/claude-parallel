@@ -163,6 +163,7 @@ You MUST respond with a structured Markdown implementation plan. Do NOT use JSON
     - Consider migration and rollback
     - Think about edge cases
     - Include "what we're NOT doing"
+    - Ignore any directories that mention "prompts"
 
 ## Task Details
 

@@ -675,19 +675,23 @@ async function main() {
             const status = part.state.status;
             const toolName = part.tool;
 
+            // Extract session/client information from the part
+            const sessionId = part.sessionID || 'unknown';
+            const clientInfo = sessionId !== 'unknown' ? `[Session: ${sessionId.slice(0, 8)}]` : '';
+
             if (status === 'running') {
               const input = JSON.stringify(part.state.input || {}, null, 2);
-              console.log(`\n[TOOL] ${toolName} - RUNNING`);
+              console.log(`\n[TOOL] ${clientInfo} ${toolName} - RUNNING`);
               console.log(`  Input: ${input}`);
             } else if (status === 'completed') {
               const output = part.state.output?.slice(0, 200) || '(no output)';
               const duration = part.state.time?.end && part.state.time?.start
                 ? `${((part.state.time.end - part.state.time.start) / 1000).toFixed(2)}s`
                 : 'unknown';
-              console.log(`\n[TOOL] ${toolName} - COMPLETED (${duration})`);
+              console.log(`\n[TOOL] ${clientInfo} ${toolName} - COMPLETED (${duration})`);
               console.log(`  Output preview: ${output}${part.state.output && part.state.output.length > 200 ? '...' : ''}`);
             } else if (status === 'error') {
-              console.error(`\n[TOOL] ${toolName} - ERROR`);
+              console.error(`\n[TOOL] ${clientInfo} ${toolName} - ERROR`);
               console.error(`  Error: ${part.state.error}`);
             }
           }
