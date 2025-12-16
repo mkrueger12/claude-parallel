@@ -218,9 +218,9 @@ The workflow uses a streamlined single-script approach:
 
 #### Customizing Prompts
 
-Prompts are stored in `.github/prompts/` for easy customization:
+Prompts are stored in `prompts/` for easy customization:
 
-**Plan Generation Prompt** (`.github/prompts/plan-generation.md`):
+**Plan Generation Prompt** (`prompts/plan-generation.md`):
 ```markdown
 You are a senior software engineer creating an implementation plan.
 
@@ -234,7 +234,7 @@ Create a detailed plan with:
 - Required dependencies
 ```
 
-**Consolidation Prompt** (`.github/prompts/consolidate-and-create-linear.md`):
+**Consolidation Prompt** (`prompts/consolidate-and-create-linear.md`):
 ```markdown
 Analyze these 3 implementation plans:
 
@@ -285,7 +285,7 @@ To customize which AI providers are used:
    - Update the consolidation prompt to reference the correct number of plans
 3. Update `.github/actions/setup-opencode/action.yml`:
    - Add/remove API key inputs and environment variables
-4. Update `.github/prompts/consolidate-and-create-linear.md`:
+4. Update `prompts/consolidate-and-create-linear.md`:
    - Adjust placeholders to match your providers
 5. Update your workflow secrets accordingly
 
@@ -324,7 +324,7 @@ This can happen if:
 - The prompts are too prescriptive
 
 To get more diverse plans:
-- Edit `.github/prompts/plan-generation.md` to encourage creative approaches
+- Edit `prompts/plan-generation.md` to encourage creative approaches
 - Ask providers to focus on different aspects (e.g., performance vs. simplicity)
 
 ---

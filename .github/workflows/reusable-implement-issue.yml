@@ -196,7 +196,7 @@ jobs:
       - name: Fetch implementation prompt
         if: ${{ inputs.dry_run != true }}
         run: |
-          curl -fsSL "https://raw.githubusercontent.com/${{ inputs.prompts_repo }}/${{ inputs.prompts_ref }}/.github/prompts/implementation.md" \
+          curl -fsSL "https://raw.githubusercontent.com/${{ inputs.prompts_repo }}/${{ inputs.prompts_ref }}/prompts/implementation.md" \
             -o /tmp/implementation-template.md
 
       - name: Run implementation
@@ -353,7 +353,7 @@ jobs:
       - name: Fetch review prompt
         if: ${{ inputs.dry_run != true }}
         run: |
-          curl -fsSL "https://raw.githubusercontent.com/${{ inputs.prompts_repo }}/${{ inputs.prompts_ref }}/.github/prompts/review.md" \
+          curl -fsSL "https://raw.githubusercontent.com/${{ inputs.prompts_repo }}/${{ inputs.prompts_ref }}/prompts/review.md" \
             -o /tmp/review-template.md
 
       - name: Review implementations
@@ -879,7 +879,7 @@ jobs:
       - name: Fetch verify prompt
         if: ${{ inputs.dry_run != true }}
         run: |
-          curl -fsSL "https://raw.githubusercontent.com/${{ inputs.prompts_repo }}/${{ inputs.prompts_ref }}/.github/prompts/verify.md" \
+          curl -fsSL "https://raw.githubusercontent.com/${{ inputs.prompts_repo }}/${{ inputs.prompts_ref }}/prompts/verify.md" \
             -o /tmp/verify-template.md
 
       - name: Run verification

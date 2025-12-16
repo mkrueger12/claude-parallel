@@ -44,7 +44,7 @@ const __dirname = dirname(__filename);
 
 const AGENT_NAME = "linear-agent";
 const DEFAULT_MODEL = "claude-opus-4-5";
-const PROMPT_FILE = join(__dirname, "..", "..", ".github", "prompts", "consolidate-and-create-linear.md");
+const PROMPT_FILE = join(__dirname, "..", "..", "prompts", "consolidate-and-create-linear.md");
 
 // ============================================================================
 // Main Execution

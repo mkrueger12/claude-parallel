@@ -17,6 +17,44 @@ This is your session context file. Update this document at the end of each sessi
 
 ## Recent Sessions
 
+### Session 5 - December 16, 2025
+**Accomplished**:
+- **Prompt Directory Reorganization**: Moved all prompt files from `.github/prompts/` to root-level `prompts/` directory
+- Cleaned up repository structure to separate content/templates from GitHub Actions configuration
+- Updated all path references across codebase:
+  - `src/agents/planning-agent.ts` - Updated PROMPT_FILE path
+  - `src/agents/linear-agent.ts` - Updated PROMPT_FILE path
+  - `.github/workflows/reusable-implement-issue.yml` - Updated 3 curl URLs for prompt downloads
+- Comprehensive documentation updates:
+  - `CLAUDE.md` - Updated 4 references to prompt directory location
+  - `README.md` - Updated 5 references to prompt directory location
+
+**Technical Details**:
+- Git preserved history for 3 moved files (detected as renames):
+  - `consolidate-and-create-linear.md`
+  - `plan-generation.md`
+  - `verify.md`
+- Updated 2 prompt files with newer versions:
+  - `implementation.md`
+  - `review.md`
+- Removed old `.github/prompts/` directory entirely
+- TypeScript compilation verified: no errors after path updates
+
+**Files Modified**:
+- Moved: 5 prompt files from `.github/prompts/` to `prompts/`
+- Updated: 2 TypeScript agents, 1 workflow file, 2 documentation files
+- Deleted: `.github/prompts/` directory
+
+**Rationale**:
+Prompts are content/templates that can be customized by users, not GitHub Actions infrastructure. Moving them to the root level makes the purpose clearer and follows better separation of concerns.
+
+**Next**:
+- Commit the prompt reorganization changes
+- Test workflows to ensure prompt downloads work correctly
+- Continue with workflow testing priorities from Session 4
+
+---
+
 ### Session 4 - December 16, 2025
 **Accomplished**:
 - **Major TypeScript Refactoring**: Reorganized entire TypeScript codebase from `.github/scripts/` into top-level `src/` directory

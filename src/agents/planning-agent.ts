@@ -48,7 +48,7 @@ const __dirname = dirname(__filename);
 // ============================================================================
 
 const AGENT_NAME = "planning-agent";
-const PROMPT_FILE = join(__dirname, "..", "..", ".github", "prompts", "plan-generation.md");
+const PROMPT_FILE = join(__dirname, "..", "..", "prompts", "plan-generation.md");
 
 // ============================================================================
 // Main Execution

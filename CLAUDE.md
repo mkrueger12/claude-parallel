@@ -109,7 +109,7 @@ Located in `.claude/agents/`, these agents are used by the implementation workfl
 
 ### Prompt Templates
 
-Stored in `.github/prompts/` for customization:
+Stored in `prompts/` for customization:
 
 - **implementation.md**: Main implementation prompt with two-phase approach (planning → implementation)
   - Creates `plan.md` with task breakdown
@@ -282,7 +282,7 @@ NUM_IMPLEMENTATIONS=5  # Change from default of 3
 ### Customizing Prompts for Your Organization
 
 1. Fork this repository
-2. Edit files in `.github/prompts/` to match your coding standards
+2. Edit files in `prompts/` to match your coding standards
 3. Reference your fork in your workflows:
 
 ```yaml
@@ -296,7 +296,7 @@ To customize the multi-provider plan workflow:
 1. Edit `src/lib/types.ts` to add new provider types
 2. Update `DEFAULT_MODELS` and `API_KEY_ENV_VARS` constants
 3. Update `.github/workflows/multi-provider-plan-v2.yml` to add new jobs
-4. Update `.github/prompts/consolidate-and-create-linear.md` placeholders
+4. Update `prompts/consolidate-and-create-linear.md` placeholders
 
 ### Adding Runtime Support
 
@@ -317,7 +317,7 @@ To add support for additional languages:
 
 ### Updating Review Criteria
 
-Edit `.github/prompts/review.md` to adjust evaluation criteria:
+Edit `prompts/review.md` to adjust evaluation criteria:
 - Code quality metrics
 - Completeness checks
 - Performance considerations
