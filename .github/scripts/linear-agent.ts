@@ -185,7 +185,7 @@ async function main() {
           webfetch: true,  // Allow web research
           ...(linearApiKey && { 'mcp__linear__*': true }), // Enable Linear MCP tools if available
         },
-        maxSteps: 10,      // Limit iterations for planning
+        maxSteps: 30,      // Limit iterations for planning
         permission: {
           edit: "deny",
           bash: "deny",
