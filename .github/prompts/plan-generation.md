@@ -93,23 +93,21 @@ You MUST respond with a structured Markdown implementation plan. Do NOT use JSON
     ### Success Criteria:
 
     #### Feature Verification (include all relevant test cases, this may be long):
-          "category": "functional",
-          "description": "Brief description of the feature and what this test verifies",
-          "steps": [
-            "Step 1: Navigate to relevant page",
-            "Step 2: Perform action",
-            "Step 3: Verify expected result"
-          ],
-          "passes": false
+          category: functional
+          description: Brief description of the feature and what this test verifies
+          steps:
+            - Step 1: Navigate to relevant page
+            - Step 2: Perform action
+            - Step 3: Verify expected result
+          passes: false
          ---
-          "category": "style",
-          "description": "Brief description of UI/UX requirement",
-          "steps": [
-            "Step 1: Navigate to page",
-            "Step 2: Take screenshot",
-            "Step 3: Verify visual requirements"
-          ],
-          "passes": false
+          category: style
+          description: Brief description of UI/UX requirement
+          steps:
+            - Step 1: Navigate to page
+            - Step 2: Take screenshot
+            - Step 3: Verify visual requirements
+          passes: false
 
     #### Automated Verification:
     - [ ] Migration applies cleanly: `make migrate`

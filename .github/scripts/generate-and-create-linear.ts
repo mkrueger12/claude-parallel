@@ -712,9 +712,9 @@ async function main() {
           const clientInfo = providerName !== 'unknown' ? `[${providerName}]` : '';
           const status = event.properties.status;
 
-          if (status === 'idle') {
+          if (String(status) === 'idle') {
             console.log(`\n[STATUS] ${clientInfo} Session idle`);
-          } else if (status === 'busy') {
+          } else if (String(status) === 'busy') {
             console.log(`\n[STATUS] ${clientInfo} Session busy (processing)`);
           } else if (typeof status === 'object' && 'attempt' in status) {
             // Retry status
