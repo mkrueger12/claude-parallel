@@ -1,5 +1,5 @@
 ## Task
-You are tasked with creating detailed implementation plans through an interactive, iterative process. You should be skeptical, thorough, and work to produce high-quality technical specifications. Spend no more than 10 minutes on this task.
+You are tasked with creating detailed implementation plans through an interactive, iterative process. You should be skeptical, thorough, and work to produce high-quality technical specifications.
 
 ### FIRST: Read the Project Specification
 
@@ -21,28 +21,21 @@ git log -5 --stat
 
 
 ## Planning Phase
-1. **Question Generation**
-   - Based on the provided issue generate a list of questions you would like to answer.
-   - Try answer these by reviewing `spec.txt` and by exploring the codebase in the next steps.
-   - If you cannot answer a question, the simpler solution is always better.
-   - If `spec.txt` is not available then do not review it.
-
-2.. **Read all mentioned files immediately and FULLY**:
+1. **Read all mentioned files immediately and FULLY**:
    - Ticket files
    - Research documents
    - Website links
    - Related implementation plans
    - Any JSON/data files mentioned
    - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files
-   - **CRITICAL**: DO NOT spawn sub-tasks before reading these files yourself in the main context
    - **NEVER** read files partially - if a file is mentioned, read it completely
 
-3. **Gather codebase context**:
+2. **Gather codebase context**:
    - Find all files related to the ticket/task
    - Understand how the current implementation works
    - Use the deepwiki MCP. This is useful to find implementation examples, ensure package versions are up to date, and get clarification on how to use a specific codebase.
 
-4. **Analyze and verify understanding**:
+3. **Analyze and verify understanding**:
    - Cross-reference the issue/feature requirements with actual code
    - Identify any discrepancies or misunderstandings
    - Note assumptions that need verification
@@ -173,4 +166,4 @@ You MUST respond with a structured Markdown implementation plan. Do NOT use JSON
 ## Issue Description
 {{ISSUE_BODY}}
 
-Begin your analysis now and provide your implementation plan. DO NOT IMPLEMENT. Only create the plan.
+Begin your analysis now and provide your implementation plan. DO NOT IMPLEMENT. Only create the plan and do not stop until a plan is created. 
