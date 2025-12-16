@@ -35,8 +35,8 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 - GitHub repository with Actions enabled
 - GitHub Personal Access Token (GH_PAT) with repo permissions
 - At least one AI provider authentication:
-  - CLAUDE_CODE_OAUTH_TOKEN (required for multi-provider planning)
-  - ANTHROPIC_API_KEY (alternative for implementation workflow)
+  - CLAUDE_CODE_OAUTH_TOKEN (preferred for all workflows, required for multi-provider planning)
+  - ANTHROPIC_API_KEY (alternative for implementation workflow, fallback option)
   - OPENAI_API_KEY (optional, for multi-provider planning)
   - GOOGLE_GENERATIVE_AI_API_KEY (optional, for multi-provider planning)
 - Linear API credentials (optional, for issue tracking):
@@ -45,9 +45,15 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   - LINEAR_PROJECT_ID (optional)
 
 ### For Development
-- Node.js >= 20.0.0 or Bun >= 1.0.0
+- Node.js >= 20.0.0 or Bun >= 1.0.0 (Bun required for local script execution)
 - TypeScript knowledge for modifying agents
 - Git and gh CLI (for local shell script usage)
+- jq (for JSON parsing in shell script)
+
+### For Local Script Usage (`parallel-impl.sh`)
+- Bun runtime (required) - Install via `curl -fsSL https://bun.sh/install | bash` or `npm install -g bun`
+- CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY (CLAUDE_CODE_OAUTH_TOKEN preferred for local runs)
+- Git, gh CLI, and jq utilities
 
 ## Core Features
 
@@ -207,8 +213,9 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   - `event_name`: Trigger event type
   - `event_issue_number`: Issue number from event
 - **Secrets**:
-  - `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token (alternative auth)
-  - `ANTHROPIC_API_KEY`: API key (alternative auth)
+  - `CLAUDE_CODE_OAUTH_TOKEN`: Claude Code OAuth token (preferred, alternative auth)
+  - `ANTHROPIC_API_KEY`: Anthropic API key (fallback, alternative auth)
+  - Note: Provide either CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY; both are supported
   - `GH_PAT`: GitHub token (required)
 - **Jobs**:
   1. `generate-matrix`: Creates implementation matrix
@@ -370,11 +377,11 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 ## Local Script Usage
 
 ### Shell Script (`parallel-impl.sh`)
-- **Dependencies**: git, claude, gh, jq
+- **Dependencies**: git, bun, gh, jq (note: uses Bun runtime, not direct Claude CLI)
 - **Usage**: `./parallel-impl.sh "feature description"`
 - **Workflow**:
   1. Creates N worktrees in `../parallel-impls/`
-  2. Runs Claude Code in each worktree (parallel)
+  2. Runs OpenCode SDK in each worktree (parallel) via `claude-agent-runner.ts`
   3. Reviews all implementations
   4. Creates draft PR from winner
   5. Cleans up losing branches
@@ -382,6 +389,30 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   - `NUM_IMPLEMENTATIONS`: Number of parallel runs
   - `WORKTREES_DIR`: Worktree location
   - Edit prompts in `prompts/` directory
+
+### Local Script Technical Details
+
+The local `parallel-impl.sh` script uses the OpenCode SDK (@opencode-ai/sdk) instead of direct Claude CLI calls:
+
+**Architecture:**
+- Script invokes `bun run scripts/claude-agent-runner.ts` for AI interactions
+- `claude-agent-runner.ts` creates an OpenCode server with the specified provider
+- OpenCode SDK handles authentication, streaming, and tool execution
+- Output is returned as structured JSON for parsing
+
+**Benefits:**
+- Better integration with AI providers via SDK
+- Consistent interface across different providers
+- Support for structured output and tool calling
+- Improved error handling and logging
+- No need to install Claude CLI separately for local runs
+
+**Authentication:**
+- CLAUDE_CODE_OAUTH_TOKEN (preferred for local runs)
+- ANTHROPIC_API_KEY (fallback option)
+- SDK auto-detects and uses available credentials
+
+**Note:** GitHub Actions workflows still use the Claude Code CLI directly for implementation jobs, but multi-provider planning uses the OpenCode SDK with TypeScript agents.
 
 ### Worktree Structure
 ```

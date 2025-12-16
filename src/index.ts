@@ -23,3 +23,10 @@ export {
   createOpencodeServer,
   setupEventMonitoring,
 } from './lib/opencode.js';
+
+// Export Claude Agent SDK helpers
+export type { AuthConfig, ClaudeQueryOptions } from './lib/claude-agent-sdk.js';
+export {
+  getAuthentication,
+  runClaudeQuery,
+} from './lib/claude-agent-sdk.js';

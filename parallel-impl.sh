@@ -32,7 +32,7 @@ if [ -z "$FEATURE_REQUEST" ]; then
 fi
 
 # Check dependencies
-for cmd in git claude gh jq; do
+for cmd in git bun gh jq; do
   if ! command -v $cmd &> /dev/null; then
     echo -e "${RED}Error: Required command '$cmd' not found${NC}"
     exit 1
@@ -98,10 +98,10 @@ for i in $(seq 1 $NUM_IMPLEMENTATIONS); do
     echo -e "  ${BLUE}→${NC} Implementation $i starting..."
 
     # Run Claude with the prompt
-    if claude --print "$IMPL_PROMPT" \
-      --output-format json \
+    if echo "$IMPL_PROMPT" | bun run "$MAIN_REPO/scripts/claude-agent-runner.ts" \
+      --cwd "$(pwd)" \
       --model claude-opus-4-5-20251101 \
-      --dangerously-skip-permissions \
+      --mode implementation \
       > result.json 2> error.log; then
       echo -e "  ${GREEN}✓${NC} Implementation $i complete"
     else
@@ -151,10 +151,10 @@ REVIEW_PROMPT=$(sed "s|{{NUM_IMPLEMENTATIONS}}|$NUM_IMPLEMENTATIONS|g" <<< "$REV
 echo -e "${YELLOW}Starting review process...${NC}"
 
 # Run review
-if ! claude --print "$REVIEW_PROMPT" \
-  --output-format json \
+if ! echo "$REVIEW_PROMPT" | bun run scripts/claude-agent-runner.ts \
+  --cwd "$(pwd)" \
   --model claude-opus-4-5-20251101 \
-  --dangerously-skip-permissions \
+  --mode review \
   > review-result.json 2> review-error.log; then
   echo -e "${RED}Error: Review failed${NC}"
   cat review-error.log
@@ -171,19 +171,25 @@ if ! jq empty review-result.json 2>/dev/null; then
   exit 1
 fi
 
-# Extract decision (handle both direct JSON and nested content)
-CONTENT=$(jq -r '.content[0].text // .text // .' review-result.json)
-
-# Try to parse as JSON
-if DECISION=$(echo "$CONTENT" | jq -r '.best' 2>/dev/null) && [ "$DECISION" != "null" ]; then
-  REASONING=$(echo "$CONTENT" | jq -r '.reasoning // "No reasoning provided"')
-  QUALITY_SCORE=$(echo "$CONTENT" | jq -r '.quality_score // "N/A"')
-  COMPLETENESS_SCORE=$(echo "$CONTENT" | jq -r '.completeness_score // "N/A"')
+# Extract decision (handle SDK output structure)
+# Try structured_output first (SDK with json_schema outputFormat)
+if DECISION=$(jq -r '.structured_output.best // empty' review-result.json 2>/dev/null) && [ -n "$DECISION" ]; then
+  REASONING=$(jq -r '.structured_output.reasoning // "No reasoning provided"' review-result.json)
+  QUALITY_SCORE="N/A"
+  COMPLETENESS_SCORE="N/A"
 else
-  echo -e "${RED}Error: Could not parse review decision${NC}"
-  echo -e "Review output:"
-  echo "$CONTENT"
-  exit 1
+  # Fallback to legacy parsing for CLI-style output
+  CONTENT=$(jq -r '.content[0].text // .text // .result // .' review-result.json)
+  if DECISION=$(echo "$CONTENT" | jq -r '.best' 2>/dev/null) && [ "$DECISION" != "null" ]; then
+    REASONING=$(echo "$CONTENT" | jq -r '.reasoning // "No reasoning provided"')
+    QUALITY_SCORE=$(echo "$CONTENT" | jq -r '.quality_score // "N/A"')
+    COMPLETENESS_SCORE=$(echo "$CONTENT" | jq -r '.completeness_score // "N/A"')
+  else
+    echo -e "${RED}Error: Could not parse review decision${NC}"
+    echo -e "Review output:"
+    echo "$CONTENT"
+    exit 1
+  fi
 fi
 
 BEST=$DECISION
