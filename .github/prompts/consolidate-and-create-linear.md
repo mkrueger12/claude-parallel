@@ -235,27 +235,24 @@ For EACH task in your final plan, call `mcp__linear-server__create_issue` with:
 - Make sure all parent and subissues are in the Backlog
 - Make sure all parent and subissues have the label "Not Passing"
 
-## Output Format
+## Final Step
 
-After consolidating the plans and creating the Linear issues, return a summary in the following format:
+After consolidating the plans and creating the Linear issues, use the gh cli to leave a comment on the GitHub issue in the following formet:
+
+```bash
+  gh issue comment <issue-number> --body "$(cat <<'EOF'
+  Your multiline comment here
+  Can include multiple lines
+  EOF
+  )"
+```
 
 ```markdown
-## Consolidated Implementation Plan
-
 ### Overview
-[Your unified overview]
+[Reasoning for the final implementation plan]
 
-### Implementation Steps
-1. [Step title] - [Brief description]
-2. [Step title] - [Brief description]
-...
-
-### Risks
-- [Consolidated risk] - Mitigation: [approach]
-
-### Dependencies
-- [Dependency 1]
-- [Dependency 2]
+### Assumptions
+[List of assumptions that a developer should be aware of when reviewing the plan]
 
 ---
 
@@ -270,10 +267,6 @@ After consolidating the plans and creating the Linear issues, return a summary i
 1. **[identifier]**: [Step title] - [URL]
 2. **[identifier]**: [Step title] - [URL]
 ...
-
----
-
-**All issues have been created successfully in Linear.**
 ```
 
 ## Important Notes

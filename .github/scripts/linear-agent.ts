@@ -177,7 +177,7 @@ async function main() {
         tools: {
           write: false,    // No file creation
           edit: false,     // No file modification
-          bash: false,     // No shell commands
+          bash: true,     // No shell commands
           read: true,      // Allow reading files
           list: true,      // Allow listing directories
           glob: true,      // Allow file pattern matching
@@ -188,7 +188,7 @@ async function main() {
         maxSteps: 30,      // Limit iterations for planning
         permission: {
           edit: "deny",
-          bash: "deny",
+          bash: "allow",
           webfetch: "allow",
           ...(linearApiKey && { 'mcp__linear__*': 'allow' }), // Allow Linear MCP tools if available
         }
