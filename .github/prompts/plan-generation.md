@@ -172,4 +172,4 @@ You MUST respond with a structured Markdown implementation plan. Do NOT use JSON
 ## Issue Description
 {{ISSUE_BODY}}
 
-Begin your analysis now and provide your implementation plan.
+Begin your analysis now and provide your implementation plan. DO NOT IMPLEMENT. Only create the plan.

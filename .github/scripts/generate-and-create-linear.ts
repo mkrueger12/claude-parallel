@@ -99,10 +99,16 @@ const PROVIDERS: ProviderConfig[] = [
 // Helper Functions
 // ============================================================================
 
+interface Part {
+  type: string;
+  text?: string;
+  [key: string]: any;
+}
+
 /**
  * Extract text from message parts
  */
-function extractTextFromParts(parts: any[]): string {
+function extractTextFromParts(parts: Part[]): string {
   if (!Array.isArray(parts)) return '';
 
   return parts
@@ -332,9 +338,8 @@ function validateApiKeys(): { allValid: boolean; results: ApiKeyValidation[] } {
 
   const results: ApiKeyValidation[] = PROVIDERS.map(provider => {
     const apiKey = process.env[provider.apiKeyEnvVar];
-    const isSet = apiKey !== undefined && apiKey !== '';
 
-    if (!isSet) {
+    if (!apiKey) {
       return {
         provider: provider.name,
         envVar: provider.apiKeyEnvVar,
@@ -397,7 +402,6 @@ async function generatePlanFromProvider(
   }
 
   const model = process.env[provider.modelEnvVar] || provider.defaultModel;
-  let startTime = 0;
 
   try {
     console.log(`[${provider.name}] Starting plan generation with model ${model}...`);
@@ -413,7 +417,6 @@ async function generatePlanFromProvider(
     const session = sessionResponse.data;
     console.log(`[${provider.name}] Session created: ${session.id}`);
 
-    const startTime = Date.now();
     console.log(`[${provider.name}] Sending prompt (${prompt.length} chars) at ${new Date().toISOString()}...`);
 
     const promptResponse = await client.session.prompt({
@@ -424,13 +427,8 @@ async function generatePlanFromProvider(
           modelID: model,
         },
         parts: [{ type: 'text', text: prompt }],
-        max_tokens: 2000,
       },
     });
-
-    const endTime = Date.now();
-    const durationMs = endTime - startTime;
-    const durationSec = (durationMs / 1000).toFixed(2);
 
     if (!promptResponse.data) {
       throw new Error('Failed to get response: no data in response');
@@ -518,10 +516,6 @@ async function generatePlanFromProvider(
       plan,
     };
   } catch (error) {
-    const endTime = Date.now();
-    const durationMs = startTime > 0 ? endTime - startTime : 0;
-    const durationSec = (durationMs / 1000).toFixed(2);
-
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[${provider.name}] ERROR: ${errorMessage}`);
     if (error instanceof Error && error.stack) {
@@ -785,7 +779,6 @@ async function main() {
           modelID: process.env.ANTHROPIC_MODEL || 'claude-3-5-haiku-20241022',
         },
         parts: [{ type: 'text', text: consolidationPrompt }],
-        max_tokens: 2000,
       },
     });
 
