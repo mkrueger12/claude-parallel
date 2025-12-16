@@ -636,6 +636,19 @@ async function main() {
         },
       },
     },
+    // Add tools configuration  
+    tools: {  
+        // Enable built-in tools  
+        "write": true,  
+        "edit": false,  
+        "read": true,  
+        "bash": false,  
+        "grep": true,  
+        "webfetch": true,  
+          
+        // Enable MCP tools (your linear MCP server)  
+        "linear_*": true,  
+      },  
     mcp: {
       linear: {
         type: "remote" as const,
