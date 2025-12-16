@@ -85,7 +85,6 @@ jobs:
 
       - name: Generate plan
         id: generate
-        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-haiku-4-5-20251001' }}
@@ -94,20 +93,14 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output (stderr goes to console)
-          if PLAN=$(bun run generate-plan-single.ts anthropic "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1); then
-            # Use multiline output format
-            echo "plan<<EOF" >> $GITHUB_OUTPUT
-            echo "$PLAN" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "success=true" >> $GITHUB_OUTPUT
-          else
-            echo "success=false" >> $GITHUB_OUTPUT
-            echo "plan<<EOF" >> $GITHUB_OUTPUT
-            echo "Plan generation failed for Anthropic provider" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            # Don't exit 1 - let the job succeed so consolidation can run
-          fi
+          # Generate plan and capture output (stderr goes to console for debugging)
+          PLAN=$(bun run generate-plan-single.ts anthropic "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
 
   # Generate plan from OpenAI GPT
   generate-plan-openai:
@@ -132,7 +125,6 @@ jobs:
 
       - name: Generate plan
         id: generate
-        continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.1-codex-mini' }}
@@ -141,20 +133,14 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output (stderr goes to console)
-          if PLAN=$(bun run generate-plan-single.ts openai "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1); then
-            # Use multiline output format
-            echo "plan<<EOF" >> $GITHUB_OUTPUT
-            echo "$PLAN" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "success=true" >> $GITHUB_OUTPUT
-          else
-            echo "success=false" >> $GITHUB_OUTPUT
-            echo "plan<<EOF" >> $GITHUB_OUTPUT
-            echo "Plan generation failed for OpenAI provider" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            # Don't exit 1 - let the job succeed so consolidation can run
-          fi
+          # Generate plan and capture output (stderr goes to console for debugging)
+          PLAN=$(bun run generate-plan-single.ts openai "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
 
   # Generate plan from Google Gemini
   generate-plan-google:
@@ -179,7 +165,6 @@ jobs:
 
       - name: Generate plan
         id: generate
-        continue-on-error: true
         env:
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-2.5-flash' }}
@@ -188,20 +173,14 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output (stderr goes to console)
-          if PLAN=$(bun run generate-plan-single.ts google "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1); then
-            # Use multiline output format
-            echo "plan<<EOF" >> $GITHUB_OUTPUT
-            echo "$PLAN" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "success=true" >> $GITHUB_OUTPUT
-          else
-            echo "success=false" >> $GITHUB_OUTPUT
-            echo "plan<<EOF" >> $GITHUB_OUTPUT
-            echo "Plan generation failed for Google provider" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            # Don't exit 1 - let the job succeed so consolidation can run
-          fi
+          # Generate plan and capture output (stderr goes to console for debugging)
+          PLAN=$(bun run generate-plan-single.ts google "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
 
   # Consolidate all plans and create Linear issues
   consolidate-and-create-linear:
@@ -258,15 +237,10 @@ jobs:
           ### Implementation Steps
           ${SUB_ISSUE_COUNT} sub-issues have been created in Linear with detailed implementation steps.
 
-          ### Provider Status
-          - Anthropic: ${{ needs.generate-plan-anthropic.outputs.success == 'true' && '✅' || '❌' }}
-          - OpenAI: ${{ needs.generate-plan-openai.outputs.success == 'true' && '✅' || '❌' }}
-          - Google: ${{ needs.generate-plan-google.outputs.success == 'true' && '✅' || '❌' }}
-
           ---
 
           *View the full consolidated plan and track progress in Linear.*
-          *Generated by Multi-Provider Plan workflow - Run #${{ github.run_id }}*"
+          *Generated by Multi-Provider Plan workflow v2 - Run #${{ github.run_id }}*"
 
           gh issue comment "${{ needs.get-issue.outputs.number }}" --body "$COMMENT"
 
@@ -277,24 +251,23 @@ jobs:
         run: |
           ERROR_COMMENT="## Multi-Provider Plan Generation Failed
 
-          :x: The plan generation workflow encountered an error during consolidation.
+          :x: The plan generation workflow encountered an error.
 
           **Run ID:** ${{ github.run_id }}
-
-          ### Provider Status
-          - Anthropic: ${{ needs.generate-plan-anthropic.outputs.success == 'true' && '✅' || '❌' }}
-          - OpenAI: ${{ needs.generate-plan-openai.outputs.success == 'true' && '✅' || '❌' }}
-          - Google: ${{ needs.generate-plan-google.outputs.success == 'true' && '✅' || '❌' }}
+          **Workflow:** Multi-Provider Plan v2 (Parallel Jobs)
 
           Please check the [workflow run logs](${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}) for details.
 
           Common issues:
-          - Missing or invalid API keys
-          - Invalid Linear team ID or project ID
-          - Provider API rate limits
-          - Network connectivity issues
+          - **Plan generation**: Missing or invalid API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY)
+          - **Plan generation**: Provider API rate limits or service outages
+          - **Consolidation**: Missing LINEAR_API_KEY or invalid LINEAR_TEAM_ID
+          - **Consolidation**: Linear project ID issues
+          - Network connectivity problems
+
+          Note: If any provider fails, the entire workflow stops. Check the failed job for specific error details.
 
           ---
-          *Generated by Multi-Provider Plan workflow*"
+          *Generated by Multi-Provider Plan workflow v2*"
 
           gh issue comment "${{ needs.get-issue.outputs.number }}" --body "$ERROR_COMMENT" || true

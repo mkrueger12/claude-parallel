@@ -137,8 +137,9 @@ Two workflow implementations available:
 - Each provider runs independently
 - Plans passed via job outputs
 - Better visibility in GitHub UI
-- More resilient to provider failures
+- Fail-fast: stops if any provider fails
 - Idiomatic GitHub Actions patterns
+- Clear failure indication per provider
 
 **Common Features**:
 - **Parallel Plan Generation**:

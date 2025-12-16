@@ -77,8 +77,8 @@ Two implementations are available:
 - **Key Scripts**:
   - `.github/scripts/generate-plan-single.ts` - Individual provider plan generation
   - `.github/scripts/consolidate-plans.ts` - Plan consolidation and Linear issue creation
-- **Advantages**: Better visibility in GitHub UI, individual provider failures don't block others, follows GitHub Actions patterns
-- **Disadvantages**: Plans must be passed via job outputs (size limits), slightly more complex workflow YAML
+- **Advantages**: Better visibility in GitHub UI, clear failure indication per provider, follows GitHub Actions patterns
+- **Disadvantages**: Plans must be passed via job outputs (size limits), slightly more complex workflow YAML, fails if any single provider fails (fail-fast behavior)
 
 #### 2. Parallel Implementation Workflow (`.github/workflows/reusable-implement-issue.yml`)
 - **Trigger**: Label `claude-implement` on GitHub issues or manual dispatch
@@ -179,8 +179,9 @@ Key characteristics (v2):
 - Each provider runs in a separate GitHub Actions job
 - Plans passed via job outputs (environment variables)
 - Better visibility: each provider job shows status independently
-- More resilient: one provider failure doesn't block others
+- Fail-fast: if any provider fails, the entire workflow stops
 - Follows idiomatic GitHub Actions patterns (job dependencies)
+- Clear error messages indicating which provider failed
 
 ### Environment Variables
 
