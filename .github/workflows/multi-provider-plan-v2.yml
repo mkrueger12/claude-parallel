@@ -39,7 +39,7 @@ jobs:
     outputs:
       number: ${{ steps.issue.outputs.number }}
       title: ${{ steps.issue.outputs.title }}
-      body: ${{ steps.issue.outputs.body }}
+      body: ${{ steps.body.outputs.content }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
