@@ -7,11 +7,12 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 
 ### Core Infrastructure
 - **CI/CD**: GitHub Actions with reusable workflows
-- **Scripting**: Bash shell scripts, TypeScript/Node.js
+- **Scripting**: Bash shell scripts, TypeScript with Bun runtime
 - **Version Control**: Git with worktree support
-- **AI Integration**: Claude Code CLI, Anthropic API, OpenAI API, Google Gemini API
-- **Issue Tracking**: Linear API integration
+- **AI Integration**: OpenCode SDK, Claude Code CLI, Anthropic API, OpenAI API, Google Gemini API
+- **Issue Tracking**: Linear SDK (@linear/sdk)
 - **Package Manager**: Bun (primary), npm, pnpm, yarn support
+- **TypeScript**: Strict mode with ES2022 target, NodeNext modules
 
 ### Multi-Language Support
 - **JavaScript/TypeScript**: Node.js, Bun, npm, pnpm, yarn
@@ -29,16 +30,24 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 - Artifact management for result sharing
 
 ## Prerequisites
+
+### For Using the Workflows
 - GitHub repository with Actions enabled
 - GitHub Personal Access Token (GH_PAT) with repo permissions
 - At least one AI provider authentication:
-  - CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY (required)
+  - CLAUDE_CODE_OAUTH_TOKEN (required for multi-provider planning)
+  - ANTHROPIC_API_KEY (alternative for implementation workflow)
   - OPENAI_API_KEY (optional, for multi-provider planning)
   - GOOGLE_GENERATIVE_AI_API_KEY (optional, for multi-provider planning)
 - Linear API credentials (optional, for issue tracking):
   - LINEAR_API_KEY
   - LINEAR_TEAM_ID
   - LINEAR_PROJECT_ID (optional)
+
+### For Development
+- Node.js >= 20.0.0 or Bun >= 1.0.0
+- TypeScript knowledge for modifying agents
+- Git and gh CLI (for local shell script usage)
 
 ## Core Features
 
@@ -122,17 +131,7 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 
 ### Multi-Provider Plan Generation
 
-Two workflow implementations available:
-
-**v1 - Single Job Approach**:
-- Single OpenCode server with all 3 providers
-- Parallel sessions in one process
-- No intermediate artifacts
-- Full context preservation in memory
-- Faster execution (no job overhead)
-- Less visibility in GitHub UI
-
-**v2 - Parallel Jobs Approach**:
+**Architecture** (v2 - Parallel Jobs Approach):
 - Three concurrent GitHub Actions jobs
 - Each provider runs independently
 - Plans passed via job outputs
@@ -141,11 +140,11 @@ Two workflow implementations available:
 - Idiomatic GitHub Actions patterns
 - Clear failure indication per provider
 
-**Common Features**:
+**Features**:
 - **Parallel Plan Generation**:
-  - Anthropic Claude (default: claude-haiku-4-5-20251001)
-  - OpenAI GPT (default: gpt-5.1-codex-mini)
-  - Google Gemini (default: gemini-2.5-flash)
+  - Anthropic Claude (default: claude-sonnet-4-5)
+  - OpenAI GPT (default: gpt-5.1-codex-max)
+  - Google Gemini (default: gemini-2.5-pro)
   - Concurrent execution for speed
   - Independent context per provider
 - **Plan Consolidation**:
@@ -217,16 +216,16 @@ Two workflow implementations available:
   3. `review`: Compares and selects best implementation
   4. `verify`: Runs build/test/lint checks and posts results
 
-#### Multi-Provider Plan v1 (`multi-provider-plan.yml`)
-- **Trigger**: Label `claude-plan` on issue
+#### Multi-Provider Plan v2 (`multi-provider-plan-v2.yml`)
+- **Trigger**: Label `claude-plan-v2` on issue or manual dispatch
 - **Inputs**:
   - `issue_number`: Issue to plan for
   - `linear_project_id`: Linear project (optional)
-  - `anthropic_model`: Claude model selection
-  - `openai_model`: GPT model selection
-  - `google_model`: Gemini model selection
+  - `anthropic_model`: Claude model selection (default: claude-sonnet-4-5)
+  - `openai_model`: GPT model selection (default: gpt-5.1-codex-max)
+  - `google_model`: Gemini model selection (default: gemini-2.5-pro)
 - **Secrets**:
-  - `ANTHROPIC_API_KEY`: Claude auth
+  - `CLAUDE_CODE_OAUTH_TOKEN`: Claude Code OAuth token
   - `OPENAI_API_KEY`: OpenAI auth
   - `GOOGLE_GENERATIVE_AI_API_KEY`: Google auth
   - `LINEAR_API_KEY`: Linear auth
@@ -234,22 +233,14 @@ Two workflow implementations available:
   - `LINEAR_PROJECT_ID`: Linear project (optional)
   - `GH_PAT`: GitHub token
 - **Jobs**:
-  1. `generate-plan`: Single job generates 3 plans in parallel, consolidates, creates Linear issues
-- **Script**: `generate-and-create-linear.ts`
-
-#### Multi-Provider Plan v2 (`multi-provider-plan-v2.yml`)
-- **Trigger**: Label `claude-plan-v2` on issue
-- **Inputs**: Same as v1
-- **Secrets**: Same as v1
-- **Jobs**:
   1. `get-issue`: Fetches issue details
   2. `generate-plan-anthropic`: Generates plan from Claude (parallel)
   3. `generate-plan-openai`: Generates plan from GPT (parallel)
   4. `generate-plan-google`: Generates plan from Gemini (parallel)
   5. `consolidate-and-create-linear`: Consolidates plans and creates Linear issues
 - **Scripts**:
-  - `generate-plan-single.ts`: Individual provider plan generation
-  - `consolidate-plans.ts`: Plan consolidation and Linear issue creation
+  - `src/agents/planning-agent.ts`: Individual provider plan generation
+  - `src/agents/linear-agent.ts`: Plan consolidation and Linear issue creation
 
 ### Custom Actions
 
@@ -281,8 +272,7 @@ Two workflow implementations available:
 
 #### Via Label
 - Add `claude-implement` label to issue → triggers parallel implementation workflow
-- Add `claude-plan` label to issue → triggers multi-provider planning (v1 - single job)
-- Add `claude-plan-v2` label to issue → triggers multi-provider planning (v2 - parallel jobs)
+- Add `claude-plan-v2` label to issue → triggers multi-provider planning
 
 #### Via Manual Dispatch
 - Navigate to Actions tab
@@ -416,38 +406,50 @@ claude-parallel/
 │   ├── workflows/
 │   │   ├── reusable-implement-issue.yml    # Main implementation workflow
 │   │   ├── claude-implement-issue.yml       # Caller workflow example
-│   │   ├── multi-provider-plan.yml          # Multi-provider planning (v1 - single job)
-│   │   └── multi-provider-plan-v2.yml       # Multi-provider planning (v2 - parallel jobs)
-│   ├── actions/
-│   │   ├── get-issue-details/              # Fetch issue metadata
-│   │   ├── setup-claude/                   # Install Claude CLI
-│   │   ├── setup-opencode/                 # Setup OpenCode SDK server
-│   │   ├── fetch-agents/                   # Download custom agents
-│   │   └── detect-runtime/                 # Detect language/package manager
-│   ├── prompts/
-│   │   ├── implementation.md               # Implementation prompt template
-│   │   ├── review.md                       # Review prompt template
-│   │   ├── verify.md                       # Verification prompt template
-│   │   ├── plan-generation.md              # Single-provider plan template
-│   │   └── consolidate-and-create-linear.md # Multi-provider consolidation
-│   └── scripts/
-│       ├── generate-and-create-linear.ts   # v1: Combined plan generation script
-│       ├── generate-plan-single.ts         # v2: Single provider plan generation
-│       ├── consolidate-plans.ts            # v2: Plan consolidation and Linear creation
-│       ├── package.json                    # Script dependencies
-│       └── node_modules/                   # Installed dependencies
+│   │   ├── multi-provider-plan-v2.yml       # Multi-provider planning workflow
+│   │   └── test-opencode-version.yml        # Testing workflow
+│   └── actions/
+│       ├── get-issue-details/              # Fetch issue metadata
+│       ├── setup-claude/                   # Install Claude CLI
+│       ├── setup-opencode/                 # Setup OpenCode SDK server
+│       ├── fetch-agents/                   # Download custom agents
+│       └── detect-runtime/                 # Detect language/package manager
 ├── .claude/
 │   └── agents/                             # Custom Claude Code agents
 │       ├── coding-agent.md                 # Feature implementation agent
 │       ├── codebase-locator.md             # File/component finder agent
 │       ├── codebase-analyzer.md            # Implementation analysis agent
 │       └── debug-agent.md                  # Debugging agent
+├── src/                                    # TypeScript source code
+│   ├── agents/
+│   │   ├── planning-agent.ts               # Single provider plan generation
+│   │   └── linear-agent.ts                 # Plan consolidation and Linear creation
+│   ├── lib/
+│   │   ├── types.ts                        # Shared TypeScript interfaces
+│   │   ├── utils.ts                        # Utility functions
+│   │   └── opencode.ts                     # OpenCode SDK helpers
+│   └── index.ts                            # Public API exports
+├── dist/                                   # Compiled TypeScript output
+│   ├── agents/
+│   ├── lib/
+│   └── index.js                            # Compiled entry point
+├── prompts/                                # Prompt templates (top-level)
+│   ├── implementation.md                   # Implementation prompt template
+│   ├── review.md                           # Review prompt template
+│   ├── verify.md                           # Verification prompt template
+│   ├── plan-generation.md                  # Single-provider plan template
+│   └── consolidate-and-create-linear.md    # Multi-provider consolidation
+├── .sessions/                              # Session tracking (if using sessions pattern)
 ├── parallel-impl.sh                        # Local CLI script
+├── package.json                            # Node.js dependencies and scripts
+├── bun.lock                                # Bun lockfile
+├── tsconfig.json                           # TypeScript configuration
 ├── spec.txt                                # This file - project specification
 ├── CLAUDE.md                               # Claude Code guidance documentation
 └── README.md                               # User documentation
 
 Additional directories created at runtime:
+node_modules/                               # Installed dependencies
 ../parallel-impls/                          # Worktrees for local execution
   impl-{timestamp}-{n}/                     # Individual implementation worktrees
 ```
@@ -477,19 +479,6 @@ Additional directories created at runtime:
 
 ### Pattern 3: Multi-Provider Planning
 
-**v1 Approach** (Label: `claude-plan`):
-1. User creates issue with complex feature request
-2. User adds `claude-plan` label
-3. Single workflow job generates 3 plans in parallel (same process)
-4. Plans consolidated by AI in same session
-5. Linear parent issue created with consolidated plan
-6. Linear sub-issues created for tasks
-7. Comment posted on GitHub issue with Linear links
-8. Team reviews plan in Linear
-9. Assigns tasks from sub-issues
-10. Optionally triggers implementation workflow
-
-**v2 Approach** (Label: `claude-plan-v2`):
 1. User creates issue with complex feature request
 2. User adds `claude-plan-v2` label
 3. Three concurrent GitHub jobs generate plans (better visibility)
@@ -559,13 +548,55 @@ Additional directories created at runtime:
 - Artifact storage within limits
 - API rate limits respected
 
+## TypeScript Development
+
+### Building and Type Checking
+
+The project includes TypeScript code in the `src/` directory that must be compiled to JavaScript:
+
+```bash
+# Install dependencies
+bun install
+
+# Compile TypeScript to dist/
+bun run build
+
+# Run type checking without emitting files
+bun run type-check
+
+# Run agents directly (no build needed with Bun)
+bun run planning-agent "Feature description"
+bun run linear-agent
+```
+
+### TypeScript Structure
+
+- **src/agents/**: Agent implementations using OpenCode SDK
+  - `planning-agent.ts`: Generates plans from a single AI provider
+  - `linear-agent.ts`: Consolidates plans and creates Linear issues
+- **src/lib/**: Shared libraries and utilities
+  - `types.ts`: TypeScript interfaces (Provider, Part, etc.)
+  - `utils.ts`: Utility functions (extractTextFromParts, getApiKey)
+  - `opencode.ts`: OpenCode SDK helpers (createOpencodeServer, setupEventMonitoring)
+- **src/index.ts**: Public API exports
+- **dist/**: Compiled JavaScript output (committed to repo)
+
+### TypeScript Configuration
+
+The `tsconfig.json` uses strict settings:
+- Target: ES2022
+- Module: NodeNext (ESM)
+- Strict type checking enabled
+- Source maps and declarations generated
+- Output to `dist/` directory
+
 ## Configuration and Customization
 
 ### Changing Default Models
 Edit workflow inputs or workflow_dispatch defaults:
-- Anthropic: claude-opus-4-5-20251101, claude-sonnet-4-20250514
-- OpenAI: gpt-5.2, gpt-4-turbo, gpt-4
-- Google: gemini-3-pro-preview, gemini-1.5-pro
+- Anthropic: claude-opus-4-5-20251101, claude-sonnet-4-5 (current default)
+- OpenAI: gpt-5.1-codex-max (current default), gpt-4-turbo, gpt-4
+- Google: gemini-2.5-pro (current default), gemini-1.5-pro
 
 ### Adjusting Implementation Count
 Set `num_implementations` input:
@@ -575,7 +606,7 @@ Set `num_implementations` input:
 - 5+: Maximum diversity (higher cost)
 
 ### Custom Prompts
-Fork repository and modify files in `.github/prompts/`:
+Fork repository and modify files in `prompts/`:
 - Use placeholders: `{{VARIABLE_NAME}}`
 - Test locally before deploying
 - Version control via Git refs
@@ -590,12 +621,16 @@ Edit `.github/actions/detect-runtime/action.yml`:
 
 ### Organization-Specific Setup
 1. Fork `mkrueger12/claude-parallel`
-2. Customize prompts in `.github/prompts/`
+2. Customize prompts in `prompts/`
 3. Adjust review criteria in `review.md`
-4. Add organization-specific agents
+4. Add organization-specific agents in `.claude/agents/`
 5. Update workflow references to your fork
 6. Configure secrets in organization settings
 7. Deploy to repositories
+8. If modifying TypeScript code:
+   - Run `bun install` to install dependencies
+   - Run `bun run build` to compile TypeScript
+   - Commit both `src/` and `dist/` changes
 
 ## Cost Considerations
 
@@ -657,10 +692,16 @@ Edit `.github/actions/detect-runtime/action.yml`:
 - Update tests if requirements changed
 
 #### Workflow doesn't trigger on label
-- Verify label name is exact: `claude-implement`, `claude-plan`, or `claude-plan-v2`
+- Verify label name is exact: `claude-implement` or `claude-plan-v2`
 - Check workflow file on default branch
 - Ensure secrets configured
 - Check Actions enabled in repo
+
+#### TypeScript compilation errors
+- Run `bun install` to install dependencies
+- Check `tsconfig.json` configuration
+- Run `bun run type-check` to see detailed errors
+- Ensure Node.js version >= 20.0.0 or Bun >= 1.0.0
 
 ## Security Considerations
 
@@ -692,6 +733,17 @@ Edit `.github/actions/detect-runtime/action.yml`:
 - Audit workflow changes
 - Monitor workflow runs
 
+## Sessions Pattern Support
+
+The repository includes optional support for the Sessions Directory Pattern:
+
+- `.sessions/` directory for tracking work sessions
+- Slash commands: `/start-session`, `/end-session`, `/plan`, `/document`
+- Automatic context management and GitHub/Linear issue fetching
+- Session archiving and merged PR detection
+
+See CLAUDE.md for more details on using the Sessions pattern.
+
 ## Future Enhancements
 
 ### Potential Features
@@ -705,6 +757,7 @@ Edit `.github/actions/detect-runtime/action.yml`:
 - Cost tracking and budgeting
 - Team collaboration features
 - Custom agent marketplace
+- SDK/NPM package for programmatic usage
 
 ### Extensibility Points
 - Plugin system for custom actions
