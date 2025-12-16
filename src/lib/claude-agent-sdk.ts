@@ -58,7 +58,7 @@ export function getAuthentication(): AuthConfig {
   // Check for OAuth token first (preferred)
   const oauthToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
   if (oauthToken) {
-    console.error('[Auth] Using CLAUDE_CODE_OAUTH_TOKEN for authentication');
+    console.warn('[Auth] Using CLAUDE_CODE_OAUTH_TOKEN for authentication');
 
     // SDK expects ANTHROPIC_API_KEY, so set it from OAuth token
     process.env.ANTHROPIC_API_KEY = oauthToken;
@@ -72,8 +72,8 @@ export function getAuthentication(): AuthConfig {
   // Fall back to API key
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (apiKey) {
-    console.error('[Auth] ⚠️  Using ANTHROPIC_API_KEY for authentication');
-    console.error('[Auth] ⚠️  Consider using CLAUDE_CODE_OAUTH_TOKEN for better integration');
+    console.warn('[Auth] ⚠️  Using ANTHROPIC_API_KEY for authentication');
+    console.warn('[Auth] ⚠️  Consider using CLAUDE_CODE_OAUTH_TOKEN for better integration');
 
     return {
       apiKey,
