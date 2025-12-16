@@ -152,10 +152,15 @@ async function main() {
     },
     tools: {
       write: true,
+      edit: false,
       read: true,
       bash: true,
       grep: true,
+      list: true,
+      glob: true,
       webfetch: true,
+      todoread: true,
+      todowrite: true,
     },
   };
 

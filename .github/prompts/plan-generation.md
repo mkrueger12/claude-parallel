@@ -18,9 +18,11 @@ cat spec.txt
 # 4. Review the recent git history
 git log -5 --stat
 ```
-
+After this step, move to the planning phase.
 
 ## Planning Phase
+Create a TODO list based on the below.
+
 1. **Read all mentioned files immediately and FULLY**:
    - Ticket files
    - Research documents
