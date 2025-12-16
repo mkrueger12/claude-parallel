@@ -388,7 +388,8 @@ function validateApiKeys(): { allValid: boolean; results: ApiKeyValidation[] } {
 async function generatePlanFromProvider(
   client: OpencodeClient,
   provider: ProviderConfig,
-  prompt: string
+  prompt: string,
+  sessionToProvider: Map<string, string>
 ): Promise<PlanResult> {
   const apiKey = process.env[provider.apiKeyEnvVar];
 
@@ -416,6 +417,9 @@ async function generatePlanFromProvider(
 
     const session = sessionResponse.data;
     console.log(`[${provider.name}] Session created: ${session.id}`);
+
+    // Register this session with the provider name for tool logging
+    sessionToProvider.set(session.id, provider.name);
 
     console.log(`[${provider.name}] Sending prompt (${prompt.length} chars) at ${new Date().toISOString()}...`);
 
@@ -663,6 +667,9 @@ async function main() {
 
   console.log(`OpenCode server started at ${server.url}`);
 
+  // Create a map to track session IDs to provider/context names
+  const sessionToProvider = new Map<string, string>();
+
   // Subscribe to events to log tool calls
   console.log('Setting up tool call logging...\n');
   (async () => {
@@ -675,9 +682,10 @@ async function main() {
             const status = part.state.status;
             const toolName = part.tool;
 
-            // Extract session/client information from the part
+            // Get provider name from session ID mapping
             const sessionId = part.sessionID || 'unknown';
-            const clientInfo = sessionId !== 'unknown' ? `[Session: ${sessionId.slice(0, 8)}]` : '';
+            const providerName = sessionToProvider.get(sessionId) || 'unknown';
+            const clientInfo = providerName !== 'unknown' ? `[${providerName}]` : '';
 
             if (status === 'running') {
               const input = JSON.stringify(part.state.input || {}, null, 2);
@@ -704,7 +712,7 @@ async function main() {
 
   try {
     const results = await Promise.all(
-      PROVIDERS.map(provider => generatePlanFromProvider(client, provider, planPrompt))
+      PROVIDERS.map(provider => generatePlanFromProvider(client, provider, planPrompt, sessionToProvider))
     );
 
     // Check for failures and log summary
@@ -767,6 +775,9 @@ async function main() {
     if (!consolidationSession.data) {
       throw new Error('Failed to create consolidation session');
     }
+
+    // Register the consolidation session for tool logging
+    sessionToProvider.set(consolidationSession.data.id, 'Consolidation');
 
     console.log('Sending consolidation prompt to model...');
     console.log('The model will:');
