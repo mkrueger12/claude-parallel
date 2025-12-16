@@ -94,7 +94,19 @@ jobs:
           cd .github/scripts
 
           # Generate plan and capture output (stderr goes to console for debugging)
+          set +e
           PLAN=$(bun run generate-plan-single.ts anthropic "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          # Display output for debugging
+          echo "$PLAN"
+
+          # Check if generation was successful
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Error: Plan generation failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
           # Use multiline output format
           echo "plan<<EOF" >> $GITHUB_OUTPUT
@@ -134,7 +146,19 @@ jobs:
           cd .github/scripts
 
           # Generate plan and capture output (stderr goes to console for debugging)
+          set +e
           PLAN=$(bun run generate-plan-single.ts openai "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          # Display output for debugging
+          echo "$PLAN"
+
+          # Check if generation was successful
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Error: Plan generation failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
           # Use multiline output format
           echo "plan<<EOF" >> $GITHUB_OUTPUT
@@ -174,7 +198,19 @@ jobs:
           cd .github/scripts
 
           # Generate plan and capture output (stderr goes to console for debugging)
+          set +e
           PLAN=$(bun run generate-plan-single.ts google "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          # Display output for debugging
+          echo "$PLAN"
+
+          # Check if generation was successful
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Error: Plan generation failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
           # Use multiline output format
           echo "plan<<EOF" >> $GITHUB_OUTPUT
