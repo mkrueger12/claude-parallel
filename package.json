@@ -7,7 +7,8 @@
     "build": "tsc",
     "type-check": "tsc --noEmit",
     "planning-agent": "bun run src/agents/planning-agent.ts",
-    "linear-agent": "bun run src/agents/linear-agent.ts"
+    "linear-agent": "bun run src/agents/linear-agent.ts",
+    "claude-agent-runner": "bun run scripts/claude-agent-runner.ts"
   },
   "keywords": [
     "github-actions",
