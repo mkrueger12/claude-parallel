@@ -171,8 +171,8 @@ async function main() {
     config: opcodeConfig,
   });
 
-  // Subscribe to events to log tool calls
-  console.error(`[${provider.name}] Setting up tool call logging...`);
+  // Subscribe to events to log tool calls and session status
+  console.error(`[${provider.name}] Setting up event monitoring...`);
   (async () => {
     try {
       const events = await client.event.subscribe();
@@ -200,9 +200,31 @@ async function main() {
             }
           }
         }
+
+        // Monitor session status
+        if (event.type === 'session.status') {
+          const status = event.properties.status;
+
+          if (status === 'idle') {
+            console.error(`\n[STATUS] [${provider.name}] Session idle`);
+          } else if (status === 'busy') {
+            console.error(`\n[STATUS] [${provider.name}] Session busy (processing)`);
+          } else if (typeof status === 'object' && 'attempt' in status) {
+            // Retry status
+            console.error(`\n[STATUS] [${provider.name}] Session retrying (attempt ${status.attempt})`);
+            if ('message' in status) console.error(`  Reason: ${status.message}`);
+            if ('next' in status) console.error(`  Next retry in: ${status.next}ms`);
+          }
+        }
+
+        // Monitor session errors
+        if (event.type === 'session.error') {
+          const error = event.properties.error;
+          console.error(`\n[ERROR] [${provider.name}] Session error:`, error);
+        }
       }
     } catch (err) {
-      console.error(`[${provider.name}] Tool logging subscription error:`, err);
+      console.error(`[${provider.name}] Event monitoring subscription error:`, err);
     }
   })();
 

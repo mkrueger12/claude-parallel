@@ -670,8 +670,8 @@ async function main() {
   // Create a map to track session IDs to provider/context names
   const sessionToProvider = new Map<string, string>();
 
-  // Subscribe to events to log tool calls
-  console.log('Setting up tool call logging...\n');
+  // Subscribe to events to log tool calls and session status
+  console.log('Setting up event monitoring...\n');
   (async () => {
     try {
       const events = await client.event.subscribe();
@@ -704,9 +704,37 @@ async function main() {
             }
           }
         }
+
+        // Monitor session status
+        if (event.type === 'session.status') {
+          const sessionId = event.properties.sessionID || 'unknown';
+          const providerName = sessionToProvider.get(sessionId) || 'unknown';
+          const clientInfo = providerName !== 'unknown' ? `[${providerName}]` : '';
+          const status = event.properties.status;
+
+          if (status === 'idle') {
+            console.log(`\n[STATUS] ${clientInfo} Session idle`);
+          } else if (status === 'busy') {
+            console.log(`\n[STATUS] ${clientInfo} Session busy (processing)`);
+          } else if (typeof status === 'object' && 'attempt' in status) {
+            // Retry status
+            console.log(`\n[STATUS] ${clientInfo} Session retrying (attempt ${status.attempt})`);
+            if ('message' in status) console.log(`  Reason: ${status.message}`);
+            if ('next' in status) console.log(`  Next retry in: ${status.next}ms`);
+          }
+        }
+
+        // Monitor session errors
+        if (event.type === 'session.error') {
+          const sessionId = event.properties.sessionID || 'unknown';
+          const providerName = sessionToProvider.get(sessionId) || 'unknown';
+          const clientInfo = providerName !== 'unknown' ? `[${providerName}]` : '';
+          const error = event.properties.error;
+          console.error(`\n[ERROR] ${clientInfo} Session error:`, error);
+        }
       }
     } catch (err) {
-      console.error('Tool logging subscription error:', err);
+      console.error('Event monitoring subscription error:', err);
     }
   })();
 

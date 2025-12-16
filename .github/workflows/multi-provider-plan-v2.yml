@@ -13,6 +13,21 @@ on:
         description: 'Linear project ID to add issues to (optional)'
         required: false
         type: string
+      run_anthropic:
+        description: 'Run Anthropic Claude provider'
+        required: false
+        type: boolean
+        default: true
+      run_openai:
+        description: 'Run OpenAI GPT provider'
+        required: false
+        type: boolean
+        default: true
+      run_google:
+        description: 'Run Google Gemini provider'
+        required: false
+        type: boolean
+        default: true
       anthropic_model:
         description: 'Anthropic model to use'
         required: false
@@ -65,6 +80,7 @@ jobs:
   # Generate plan from Anthropic Claude
   generate-plan-anthropic:
     needs: get-issue
+    if: github.event_name == 'issues' || inputs.run_anthropic
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.generate.outputs.plan }}
@@ -120,6 +136,7 @@ jobs:
   # Generate plan from OpenAI GPT
   generate-plan-openai:
     needs: get-issue
+    if: github.event_name == 'issues' || inputs.run_openai
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.generate.outputs.plan }}
@@ -175,6 +192,7 @@ jobs:
   # Generate plan from Google Gemini
   generate-plan-google:
     needs: get-issue
+    if: github.event_name == 'issues' || inputs.run_google
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.generate.outputs.plan }}
@@ -230,6 +248,11 @@ jobs:
   # Consolidate all plans and create Linear issues
   consolidate-and-create-linear:
     needs: [get-issue, generate-plan-anthropic, generate-plan-openai, generate-plan-google]
+    if: |
+      always() &&
+      (needs.generate-plan-anthropic.result == 'success' ||
+       needs.generate-plan-openai.result == 'success' ||
+       needs.generate-plan-google.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -260,9 +283,9 @@ jobs:
           LINEAR_PROJECT_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.linear_project_id || secrets.LINEAR_PROJECT_ID }}
           GITHUB_ISSUE_URL: ${{ github.event.repository.html_url }}/issues/${{ needs.get-issue.outputs.number }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
-          ANTHROPIC_PLAN: ${{ needs.generate-plan-anthropic.outputs.plan }}
-          OPENAI_PLAN: ${{ needs.generate-plan-openai.outputs.plan }}
-          GOOGLE_PLAN: ${{ needs.generate-plan-google.outputs.plan }}
+          ANTHROPIC_PLAN: ${{ needs.generate-plan-anthropic.result == 'success' && needs.generate-plan-anthropic.outputs.plan || '' }}
+          OPENAI_PLAN: ${{ needs.generate-plan-openai.result == 'success' && needs.generate-plan-openai.outputs.plan || '' }}
+          GOOGLE_PLAN: ${{ needs.generate-plan-google.result == 'success' && needs.generate-plan-google.outputs.plan || '' }}
         run: |
           cd .github/scripts
 
