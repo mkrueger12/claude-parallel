@@ -78,6 +78,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          bun install -g opencode-ai@latest
+          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
       - name: Install dependencies
         run: |
           cd .github/scripts
@@ -129,6 +135,12 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          bun install -g opencode-ai@latest
+          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
 
       - name: Install dependencies
         run: |
@@ -182,6 +194,12 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          bun install -g opencode-ai@latest
+          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
       - name: Install dependencies
         run: |
           cd .github/scripts
@@ -230,6 +248,12 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          bun install -g opencode-ai@latest
+          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
 
       - name: Install dependencies
         run: |
