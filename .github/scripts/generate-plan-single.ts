@@ -166,6 +166,41 @@ async function main() {
     config: opcodeConfig,
   });
 
+  // Subscribe to events to log tool calls
+  console.error(`[${provider.name}] Setting up tool call logging...`);
+  (async () => {
+    try {
+      const events = await client.event.subscribe();
+      for await (const event of events.stream) {
+        if (event.type === 'message.part.updated') {
+          const part = event.properties.part;
+          if (part.type === 'tool') {
+            const status = part.state.status;
+            const toolName = part.tool;
+
+            if (status === 'running') {
+              const input = JSON.stringify(part.state.input || {}, null, 2);
+              console.error(`\n[TOOL] [${provider.name}] ${toolName} - RUNNING`);
+              console.error(`  Input: ${input}`);
+            } else if (status === 'completed') {
+              const output = part.state.output?.slice(0, 200) || '(no output)';
+              const duration = part.state.time?.end && part.state.time?.start
+                ? `${((part.state.time.end - part.state.time.start) / 1000).toFixed(2)}s`
+                : 'unknown';
+              console.error(`\n[TOOL] [${provider.name}] ${toolName} - COMPLETED (${duration})`);
+              console.error(`  Output preview: ${output}${part.state.output && part.state.output.length > 200 ? '...' : ''}`);
+            } else if (status === 'error') {
+              console.error(`\n[TOOL] [${provider.name}] ${toolName} - ERROR`);
+              console.error(`  Error: ${part.state.error}`);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`[${provider.name}] Tool logging subscription error:`, err);
+    }
+  })();
+
   try {
     console.error(`[${provider.name}] OpenCode server started at ${server.url}`);
 
