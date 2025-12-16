@@ -193,7 +193,7 @@ async function main() {
           grep: true,      // Allow searching content
           webfetch: true,  // Allow web research
         },
-        maxSteps: 5,      // Limit iterations for planning
+        maxSteps: 30,      // Limit iterations for planning
         permission: {
           edit: "deny",
           bash: "deny",
