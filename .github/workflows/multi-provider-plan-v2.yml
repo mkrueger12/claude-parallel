@@ -32,7 +32,7 @@ on:
         description: 'Anthropic model to use'
         required: false
         type: string
-        default: 'claude-haiku-4-5-20251001'
+        default: 'claude-sonnet-4-5'
       openai_model:
         description: 'OpenAI model to use'
         required: false
@@ -110,7 +110,7 @@ jobs:
         env:
           PROVIDER: anthropic
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-haiku-4-5-20251001' }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-sonnet-4-5' }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
         run: |
