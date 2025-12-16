@@ -42,7 +42,7 @@ on:
         description: 'Google model to use'
         required: false
         type: string
-        default: 'gemini-2.5-flash'
+        default: 'gemini-2.5-pro'
 
 jobs:
   # Get issue details once and share with all jobs
@@ -224,7 +224,7 @@ jobs:
         env:
           PROVIDER: google
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
-          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-2.5-flash' }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-2.5-pro' }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
         run: |
