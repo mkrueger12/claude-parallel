@@ -6,7 +6,7 @@ on:
       issue_number:
         description: 'Issue number (for workflow_dispatch trigger)'
         required: false
-        type: number
+        type: string
       num_implementations:
         description: 'Number of parallel implementations'
         required: false

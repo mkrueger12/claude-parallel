@@ -6,7 +6,7 @@ on:
       issue_number:
         description: 'Issue number to implement'
         required: true
-        type: number
+        type: string
       dry_run:
         description: 'Skip Claude, use mock responses for testing'
         type: boolean
