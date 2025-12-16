@@ -99,14 +99,11 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output (stderr goes to console for debugging)
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run generate-plan-single.ts anthropic "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+          PLAN=$(bun run generate-plan-single.ts anthropic "$ISSUE_TITLE" "$ISSUE_BODY")
           EXIT_CODE=$?
           set -e
-
-          # Display output for debugging
-          echo "$PLAN"
 
           # Check if generation was successful
           if [ $EXIT_CODE -ne 0 ]; then
@@ -157,14 +154,11 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output (stderr goes to console for debugging)
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run generate-plan-single.ts openai "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+          PLAN=$(bun run generate-plan-single.ts openai "$ISSUE_TITLE" "$ISSUE_BODY")
           EXIT_CODE=$?
           set -e
-
-          # Display output for debugging
-          echo "$PLAN"
 
           # Check if generation was successful
           if [ $EXIT_CODE -ne 0 ]; then
@@ -215,14 +209,11 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output (stderr goes to console for debugging)
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run generate-plan-single.ts google "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1)
+          PLAN=$(bun run generate-plan-single.ts google "$ISSUE_TITLE" "$ISSUE_BODY")
           EXIT_CODE=$?
           set -e
-
-          # Display output for debugging
-          echo "$PLAN"
 
           # Check if generation was successful
           if [ $EXIT_CODE -ne 0 ]; then
