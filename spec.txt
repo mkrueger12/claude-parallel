@@ -9,8 +9,12 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 - **CI/CD**: GitHub Actions with reusable workflows
 - **Scripting**: Bash shell scripts, TypeScript with Bun runtime
 - **Version Control**: Git with worktree support
-- **AI Integration**: OpenCode SDK, Claude Code CLI, Anthropic API, OpenAI API, Google Gemini API
-- **Issue Tracking**: Linear SDK (@linear/sdk)
+- **AI Integration**:
+  - Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`) for local parallel implementations
+  - OpenCode SDK (`@opencode-ai/sdk`) for multi-provider planning
+  - Claude Code CLI (GitHub Actions workflows)
+  - Anthropic API, OpenAI API, Google Gemini API
+- **Issue Tracking**: Linear SDK (`@linear/sdk`)
 - **Package Manager**: Bun (primary), npm, pnpm, yarn support
 - **TypeScript**: Strict mode with ES2022 target, NodeNext modules
 
@@ -392,19 +396,19 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 
 ### Local Script Technical Details
 
-The local `parallel-impl.sh` script uses the OpenCode SDK (@opencode-ai/sdk) instead of direct Claude CLI calls:
+The local `parallel-impl.sh` script uses the **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`) instead of direct Claude CLI calls:
 
 **Architecture:**
 - Script invokes `bun run scripts/claude-agent-runner.ts` for AI interactions
-- `claude-agent-runner.ts` creates an OpenCode server with the specified provider
-- OpenCode SDK handles authentication, streaming, and tool execution
+- `claude-agent-runner.ts` uses the Claude Agent SDK's `query()` function
+- Mimics Claude Code CLI behavior with proper project settings loading
 - Output is returned as structured JSON for parsing
 
 **Benefits:**
-- Better integration with AI providers via SDK
-- Consistent interface across different providers
+- Better integration with Anthropic's AI via official SDK
 - Support for structured output and tool calling
 - Improved error handling and logging
+- MCP (Model Context Protocol) server support
 - No need to install Claude CLI separately for local runs
 
 **Authentication:**
@@ -412,7 +416,9 @@ The local `parallel-impl.sh` script uses the OpenCode SDK (@opencode-ai/sdk) ins
 - ANTHROPIC_API_KEY (fallback option)
 - SDK auto-detects and uses available credentials
 
-**Note:** GitHub Actions workflows still use the Claude Code CLI directly for implementation jobs, but multi-provider planning uses the OpenCode SDK with TypeScript agents.
+**Note:** This project uses **two different SDKs**:
+- **Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`): Used by `parallel-impl.sh` and `scripts/claude-agent-runner.ts` for local parallel implementations
+- **OpenCode SDK** (`@opencode-ai/sdk`): Used by multi-provider planning agents (`src/agents/planning-agent.ts`, `src/agents/linear-agent.ts`) to support multiple AI providers (Anthropic, OpenAI, Google)
 
 ### Worktree Structure
 ```
@@ -451,14 +457,17 @@ claude-parallel/
 │       ├── codebase-locator.md             # File/component finder agent
 │       ├── codebase-analyzer.md            # Implementation analysis agent
 │       └── debug-agent.md                  # Debugging agent
+├── scripts/                                # Utility scripts
+│   └── claude-agent-runner.ts              # CLI wrapper for Claude Agent SDK
 ├── src/                                    # TypeScript source code
 │   ├── agents/
-│   │   ├── planning-agent.ts               # Single provider plan generation
-│   │   └── linear-agent.ts                 # Plan consolidation and Linear creation
+│   │   ├── planning-agent.ts               # Single provider plan generation (OpenCode SDK)
+│   │   └── linear-agent.ts                 # Plan consolidation and Linear creation (OpenCode SDK)
 │   ├── lib/
 │   │   ├── types.ts                        # Shared TypeScript interfaces
 │   │   ├── utils.ts                        # Utility functions
-│   │   └── opencode.ts                     # OpenCode SDK helpers
+│   │   ├── opencode.ts                     # OpenCode SDK helpers (multi-provider)
+│   │   └── claude-agent-sdk.ts             # Claude Agent SDK helpers (local parallel impl)
 │   └── index.ts                            # Public API exports
 ├── dist/                                   # Compiled TypeScript output
 │   ├── agents/
@@ -598,17 +607,23 @@ bun run type-check
 # Run agents directly (no build needed with Bun)
 bun run planning-agent "Feature description"
 bun run linear-agent
+
+# Test claude-agent-runner (used by parallel-impl.sh)
+echo "Your prompt here" | bun run claude-agent-runner --cwd $(pwd) --mode implementation
 ```
 
 ### TypeScript Structure
 
+- **scripts/**: Utility scripts
+  - `claude-agent-runner.ts`: CLI wrapper for running Claude Agent SDK queries (used by `parallel-impl.sh`)
 - **src/agents/**: Agent implementations using OpenCode SDK
-  - `planning-agent.ts`: Generates plans from a single AI provider
+  - `planning-agent.ts`: Generates plans from a single AI provider (supports Anthropic, OpenAI, Google)
   - `linear-agent.ts`: Consolidates plans and creates Linear issues
 - **src/lib/**: Shared libraries and utilities
   - `types.ts`: TypeScript interfaces (Provider, Part, etc.)
   - `utils.ts`: Utility functions (extractTextFromParts, getApiKey)
   - `opencode.ts`: OpenCode SDK helpers (createOpencodeServer, setupEventMonitoring)
+  - `claude-agent-sdk.ts`: Claude Agent SDK helpers (getAuthentication, runClaudeQuery)
 - **src/index.ts**: Public API exports
 - **dist/**: Compiled JavaScript output (committed to repo)
 
