@@ -292,8 +292,8 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Run consolidation script
-          bun run consolidate-plans.ts
+          # Run linear agent for consolidation and Linear issue creation
+          bun run linear-agent.ts
 
       - name: Post summary comment on GitHub issue
         if: success()
