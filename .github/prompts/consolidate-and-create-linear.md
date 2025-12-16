@@ -192,7 +192,7 @@ For EACH task in your final plan, call `mcp__linear-server__create_issue` with:
 {
   "teamId": "{{LINEAR_TEAM_ID}}",
   "title": "[step title from consolidated plan]",
-  "description": `
+  "description": "[description of task to be done]"
     **Files to edit/create**: path/to/file.ext
     **Description of Changes**: [Detailed description of changes, do not include code]
     **Assumptions**: [List of assumptions]
@@ -201,23 +201,17 @@ For EACH task in your final plan, call `mcp__linear-server__create_issue` with:
     ### Success Criteria:
 
     #### Feature Verification (include all relevant test cases, this may be long):
-          "category": "functional",
-          "description": "Brief description of the feature and what this test verifies",
-          "steps": [
-            "Step 1: Navigate to relevant page",
-            "Step 2: Perform action",
-            "Step 3: Verify expected result"
-          ],
-          "passes": false
-         ---
-          "category": "style",
-          "description": "Brief description of UI/UX requirement",
-          "steps": [
-            "Step 1: Navigate to page",
-            "Step 2: Take screenshot",
-            "Step 3: Verify visual requirements"
-          ],
-          "passes": false
+    - **Type**: functional
+      - Step 1: Navigate to relevant page
+      - Step 2: Perform action
+      - Step 3: Verify expected result
+    - Status: Not passing
+
+    - **Type**: style
+      - Step 1: Navigate to page
+      - Step 2: Take screenshot
+      - Step 3: Verify visual requirements
+    - Status: Not passing
 
     #### Automated Verification:
     - [ ] Migration applies cleanly: `make migrate`
@@ -225,14 +219,12 @@ For EACH task in your final plan, call `mcp__linear-server__create_issue` with:
     - [ ] Type checking passes: `npm run typecheck`
     - [ ] Linting passes: `make lint`
     - [ ] Integration tests pass: `make test-integration`
-    - [ ] Test "New chat button creates a fresh conversation" from @features.json with the playwright MCP in headless mode
 
     #### Manual Verification:
     - [ ] Feature works as expected when tested via UI
     - [ ] Performance is acceptable under load
     - [ ] Edge case handling verified manually
-    - [ ] No regressions in related features
-`,
+    - [ ] No regressions in related features,
   "projectId": "{{LINEAR_PROJECT_ID}}", // Only include if PROJECT_ID is provided
   "parentId": "[UUID from parent issue response - the issue.id field]"
 }
