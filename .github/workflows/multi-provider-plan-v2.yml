@@ -101,9 +101,7 @@ jobs:
           echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
 
       - name: Install dependencies
-        run: |
-          cd .github/scripts
-          bun install
+        run: bun install
 
       - name: Generate plan
         id: generate
@@ -114,11 +112,9 @@ jobs:
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
         run: |
-          cd .github/scripts
-
           # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -158,9 +154,7 @@ jobs:
           echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
 
       - name: Install dependencies
-        run: |
-          cd .github/scripts
-          bun install
+        run: bun install
 
       - name: Generate plan
         id: generate
@@ -171,11 +165,9 @@ jobs:
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
         run: |
-          cd .github/scripts
-
           # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -215,9 +207,7 @@ jobs:
           echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
 
       - name: Install dependencies
-        run: |
-          cd .github/scripts
-          bun install
+        run: bun install
 
       - name: Generate plan
         id: generate
@@ -228,11 +218,9 @@ jobs:
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
         run: |
-          cd .github/scripts
-
           # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -273,9 +261,7 @@ jobs:
           echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
 
       - name: Install dependencies
-        run: |
-          cd .github/scripts
-          bun install
+        run: bun install
 
       - name: Consolidate plans and create Linear issues
         id: consolidate
@@ -290,7 +276,5 @@ jobs:
           OPENAI_PLAN: ${{ needs.generate-plan-openai.result == 'success' && needs.generate-plan-openai.outputs.plan || '' }}
           GOOGLE_PLAN: ${{ needs.generate-plan-google.result == 'success' && needs.generate-plan-google.outputs.plan || '' }}
         run: |
-          cd .github/scripts
-
           # Run linear agent for consolidation and Linear issue creation
-          bun run linear-agent.ts
+          bun run src/agents/linear-agent.ts

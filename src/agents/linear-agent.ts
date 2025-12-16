@@ -20,7 +20,7 @@
  *   - LINEAR_API_KEY - Linear API key for creating issues
  *
  *   Optional:
- *   - MODEL (defaults to claude-haiku-4-5-20251001)
+ *   - MODEL (defaults to claude-opus-4-5)
  *
  * Examples:
  *   ANTHROPIC_PLAN="..." OPENAI_PLAN="..." GOOGLE_PLAN="..." \
@@ -29,10 +29,11 @@
  *   linear-agent.ts
  */
 
-import { createOpencode } from '@opencode-ai/sdk';
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { extractTextFromParts, validateEnvVars, getApiKey } from '../lib/utils.js';
+import { createOpencodeServer, setupEventMonitoring } from '../lib/opencode.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -43,29 +44,7 @@ const __dirname = dirname(__filename);
 
 const AGENT_NAME = "linear-agent";
 const DEFAULT_MODEL = "claude-opus-4-5";
-const PROMPT_FILE = join(__dirname, "..", "prompts", "consolidate-and-create-linear.md");
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-interface Part {
-  type: string;
-  text?: string;
-  [key: string]: any;
-}
-
-/**
- * Extract text from message parts
- */
-function extractTextFromParts(parts: Part[]): string {
-  if (!Array.isArray(parts)) return '';
-
-  return parts
-    .filter(part => part.type === 'text')
-    .map(part => part.text || '')
-    .join('\n');
-}
+const PROMPT_FILE = join(__dirname, "..", "..", ".github", "prompts", "consolidate-and-create-linear.md");
 
 // ============================================================================
 // Main Execution
@@ -83,10 +62,10 @@ async function main() {
     'LINEAR_API_KEY',
   ];
 
-  const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-  if (missingVars.length > 0) {
-    console.error('Error: Missing required environment variables:');
-    missingVars.forEach(varName => console.error(`  - ${varName}`));
+  try {
+    validateEnvVars(requiredEnvVars);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     console.error('');
     console.error('Usage: Set all required environment variables and run:');
     console.error('  bun run linear-agent.ts');
@@ -94,11 +73,8 @@ async function main() {
   }
 
   // Get API key for Anthropic (consolidation provider)
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_CODE_OAUTH_TOKEN;
-  if (!apiKey) {
-    console.error('Error: ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable is required');
-    process.exit(1);
-  }
+  const provider = 'anthropic';
+  const apiKey = getApiKey(provider);
 
   // Get configuration from environment
   const anthropicPlan = process.env.ANTHROPIC_PLAN!;
@@ -110,8 +86,6 @@ async function main() {
   const linearProjectId = process.env.LINEAR_PROJECT_ID || '';
   const linearApiKey = process.env.LINEAR_API_KEY!;
   const model = process.env.MODEL || DEFAULT_MODEL;
-
-  const provider = 'anthropic';
 
   console.error(`\n${'='.repeat(60)}`);
   console.error(`Linear Agent - Plan Consolidation`);
@@ -147,122 +121,39 @@ async function main() {
 
   console.error(`✓ Filled prompt template with plans and context`);
 
-  // Create OpenCode configuration with planning agent
-  const opcodeConfig: any = {
-    provider: {
-      [provider]: {
-        options: {
-          apiKey: apiKey!, // Non-null assertion - guaranteed by guard above
-          timeout: false, // Disable timeout
-        },
-      },
+  // Create OpenCode server with linear agent configuration
+  const { client, server } = await createOpencodeServer({
+    provider,
+    apiKey,
+    model,
+    agentName: AGENT_NAME,
+    agentDescription: "Consolidate implementation plans and create Linear issues",
+    agentPrompt: prompt,
+    agentTools: {
+      write: false,    // No file creation
+      edit: false,     // No file modification
+      bash: true,      // Allow shell commands
+      read: true,      // Allow reading files
+      list: true,      // Allow listing directories
+      glob: true,      // Allow file pattern matching
+      grep: true,      // Allow searching content
+      webfetch: true,  // Allow web research
+      ...(linearApiKey && { 'mcp__linear__*': true }), // Enable Linear MCP tools if available
     },
-    ...(linearApiKey && {
-      mcp: {
-        linear: {
-          type: 'remote' as const,
-          url: 'https://mcp.linear.app/mcp',
-          headers: {
-            Authorization: `Bearer ${linearApiKey}`,
-          },
-        },
-      },
-    }),
-    agent: {
-      [AGENT_NAME]: {
-        description: "Generate a comprehensive implementation plan for a given feature",
-        mode: "subagent",
-        model: model,
-        prompt: prompt!,
-        tools: {
-          write: false,    // No file creation
-          edit: false,     // No file modification
-          bash: true,     // No shell commands
-          read: true,      // Allow reading files
-          list: true,      // Allow listing directories
-          glob: true,      // Allow file pattern matching
-          grep: true,      // Allow searching content
-          webfetch: true,  // Allow web research
-          ...(linearApiKey && { 'mcp__linear__*': true }), // Enable Linear MCP tools if available
-        },
-        maxSteps: 30,      // Limit iterations for planning
-        permission: {
-          edit: "deny",
-          bash: "allow",
-          webfetch: "allow",
-          ...(linearApiKey && { 'mcp__linear__*': 'allow' }), // Allow Linear MCP tools if available
-        }
-      }
-    }
-  };
-
-  console.error('Starting OpenCode server...');
-  const { client, server } = await createOpencode({
-    hostname: '127.0.0.1',
-    port: 0, // Auto-assign port
-    config: opcodeConfig,
+    agentPermissions: {
+      edit: "deny",
+      bash: "allow",
+      webfetch: "allow",
+      ...(linearApiKey && { 'mcp__linear__*': 'allow' }), // Allow Linear MCP tools if available
+    },
+    maxSteps: 30,
+    linearApiKey,
   });
 
-  // Subscribe to events to log tool calls and session status
-  console.error('Setting up event monitoring...');
-  (async () => {
-    try {
-      const events = await client.event.subscribe();
-      for await (const event of events.stream) {
-        if (event.type === 'message.part.updated') {
-          const part = event.properties.part;
-          if (part.type === 'tool') {
-            const status = part.state.status;
-            const toolName = part.tool;
-
-            if (status === 'running') {
-              const input = JSON.stringify(part.state.input || {}, null, 2);
-              console.error(`\n[TOOL] ${toolName} - RUNNING`);
-              console.error(`  Input: ${input}`);
-            } else if (status === 'completed') {
-              const output = part.state.output?.slice(0, 200) || '(no output)';
-              const duration = part.state.time?.end && part.state.time?.start
-                ? `${((part.state.time.end - part.state.time.start) / 1000).toFixed(2)}s`
-                : 'unknown';
-              console.error(`\n[TOOL] ${toolName} - COMPLETED (${duration})`);
-              console.error(`  Output preview: ${output}${part.state.output && part.state.output.length > 200 ? '...' : ''}`);
-            } else if (status === 'error') {
-              console.error(`\n[TOOL] ${toolName} - ERROR`);
-              console.error(`  Error: ${part.state.error}`);
-            }
-          }
-        }
-
-        // Monitor session status
-        if (event.type === 'session.status') {
-          const status = event.properties.status;
-
-          if (String(status) === 'idle') {
-            console.error(`\n[STATUS] Session idle`);
-          } else if (String(status) === 'busy') {
-            console.error(`\n[STATUS] Session busy (processing)`);
-          } else if (typeof status === 'object' && 'attempt' in status) {
-            // Retry status
-            console.error(`\n[STATUS] Session retrying (attempt ${status.attempt})`);
-            if ('message' in status) console.error(`  Reason: ${status.message}`);
-            if ('next' in status) console.error(`  Next retry in: ${status.next}ms`);
-          }
-        }
-
-        // Monitor session errors
-        if (event.type === 'session.error') {
-          const error = event.properties.error;
-          console.error(`\n[ERROR] Session error:`, error);
-        }
-      }
-    } catch (err) {
-      console.error('Event monitoring subscription error:', err);
-    }
-  })();
+  // Setup event monitoring
+  setupEventMonitoring(client);
 
   try {
-    console.error(`✓ OpenCode server started at ${server.url}`);
-
     // Create session
     console.error(`Creating session...`);
     const sessionResponse = await client.session.create({

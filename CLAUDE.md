@@ -14,10 +14,6 @@ Claude Parallel is a workflow system that runs parallel Claude Code implementati
 ### Running Tests
 
 ```bash
-# Run integration tests for the multi-provider plan generation script
-cd .github/scripts
-bun test integration.test.ts
-
 # Run simple end-to-end test
 ./.github/scripts/run-simple-e2e-test.sh
 
@@ -30,12 +26,30 @@ bun test integration.test.ts
 
 ### Development Setup
 
-The `.github/scripts` directory contains TypeScript code that requires Bun:
+The `src/` directory contains TypeScript code that requires Bun:
 
 ```bash
-cd .github/scripts
-bun install  # Install dependencies
-bun run generate-and-create-linear.ts  # Run the main script
+bun install  # Install dependencies at root
+bun run build  # Compile TypeScript to dist/
+bun run type-check  # Run TypeScript type checking
+
+# Run agents directly
+bun run src/agents/planning-agent.ts "Your feature request"
+bun run src/agents/linear-agent.ts  # Requires environment variables
+```
+
+### TypeScript Package Structure
+
+```
+src/
+├── agents/
+│   ├── planning-agent.ts       # Plan generation from single AI provider
+│   └── linear-agent.ts         # Plan consolidation + Linear issue creation
+├── lib/
+│   ├── types.ts                # Shared TypeScript interfaces
+│   ├── utils.ts                # Shared utilities (extractTextFromParts, etc.)
+│   └── opencode.ts             # OpenCode SDK helpers (server setup, event monitoring)
+└── index.ts                    # Public API exports
 ```
 
 ### Local CLI Usage
@@ -54,31 +68,26 @@ This creates git worktrees and runs Claude Code in parallel locally.
 
 The repository implements two complementary workflows:
 
-#### 1. Multi-Provider Plan Generation
+#### 1. Multi-Provider Plan Generation (`.github/workflows/multi-provider-plan-v2.yml`)
 
-Two implementations are available:
+**Trigger**: Label `claude-plan-v2` on GitHub issues or manual dispatch
 
-**v1 - Single Job Approach (`.github/workflows/multi-provider-plan.yml`)**
-- **Trigger**: Label `claude-plan` on GitHub issues or manual dispatch
-- **Process**:
-  1. Single OpenCode server instance starts with all 3 provider configurations (Anthropic, OpenAI, Google)
-  2. Three sessions run in parallel, each generating a plan from a different AI provider
-  3. Consolidation phase: Claude receives all three plans and creates Linear issues (parent + sub-issues) in the same session
-- **Key Script**: `.github/scripts/generate-and-create-linear.ts`
-- **Advantages**: No intermediate artifacts, everything in memory, single workflow job
-- **Disadvantages**: Less visibility in GitHub UI, all providers fail if one has issues
+**Process**:
+1. Three separate concurrent GitHub Action jobs, each generating a plan from one provider
+2. Plans are passed as job outputs between jobs
+3. Consolidation job depends on all three, receives plans, and creates Linear issues
 
-**v2 - Parallel Jobs Approach (`.github/workflows/multi-provider-plan-v2.yml`)**
-- **Trigger**: Label `claude-plan-v2` on GitHub issues or manual dispatch
-- **Process**:
-  1. Three separate concurrent GitHub Action jobs, each generating a plan from one provider
-  2. Plans are passed as job outputs between jobs
-  3. Consolidation job depends on all three, receives plans, and creates Linear issues
-- **Key Scripts**:
-  - `.github/scripts/generate-plan-single.ts` - Individual provider plan generation
-  - `.github/scripts/consolidate-plans.ts` - Plan consolidation and Linear issue creation
-- **Advantages**: Better visibility in GitHub UI, clear failure indication per provider, follows GitHub Actions patterns
-- **Disadvantages**: Plans must be passed via job outputs (size limits), slightly more complex workflow YAML, fails if any single provider fails (fail-fast behavior)
+**Key Scripts**:
+- `src/agents/planning-agent.ts` - Individual provider plan generation
+- `src/agents/linear-agent.ts` - Plan consolidation and Linear issue creation
+
+**Architecture**:
+- Each provider runs in a separate GitHub Actions job
+- Plans passed via job outputs (environment variables)
+- Better visibility: each provider job shows status independently
+- Fail-fast: if any provider fails, the entire workflow stops
+- Follows idiomatic GitHub Actions patterns (job dependencies)
+- Clear error messages indicating which provider failed
 
 #### 2. Parallel Implementation Workflow (`.github/workflows/reusable-implement-issue.yml`)
 - **Trigger**: Label `claude-implement` on GitHub issues or manual dispatch
@@ -122,66 +131,59 @@ Supported languages: JavaScript/TypeScript, Python, Go, Rust (extensible for mor
 
 ### OpenCode SDK Integration
 
-**v1 Workflow**: The single-job multi-provider workflow uses `@opencode-ai/sdk` to orchestrate multiple AI sessions in one process:
+The multi-provider workflow uses `@opencode-ai/sdk` with a modular TypeScript architecture:
 
+**Planning Agent** (`src/agents/planning-agent.ts`):
 ```typescript
-import { createOpencode } from '@opencode-ai/sdk';
+import { createOpencodeServer, setupEventMonitoring } from '../lib/opencode.js';
+import { getApiKey, validateProvider } from '../lib/utils.js';
 
-// Single server instance with multiple provider configs
-const opencode = await createOpencode({
-  providerConfigs: {
-    anthropic: { apiKey, model },
-    openai: { apiKey, model },
-    google: { apiKey, model },
+// Create OpenCode server for a single provider
+const { client, server } = await createOpencodeServer({
+  provider,
+  apiKey,
+  model,
+  agentName: "planning-agent",
+  agentDescription: "Generate a comprehensive implementation plan",
+  agentPrompt: prompt,
+  agentTools: {
+    read: true,
+    grep: true,
+    webfetch: true,
   },
-  mcpServers: {
-    linear: { /* Linear MCP config */ }
-  }
 });
 
-// Parallel plan generation
-const plans = await Promise.all([
-  opencode.session({ provider: 'anthropic', prompt }),
-  opencode.session({ provider: 'openai', prompt }),
-  opencode.session({ provider: 'google', prompt }),
-]);
-
-// Consolidation with Linear issue creation
-await opencode.session({
-  provider: 'anthropic',
-  prompt: consolidatePrompt,
-  tools: ['mcp__linear-server__*']
-});
+// Setup event monitoring
+setupEventMonitoring(client);
 ```
 
-Key characteristics (v1):
-- All sessions share the same OpenCode server instance
-- Parallel execution without intermediate files
-- MCP tools (like Linear) available to consolidation session
-- Uses Bun for native TypeScript execution
-
-**v2 Workflow**: The parallel jobs approach uses separate OpenCode instances per provider:
-
+**Linear Agent** (`src/agents/linear-agent.ts`):
 ```typescript
-// Each provider job runs independently:
-// generate-plan-single.ts anthropic "title" "body"
-// generate-plan-single.ts openai "title" "body"
-// generate-plan-single.ts google "title" "body"
-
-// Then consolidation job receives all plans as env vars:
-// consolidate-plans.ts
-// - Reads ANTHROPIC_PLAN, OPENAI_PLAN, GOOGLE_PLAN from environment
-// - Creates single OpenCode instance with Anthropic provider + Linear MCP
-// - Consolidates plans and creates Linear issues
+// Receives plans via environment variables:
+// - ANTHROPIC_PLAN, OPENAI_PLAN, GOOGLE_PLAN
+// Creates single OpenCode instance with Anthropic provider + Linear MCP
+const { client, server } = await createOpencodeServer({
+  provider: 'anthropic',
+  apiKey,
+  model,
+  agentName: "linear-agent",
+  agentDescription: "Consolidate plans and create Linear issues",
+  agentPrompt: consolidatedPrompt,
+  linearApiKey,  // Enables Linear MCP tools
+});
 ```
 
-Key characteristics (v2):
+**Shared Libraries** (`src/lib/`):
+- `types.ts` - TypeScript interfaces (Part, Provider, ProviderConfig)
+- `utils.ts` - Utilities (extractTextFromParts, validateEnvVars, getApiKey)
+- `opencode.ts` - SDK helpers (createOpencodeServer, setupEventMonitoring)
+
+Key characteristics:
 - Each provider runs in a separate GitHub Actions job
 - Plans passed via job outputs (environment variables)
 - Better visibility: each provider job shows status independently
-- Fail-fast: if any provider fails, the entire workflow stops
+- Shared code reduces duplication
 - Follows idiomatic GitHub Actions patterns (job dependencies)
-- Clear error messages indicating which provider failed
 
 ### Environment Variables
 
@@ -291,9 +293,9 @@ uses: your-org/claude-parallel/.github/workflows/reusable-implement-issue.yml@ma
 
 To customize the multi-provider plan workflow:
 
-1. Edit `.github/scripts/generate-and-create-linear.ts`
-2. Update the `PROVIDERS` array with your provider configurations
-3. Update `.github/actions/setup-opencode/action.yml` for API key inputs
+1. Edit `src/lib/types.ts` to add new provider types
+2. Update `DEFAULT_MODELS` and `API_KEY_ENV_VARS` constants
+3. Update `.github/workflows/multi-provider-plan-v2.yml` to add new jobs
 4. Update `.github/prompts/consolidate-and-create-linear.md` placeholders
 
 ### Adding Runtime Support
@@ -325,8 +327,6 @@ Edit `.github/prompts/review.md` to adjust evaluation criteria:
 ### Local Testing of Scripts
 
 ```bash
-cd .github/scripts
-
 # Set environment variables (or use .env file)
 export ANTHROPIC_API_KEY="..."
 export OPENAI_API_KEY="..."
@@ -334,8 +334,18 @@ export GOOGLE_GENERATIVE_AI_API_KEY="..."
 export LINEAR_API_KEY="..."
 export LINEAR_TEAM_ID="..."
 
-# Run the script
-bun run generate-and-create-linear.ts "Issue Title" "Issue Body"
+# Test planning agent
+PROVIDER=anthropic bun run src/agents/planning-agent.ts "Add user authentication"
+PROVIDER=openai bun run src/agents/planning-agent.ts "Add user authentication"
+PROVIDER=google bun run src/agents/planning-agent.ts "Add user authentication"
+
+# Test linear agent (requires plans in environment)
+export ANTHROPIC_PLAN="..."
+export OPENAI_PLAN="..."
+export GOOGLE_PLAN="..."
+export GITHUB_ISSUE_URL="https://github.com/org/repo/issues/123"
+export ISSUE_TITLE="Add user authentication"
+bun run src/agents/linear-agent.ts
 ```
 
 ## Troubleshooting
@@ -368,7 +378,7 @@ Find in URL: `https://linear.app/{workspace}/{team-key}/...`
 ### Workflow doesn't trigger on label
 
 Ensure:
-- Label name is exactly `claude-implement` or `claude-plan` (case-sensitive)
+- Label name is exactly `claude-implement` or `claude-plan-v2` (case-sensitive)
 - Workflow file is on your default branch
 - Required secrets are configured
 
