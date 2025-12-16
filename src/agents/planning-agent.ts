@@ -33,10 +33,12 @@
  *   PROVIDER=google GOOGLE_GENERATIVE_AI_API_KEY=xxx MODEL=gemini-1.5-pro planning-agent.ts "Add user authentication"
  */
 
-import { createOpencode } from '@opencode-ai/sdk';
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { DEFAULT_MODELS } from '../lib/types.js';
+import { extractTextFromParts, validateProvider, getApiKey } from '../lib/utils.js';
+import { createOpencodeServer, setupEventMonitoring } from '../lib/opencode.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,37 +48,7 @@ const __dirname = dirname(__filename);
 // ============================================================================
 
 const AGENT_NAME = "planning-agent";
-
-// Provider-specific default models
-const DEFAULT_MODELS: Record<string, string> = {
-  anthropic: "claude-haiku-4-5-20251001",
-  openai: "gpt-5.1-codex-mini",
-  google: "gemini-2.5-flash",
-};
-
-const PROMPT_FILE = join(__dirname, "..", "prompts", "plan-generation.md");
-
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-interface Part {
-  type: string;
-  text?: string;
-  [key: string]: any;
-}
-
-/**
- * Extract text from message parts
- */
-function extractTextFromParts(parts: Part[]): string {
-  if (!Array.isArray(parts)) return '';
-
-  return parts
-    .filter(part => part.type === 'text')
-    .map(part => part.text || '')
-    .join('\n');
-}
+const PROMPT_FILE = join(__dirname, "..", "..", "prompts", "plan-generation.md");
 
 // ============================================================================
 // Main Execution
@@ -108,45 +80,17 @@ async function main() {
   const featureDescription = args.join(' ');
 
   // Get provider from environment or use default
-  const provider = (process.env.PROVIDER || 'anthropic').toLowerCase();
+  const providerEnv = (process.env.PROVIDER || 'anthropic').toLowerCase();
 
   // Validate provider
-  if (!['anthropic', 'openai', 'google'].includes(provider)) {
-    console.error(`Error: Unsupported provider "${provider}". Supported providers: anthropic, openai, google`);
-    process.exit(1);
-  }
+  validateProvider(providerEnv);
+  const provider = providerEnv;
 
   // Get API key from environment based on provider
-  let apiKey: string | undefined;
-
-  if (provider === 'anthropic') {
-    apiKey = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_CODE_OAUTH_TOKEN;
-    if (!apiKey) {
-      console.error('Error: ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN environment variable is required');
-      process.exit(1);
-    }
-  } else if (provider === 'openai') {
-    apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      console.error('Error: OPENAI_API_KEY environment variable is required');
-      process.exit(1);
-    }
-  } else if (provider === 'google') {
-    apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) {
-      console.error('Error: GOOGLE_GENERATIVE_AI_API_KEY environment variable is required');
-      process.exit(1);
-    }
-  }
-
-  // TypeScript guard: ensure apiKey is defined
-  if (!apiKey) {
-    console.error('Error: API key is required but not set');
-    process.exit(1);
-  }
+  const apiKey = getApiKey(provider);
 
   // Get model from environment or use provider-specific default
-  const model = process.env.MODEL || DEFAULT_MODELS[provider] || 'claude-haiku-4-5-20251001';
+  const model = process.env.MODEL || DEFAULT_MODELS[provider];
 
   console.error(`\n${'='.repeat(60)}`);
   console.error(`Planning Agent`);
@@ -167,109 +111,36 @@ async function main() {
     process.exit(1);
   }
 
-  // Create OpenCode configuration with planning agent
-  const opcodeConfig: any = {
-    provider: {
-      [provider]: {
-        options: {
-          apiKey: apiKey!, // Non-null assertion - guaranteed by guard above
-          timeout: false, // Disable timeout
-        },
-      },
+  // Create OpenCode server with planning agent configuration
+  const { client, server } = await createOpencodeServer({
+    provider,
+    apiKey,
+    model,
+    agentName: AGENT_NAME,
+    agentDescription: "Generate a comprehensive implementation plan for a given feature",
+    agentPrompt: prompt,
+    agentTools: {
+      write: false,    // No file creation
+      edit: false,     // No file modification
+      bash: false,     // No shell commands
+      read: true,      // Allow reading files
+      list: true,      // Allow listing directories
+      glob: true,      // Allow file pattern matching
+      grep: true,      // Allow searching content
+      webfetch: true,  // Allow web research
     },
-    agent: {
-      [AGENT_NAME]: {
-        description: "Generate a comprehensive implementation plan for a given feature",
-        mode: "subagent",
-        model: model,
-        prompt: prompt,
-        tools: {
-          write: false,    // No file creation
-          edit: false,     // No file modification
-          bash: false,     // No shell commands
-          read: true,      // Allow reading files
-          list: true,      // Allow listing directories
-          glob: true,      // Allow file pattern matching
-          grep: true,      // Allow searching content
-          webfetch: true,  // Allow web research
-        },
-        maxSteps: 30,      // Limit iterations for planning
-        permission: {
-          edit: "deny",
-          bash: "deny",
-          webfetch: "allow",
-        }
-      }
-    }
-  };
-
-  console.error('Starting OpenCode server...');
-  const { client, server } = await createOpencode({
-    hostname: '127.0.0.1',
-    port: 0, // Auto-assign port
-    config: opcodeConfig,
+    agentPermissions: {
+      edit: "deny",
+      bash: "deny",
+      webfetch: "allow",
+    },
+    maxSteps: 30,
   });
 
-  // Subscribe to events to log tool calls and session status
-  console.error('Setting up event monitoring...');
-  (async () => {
-    try {
-      const events = await client.event.subscribe();
-      for await (const event of events.stream) {
-        if (event.type === 'message.part.updated') {
-          const part = event.properties.part;
-          if (part.type === 'tool') {
-            const status = part.state.status;
-            const toolName = part.tool;
-
-            if (status === 'running') {
-              const input = JSON.stringify(part.state.input || {}, null, 2);
-              console.error(`\n[TOOL] ${toolName} - RUNNING`);
-              console.error(`  Input: ${input}`);
-            } else if (status === 'completed') {
-              const output = part.state.output?.slice(0, 200) || '(no output)';
-              const duration = part.state.time?.end && part.state.time?.start
-                ? `${((part.state.time.end - part.state.time.start) / 1000).toFixed(2)}s`
-                : 'unknown';
-              console.error(`\n[TOOL] ${toolName} - COMPLETED (${duration})`);
-              console.error(`  Output preview: ${output}${part.state.output && part.state.output.length > 200 ? '...' : ''}`);
-            } else if (status === 'error') {
-              console.error(`\n[TOOL] ${toolName} - ERROR`);
-              console.error(`  Error: ${part.state.error}`);
-            }
-          }
-        }
-
-        // Monitor session status
-        if (event.type === 'session.status') {
-          const status = event.properties.status;
-
-          if (String(status) === 'idle') {
-            console.error(`\n[STATUS] Session idle`);
-          } else if (String(status) === 'busy') {
-            console.error(`\n[STATUS] Session busy (processing)`);
-          } else if (typeof status === 'object' && 'attempt' in status) {
-            // Retry status
-            console.error(`\n[STATUS] Session retrying (attempt ${status.attempt})`);
-            if ('message' in status) console.error(`  Reason: ${status.message}`);
-            if ('next' in status) console.error(`  Next retry in: ${status.next}ms`);
-          }
-        }
-
-        // Monitor session errors
-        if (event.type === 'session.error') {
-          const error = event.properties.error;
-          console.error(`\n[ERROR] Session error:`, error);
-        }
-      }
-    } catch (err) {
-      console.error('Event monitoring subscription error:', err);
-    }
-  })();
+  // Setup event monitoring
+  setupEventMonitoring(client);
 
   try {
-    console.error(`✓ OpenCode server started at ${server.url}`);
-
     // Create session
     console.error(`Creating session...`);
     const sessionResponse = await client.session.create({

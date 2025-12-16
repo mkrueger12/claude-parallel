@@ -1,6 +1,34 @@
 {
+  "name": "claude-parallel",
+  "version": "1.0.0",
+  "description": "Workflow system for parallel Claude Code implementations with multi-provider plan generation",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "planning-agent": "bun run src/agents/planning-agent.ts",
+    "linear-agent": "bun run src/agents/linear-agent.ts"
+  },
+  "keywords": [
+    "github-actions",
+    "claude-code",
+    "opencode",
+    "linear",
+    "ai",
+    "multi-provider"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@linear/sdk": "^30.0.0",
+    "@opencode-ai/sdk": "^1.0.153"
+  },
   "devDependencies": {
     "@types/node": "^25.0.2",
     "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.0.0"
   }
 }

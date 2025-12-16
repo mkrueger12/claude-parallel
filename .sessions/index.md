@@ -17,6 +17,78 @@ This is your session context file. Update this document at the end of each sessi
 
 ## Recent Sessions
 
+### Session 5 - December 16, 2025
+**Accomplished**:
+- **Prompt Directory Reorganization**: Moved all prompt files from `.github/prompts/` to root-level `prompts/` directory
+- Cleaned up repository structure to separate content/templates from GitHub Actions configuration
+- Updated all path references across codebase:
+  - `src/agents/planning-agent.ts` - Updated PROMPT_FILE path
+  - `src/agents/linear-agent.ts` - Updated PROMPT_FILE path
+  - `.github/workflows/reusable-implement-issue.yml` - Updated 3 curl URLs for prompt downloads
+- Comprehensive documentation updates:
+  - `CLAUDE.md` - Updated 4 references to prompt directory location
+  - `README.md` - Updated 5 references to prompt directory location
+
+**Technical Details**:
+- Git preserved history for 3 moved files (detected as renames):
+  - `consolidate-and-create-linear.md`
+  - `plan-generation.md`
+  - `verify.md`
+- Updated 2 prompt files with newer versions:
+  - `implementation.md`
+  - `review.md`
+- Removed old `.github/prompts/` directory entirely
+- TypeScript compilation verified: no errors after path updates
+
+**Files Modified**:
+- Moved: 5 prompt files from `.github/prompts/` to `prompts/`
+- Updated: 2 TypeScript agents, 1 workflow file, 2 documentation files
+- Deleted: `.github/prompts/` directory
+
+**Rationale**:
+Prompts are content/templates that can be customized by users, not GitHub Actions infrastructure. Moving them to the root level makes the purpose clearer and follows better separation of concerns.
+
+**Next**:
+- Commit the prompt reorganization changes
+- Test workflows to ensure prompt downloads work correctly
+- Continue with workflow testing priorities from Session 4
+
+---
+
+### Session 4 - December 16, 2025
+**Accomplished**:
+- **Major TypeScript Refactoring**: Reorganized entire TypeScript codebase from `.github/scripts/` into top-level `src/` directory
+- Created modular structure: `src/agents/` for main scripts, `src/lib/` for shared utilities
+- Extracted shared code into reusable modules:
+  - `src/lib/types.ts` - TypeScript interfaces and types
+  - `src/lib/utils.ts` - Utility functions (extractTextFromParts, validateEnvVars, getApiKey)
+  - `src/lib/opencode.ts` - OpenCode SDK helpers (server setup, event monitoring)
+- Consolidated two separate package.json files into single root configuration
+- Cleaned up deprecated code: removed v1 workflow, unused scripts (~6,400 lines deleted)
+- Updated `.github/workflows/multi-provider-plan-v2.yml` with new script paths
+- Updated documentation (CLAUDE.md) to reflect new structure
+
+**Technical Details**:
+- Migrated `planning-agent.ts` and `linear-agent.ts` to `src/agents/` with refactoring
+- Updated prompt file paths from `join(__dirname, "..", "prompts")` to `join(__dirname, "..", "..", ".github", "prompts")`
+- All imports now use `.js` extensions for ESM compatibility
+- TypeScript compilation verified: no errors, builds successfully to `dist/`
+- Repository now has single TypeScript context instead of split configuration
+
+**Files Modified**:
+- Created: 6 new files in `src/` directory structure
+- Updated: `package.json`, `tsconfig.json`, `CLAUDE.md`, `.github/workflows/multi-provider-plan-v2.yml`
+- Deleted: 10 deprecated files (v1 workflow, unused scripts, old package configs)
+
+**Commit**: `e16a8b9` - "Refactor TypeScript code into top-level src/ directory"
+
+**Next**:
+- Test the updated workflow with a real GitHub issue
+- Consider further improvements to shared libraries
+- Potentially add unit tests for utility functions
+
+---
+
 ### Session 3 - December 16, 2025
 **Accomplished**:
 - Answered questions about GitHub Actions runner environment and `gh` CLI availability
@@ -72,10 +144,11 @@ This is your session context file. Update this document at the end of each sessi
 
 ## Next Session Priorities
 
-1. Consider adding GitHub issue commenting to workflows for status updates
-2. Test the updated multi-provider plan v2 workflow with real GitHub issues
-3. Verify Linear issue creation and parent/child relationships
-4. Consider adding output capturing for Linear issue IDs/URLs in the workflow
+1. Test the refactored multi-provider plan v2 workflow with a real GitHub issue
+2. Verify Linear issue creation and parent/child relationships work correctly
+3. Consider adding unit tests for the new utility functions in `src/lib/`
+4. Consider adding GitHub issue commenting to workflows for status updates
+5. Consider adding output capturing for Linear issue IDs/URLs in the workflow
 
 ---
 
