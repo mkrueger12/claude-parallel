@@ -42,7 +42,7 @@ const __dirname = dirname(__filename);
 // ============================================================================
 
 const AGENT_NAME = "linear-agent";
-const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const DEFAULT_MODEL = "claude-opus-4-5";
 const PROMPT_FILE = join(__dirname, "..", "prompts", "consolidate-and-create-linear.md");
 
 // ============================================================================
