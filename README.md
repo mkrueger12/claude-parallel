@@ -46,10 +46,10 @@ jobs:
 
 | Secret | Description |
 |--------|-------------|
-| `ANTHROPIC_API_KEY` | Your Anthropic API key |
+| `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN` | Claude authentication. Use either your Anthropic API key or Claude Code OAuth token (both work, choose one) |
 | `GH_PAT` | GitHub Personal Access Token with repo permissions |
 
-Alternatively, use `CLAUDE_CODE_OAUTH_TOKEN` instead of `ANTHROPIC_API_KEY`.
+**Note:** For the implementation workflow, both `ANTHROPIC_API_KEY` and `CLAUDE_CODE_OAUTH_TOKEN` are supported. The workflow will use whichever is available.
 
 ### Workflow Inputs
 
@@ -333,12 +333,21 @@ To get more diverse plans:
 
 You can also run implementations locally using the shell script.
 
-### Prerequisites
+### Prerequisites for Local CLI
 
-- `git` - Version control
-- `claude` - Claude Code CLI (headless mode support)
-- `gh` - GitHub CLI (for creating PRs)
-- `jq` - JSON parsing
+The local `parallel-impl.sh` script now uses the OpenCode SDK (@opencode-ai/sdk) for AI interactions. You need:
+
+**Required:**
+- **Git** - Version control
+- **Bun runtime** - The SDK and script execution requires Bun (`curl -fsSL https://bun.sh/install | bash` or `npm install -g bun`)
+- **GitHub CLI (gh)** - For creating PRs (`brew install gh` or `sudo apt install gh`)
+- **jq** - JSON parsing utility (`brew install jq` or `sudo apt install jq`)
+
+**Authentication** - Set one of the following environment variables:
+- **`CLAUDE_CODE_OAUTH_TOKEN`** (recommended) - OAuth token for Claude Code. Get yours from [claude.ai/settings](https://claude.ai/settings)
+- **`ANTHROPIC_API_KEY`** (fallback) - Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
+
+**Note:** The script uses the OpenCode SDK under the hood to execute AI queries, which provides better integration and features compared to direct CLI calls.
 
 ### Installation
 

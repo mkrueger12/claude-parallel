@@ -60,7 +60,11 @@ The shell script can be used for local testing:
 ./parallel-impl.sh "Your feature request here"
 ```
 
-This creates git worktrees and runs Claude Code in parallel locally.
+This script creates git worktrees and uses the OpenCode SDK (@opencode-ai/sdk) to run AI implementations in parallel locally. The SDK provides better integration and features compared to direct CLI calls.
+
+**Prerequisites:**
+- **Bun runtime** - Required for SDK execution (`curl -fsSL https://bun.sh/install | bash` or `npm install -g bun`)
+- **Authentication** - Set either `CLAUDE_CODE_OAUTH_TOKEN` (preferred) or `ANTHROPIC_API_KEY`
 
 ## Architecture
 
@@ -190,11 +194,14 @@ Key characteristics:
 Required secrets (set in GitHub or `.env` for local development):
 
 **For Implementation Workflow:**
-- `ANTHROPIC_API_KEY` or `CLAUDE_CODE_OAUTH_TOKEN`: Claude authentication
+- `CLAUDE_CODE_OAUTH_TOKEN` (preferred) or `ANTHROPIC_API_KEY`: Claude authentication
+  - `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token from [claude.ai/settings](https://claude.ai/settings) (recommended for local runs)
+  - `ANTHROPIC_API_KEY`: API key from [console.anthropic.com](https://console.anthropic.com) (fallback)
+  - Both options are supported; the workflow uses whichever is available
 - `GH_PAT`: GitHub Personal Access Token with repo permissions
 
 **For Multi-Provider Plan Workflow:**
-- `CLAUDE_CODE_OAUTH_TOKEN`: Claude Code OAuth token
+- `CLAUDE_CODE_OAUTH_TOKEN`: Claude Code OAuth token (required for OpenCode SDK)
 - `OPENAI_API_KEY`: OpenAI API key
 - `GOOGLE_GENERATIVE_AI_API_KEY`: Google AI API key
 - `LINEAR_API_KEY`: Linear Personal API key
@@ -326,26 +333,36 @@ Edit `prompts/review.md` to adjust evaluation criteria:
 
 ### Local Testing of Scripts
 
+All local scripts use the OpenCode SDK (@opencode-ai/sdk) for AI interactions. Make sure you have Bun installed.
+
 ```bash
 # Set environment variables (or use .env file)
-export ANTHROPIC_API_KEY="..."
+# For Claude authentication, use the preferred method:
+export CLAUDE_CODE_OAUTH_TOKEN="..."  # Preferred for local runs
+# OR
+export ANTHROPIC_API_KEY="..."        # Fallback option
+
+# For multi-provider planning, you'll also need:
 export OPENAI_API_KEY="..."
 export GOOGLE_GENERATIVE_AI_API_KEY="..."
 export LINEAR_API_KEY="..."
 export LINEAR_TEAM_ID="..."
 
-# Test planning agent
+# Test planning agent (uses OpenCode SDK)
 PROVIDER=anthropic bun run src/agents/planning-agent.ts "Add user authentication"
 PROVIDER=openai bun run src/agents/planning-agent.ts "Add user authentication"
 PROVIDER=google bun run src/agents/planning-agent.ts "Add user authentication"
 
-# Test linear agent (requires plans in environment)
+# Test linear agent (uses OpenCode SDK with Linear MCP)
 export ANTHROPIC_PLAN="..."
 export OPENAI_PLAN="..."
 export GOOGLE_PLAN="..."
 export GITHUB_ISSUE_URL="https://github.com/org/repo/issues/123"
 export ISSUE_TITLE="Add user authentication"
 bun run src/agents/linear-agent.ts
+
+# Test local parallel implementation script
+./parallel-impl.sh "Add user authentication"
 ```
 
 ## Troubleshooting
@@ -354,6 +371,11 @@ bun run src/agents/linear-agent.ts
 
 Install missing dependencies:
 ```bash
+# Install Bun runtime (required for SDK)
+curl -fsSL https://bun.sh/install | bash
+# OR
+npm install -g bun
+
 # Ubuntu/Debian
 sudo apt install gh jq
 
