@@ -146,7 +146,7 @@ async function main() {
   }
 
   // Get model from environment or use provider-specific default
-  const model = process.env.MODEL || DEFAULT_MODELS[provider];
+  const model = process.env.MODEL || DEFAULT_MODELS[provider] || 'claude-haiku-4-5-20251001';
 
   console.error(`\n${'='.repeat(60)}`);
   console.error(`Planning Agent`);
@@ -193,7 +193,7 @@ async function main() {
           grep: true,      // Allow searching content
           webfetch: true,  // Allow web research
         },
-        maxSteps: 30,      // Limit iterations for planning
+        maxSteps: 5,      // Limit iterations for planning
         permission: {
           edit: "deny",
           bash: "deny",
