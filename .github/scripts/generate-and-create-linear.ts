@@ -643,7 +643,7 @@ async function main() {
         "write": true,  
         "edit": false,  
         "read": true,  
-        "bash": false,  
+        "bash": true,  
         "grep": true,  
         "webfetch": true,  
           
