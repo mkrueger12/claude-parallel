@@ -129,11 +129,16 @@ async function main() {
   // Get model from environment or use default
   const model = process.env.MODEL || provider.defaultModel;
 
-  console.error(`[${provider.name}] Generating plan with model ${model}...`);
-  console.error(`[${provider.name}] Issue: ${issueTitle}`);
+  console.error(`\n${'='.repeat(60)}`);
+  console.error(`[${provider.name.toUpperCase()}] Plan Generation Starting`);
+  console.error(`${'='.repeat(60)}`);
+  console.error(`Model: ${model}`);
+  console.error(`Issue: ${issueTitle}`);
+  console.error('');
 
   // Prepare prompt
   const prompt = await preparePlanPrompt(issueTitle || '', issueBody || '');
+  console.error(`[${provider.name}] Prepared prompt: ${prompt.length} characters`);
 
   // Create OpenCode client with provider configuration
   const opcodeConfig: any = {
@@ -154,6 +159,7 @@ async function main() {
     },
   };
 
+  console.error(`[${provider.name}] Starting OpenCode server...`);
   const { client, server } = await createOpencode({
     hostname: '127.0.0.1',
     port: 0,
@@ -161,7 +167,7 @@ async function main() {
   });
 
   try {
-    console.error(`[${provider.name}] OpenCode server started`);
+    console.error(`[${provider.name}] OpenCode server started at ${server.url}`);
 
     // Create session
     console.error(`[${provider.name}] Creating session...`);
@@ -177,7 +183,8 @@ async function main() {
     console.error(`[${provider.name}] Session created: ${session.id}`);
 
     // Send prompt
-    console.error(`[${provider.name}] Sending prompt (${prompt.length} chars)...`);
+    console.error(`[${provider.name}] Sending prompt to ${model}...`);
+    console.error(`[${provider.name}] This may take a few moments while the AI generates the plan...`);
     const promptResponse = await client.session.prompt({
       path: { id: session.id },
       body: {
@@ -211,7 +218,13 @@ async function main() {
       throw new Error('Empty response from provider');
     }
 
-    console.error(`[${provider.name}] SUCCESS: Generated plan (${planText.length} chars)`);
+    console.error('');
+    console.error(`${'='.repeat(60)}`);
+    console.error(`[${provider.name.toUpperCase()}] SUCCESS!`);
+    console.error(`${'='.repeat(60)}`);
+    console.error(`Generated plan: ${planText.length} characters`);
+    console.error(`Session ID: ${session.id}`);
+    console.error('');
 
     // Output plan to stdout (this will be captured by GitHub Actions)
     console.log(planText);
@@ -219,7 +232,15 @@ async function main() {
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[${provider.name}] ERROR: ${errorMessage}`);
+    console.error('');
+    console.error(`${'='.repeat(60)}`);
+    console.error(`[${provider.name.toUpperCase()}] ERROR!`);
+    console.error(`${'='.repeat(60)}`);
+    console.error(`Error: ${errorMessage}`);
+    if (error instanceof Error && error.stack) {
+      console.error('Stack trace:', error.stack);
+    }
+    console.error('');
     process.exit(1);
   } finally {
     console.error(`[${provider.name}] Shutting down OpenCode server...`);
