@@ -6,6 +6,11 @@ set -e
 # Script directory (where prompts are stored)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Try to use TypeScript implementation if available
+if command -v bun &> /dev/null && [ -f "$SCRIPT_DIR/parallel-impl.ts" ]; then
+  exec bun "$SCRIPT_DIR/parallel-impl.ts" "$@"
+fi
+
 # Configuration
 WORKTREES_DIR="../parallel-impls"
 TIMESTAMP=$(date +%s)

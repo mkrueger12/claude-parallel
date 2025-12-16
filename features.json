@@ -1,0 +1,90 @@
+[
+  {
+    "category": "functional",
+    "description": "TypeScript implementation compiles and runs without errors",
+    "plan_ref": "Task 1 - Create parallel-impl.ts with SDK integration",
+    "steps": [
+      "Step 1: Run `npx tsc --noEmit parallel-impl.ts` to verify TypeScript compilation",
+      "Step 2: Run `bun parallel-impl.ts --help` to verify script executes",
+      "Step 3: Verify no TypeScript errors are reported"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "SDK authentication supports CLAUDE_CODE_OAUTH_TOKEN environment variable",
+    "plan_ref": "Task 4 - Verify authentication with CLAUDE_CODE_OAUTH_TOKEN",
+    "steps": [
+      "Step 1: Set CLAUDE_CODE_OAUTH_TOKEN environment variable (unset ANTHROPIC_API_KEY)",
+      "Step 2: Run parallel-impl.ts script",
+      "Step 3: Verify script proceeds without authentication errors"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "SDK authentication falls back to ANTHROPIC_API_KEY when OAuth token not set",
+    "plan_ref": "Task 4 - Verify authentication with CLAUDE_CODE_OAUTH_TOKEN",
+    "steps": [
+      "Step 1: Unset CLAUDE_CODE_OAUTH_TOKEN, set ANTHROPIC_API_KEY",
+      "Step 2: Run parallel-impl.ts script",
+      "Step 3: Verify script proceeds without authentication errors"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Script shows helpful error when no auth credentials provided",
+    "plan_ref": "Task 4 - Verify authentication with CLAUDE_CODE_OAUTH_TOKEN",
+    "steps": [
+      "Step 1: Unset both CLAUDE_CODE_OAUTH_TOKEN and ANTHROPIC_API_KEY",
+      "Step 2: Run parallel-impl.ts script",
+      "Step 3: Verify script shows error message mentioning `claude setup-token`"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Git worktrees are created correctly for parallel implementations",
+    "plan_ref": "Task 1 - Create parallel-impl.ts with SDK integration",
+    "steps": [
+      "Step 1: Run parallel-impl.ts with a test feature request in a git repository",
+      "Step 2: Verify 3 worktree directories are created in ../parallel-impls/",
+      "Step 3: Verify each worktree has its own git branch (impl-{timestamp}-{n})"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Shell script delegates to TypeScript when Bun is available",
+    "plan_ref": "Task 3 - Update shell script to delegate to TypeScript",
+    "steps": [
+      "Step 1: Ensure Bun is installed and parallel-impl.ts exists",
+      "Step 2: Run ./parallel-impl.sh 'test feature'",
+      "Step 3: Verify TypeScript version is executed (check output or process)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Package.json includes claude-agent-sdk dependency",
+    "plan_ref": "Task 2 - Add SDK dependency to package.json",
+    "steps": [
+      "Step 1: Read package.json file",
+      "Step 2: Verify @anthropic-ai/claude-agent-sdk is listed in dependencies",
+      "Step 3: Run bun install to verify dependency resolves"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Result files are written in expected format (result.json, review-result.json)",
+    "plan_ref": "Task 1 - Create parallel-impl.ts with SDK integration",
+    "steps": [
+      "Step 1: Run parallel-impl.ts with a test feature request",
+      "Step 2: Verify result.json files are created in each worktree",
+      "Step 3: Verify review-result.json is created in main directory with expected JSON schema"
+    ],
+    "passes": false
+  }
+]
