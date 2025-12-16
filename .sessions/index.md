@@ -17,6 +17,24 @@ This is your session context file. Update this document at the end of each sessi
 
 ## Recent Sessions
 
+### Session 3 - December 16, 2025
+**Accomplished**:
+- Answered questions about GitHub Actions runner environment and `gh` CLI availability
+- Confirmed `ubuntu-latest` runners include `gh` CLI pre-installed
+- Documented current authentication pattern using `GH_TOKEN` environment variable
+- Provided `gh issue comment` command reference for posting comments to GitHub issues
+
+**Context**:
+- User reviewing workflow capabilities for GitHub integration
+- Clarified that `.github/actions/get-issue-details` uses `GH_TOKEN` env var (line 36)
+- No code changes made this session - purely informational/documentation
+
+**Next**:
+- Consider adding GitHub issue commenting to workflow for status updates
+- Potential enhancement: post plan generation status back to triggering issue
+
+---
+
 ### Session 2 - December 16, 2025
 **Accomplished**:
 - Refactored `linear-agent.ts` to support v2 workflow pattern (consolidation mode only)
@@ -54,9 +72,10 @@ This is your session context file. Update this document at the end of each sessi
 
 ## Next Session Priorities
 
-1. Test the updated multi-provider plan v2 workflow with real GitHub issues
-2. Verify Linear issue creation and parent/child relationships
-3. Consider adding output capturing for Linear issue IDs/URLs in the workflow
+1. Consider adding GitHub issue commenting to workflows for status updates
+2. Test the updated multi-provider plan v2 workflow with real GitHub issues
+3. Verify Linear issue creation and parent/child relationships
+4. Consider adding output capturing for Linear issue IDs/URLs in the workflow
 
 ---
 
