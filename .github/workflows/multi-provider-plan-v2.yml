@@ -85,6 +85,7 @@ jobs:
 
       - name: Generate plan
         id: generate
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-haiku-4-5-20251001' }}
@@ -93,20 +94,20 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output
-          PLAN=$(bun run generate-plan-single.ts anthropic "$ISSUE_TITLE" "$ISSUE_BODY")
-
-          # Use multiline output format
-          echo "plan<<EOF" >> $GITHUB_OUTPUT
-          echo "$PLAN" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "success=true" >> $GITHUB_OUTPUT
-
-      - name: Handle errors
-        if: failure()
-        run: |
-          echo "success=false" >> $GITHUB_OUTPUT
-          echo "plan=Plan generation failed" >> $GITHUB_OUTPUT
+          # Generate plan and capture output (stderr goes to console)
+          if PLAN=$(bun run generate-plan-single.ts anthropic "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1); then
+            # Use multiline output format
+            echo "plan<<EOF" >> $GITHUB_OUTPUT
+            echo "$PLAN" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "plan<<EOF" >> $GITHUB_OUTPUT
+            echo "Plan generation failed for Anthropic provider" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            # Don't exit 1 - let the job succeed so consolidation can run
+          fi
 
   # Generate plan from OpenAI GPT
   generate-plan-openai:
@@ -131,6 +132,7 @@ jobs:
 
       - name: Generate plan
         id: generate
+        continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.1-codex-mini' }}
@@ -139,20 +141,20 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output
-          PLAN=$(bun run generate-plan-single.ts openai "$ISSUE_TITLE" "$ISSUE_BODY")
-
-          # Use multiline output format
-          echo "plan<<EOF" >> $GITHUB_OUTPUT
-          echo "$PLAN" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "success=true" >> $GITHUB_OUTPUT
-
-      - name: Handle errors
-        if: failure()
-        run: |
-          echo "success=false" >> $GITHUB_OUTPUT
-          echo "plan=Plan generation failed" >> $GITHUB_OUTPUT
+          # Generate plan and capture output (stderr goes to console)
+          if PLAN=$(bun run generate-plan-single.ts openai "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1); then
+            # Use multiline output format
+            echo "plan<<EOF" >> $GITHUB_OUTPUT
+            echo "$PLAN" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "plan<<EOF" >> $GITHUB_OUTPUT
+            echo "Plan generation failed for OpenAI provider" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            # Don't exit 1 - let the job succeed so consolidation can run
+          fi
 
   # Generate plan from Google Gemini
   generate-plan-google:
@@ -177,6 +179,7 @@ jobs:
 
       - name: Generate plan
         id: generate
+        continue-on-error: true
         env:
           GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-2.5-flash' }}
@@ -185,20 +188,20 @@ jobs:
         run: |
           cd .github/scripts
 
-          # Generate plan and capture output
-          PLAN=$(bun run generate-plan-single.ts google "$ISSUE_TITLE" "$ISSUE_BODY")
-
-          # Use multiline output format
-          echo "plan<<EOF" >> $GITHUB_OUTPUT
-          echo "$PLAN" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "success=true" >> $GITHUB_OUTPUT
-
-      - name: Handle errors
-        if: failure()
-        run: |
-          echo "success=false" >> $GITHUB_OUTPUT
-          echo "plan=Plan generation failed" >> $GITHUB_OUTPUT
+          # Generate plan and capture output (stderr goes to console)
+          if PLAN=$(bun run generate-plan-single.ts google "$ISSUE_TITLE" "$ISSUE_BODY" 2>&1); then
+            # Use multiline output format
+            echo "plan<<EOF" >> $GITHUB_OUTPUT
+            echo "$PLAN" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+            echo "plan<<EOF" >> $GITHUB_OUTPUT
+            echo "Plan generation failed for Google provider" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            # Don't exit 1 - let the job succeed so consolidation can run
+          fi
 
   # Consolidate all plans and create Linear issues
   consolidate-and-create-linear:
