@@ -60,9 +60,7 @@ export function getAuthentication(): AuthConfig {
   if (oauthToken) {
     console.warn('[Auth] Using CLAUDE_CODE_OAUTH_TOKEN for authentication');
 
-    // SDK expects ANTHROPIC_API_KEY, so set it from OAuth token
-    process.env.ANTHROPIC_API_KEY = oauthToken;
-
+    // SDK handles CLAUDE_CODE_OAUTH_TOKEN automatically - don't modify env
     return {
       apiKey: oauthToken,
       source: 'oauth',
