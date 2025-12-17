@@ -120,6 +120,18 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
+      - name: Setup Bun for Agent Runner
+        if: ${{ inputs.dry_run != true }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install agent runner dependencies
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          cd ${{ github.workspace }}
+          bun install
+
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}
         uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
@@ -209,43 +221,42 @@ jobs:
           echo "" >> /tmp/feature_request.txt
           cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
 
-          # Substitute using awk (handles multiline)
-          awk '
+          # Substitute using awk and store in variable
+          IMPL_PROMPT=$(awk '
             BEGIN {
               while ((getline line < "/tmp/feature_request.txt") > 0) {
                 feature = feature (feature ? "\n" : "") line
               }
             }
             { gsub(/\{\{FEATURE_REQUEST\}\}/, feature); print }
-          ' /tmp/implementation-template.md > /tmp/prompt.md
+          ' /tmp/implementation-template.md)
 
           echo "Starting implementation ${{ matrix.impl }}..."
-          echo "Prompt size: $(wc -c < /tmp/prompt.md) bytes"
+          echo "Prompt size: $(echo "$IMPL_PROMPT" | wc -c) bytes"
 
-          # Run claude and capture exit code
+          # Run agent runner and capture exit code
           set +e
-          claude --print "$(cat /tmp/prompt.md)" \
-            --output-format json \
+          echo "$IMPL_PROMPT" | bun run scripts/claude-agent-runner.ts \
+            --cwd "$(pwd)" \
             --model ${{ inputs.claude_model }} \
-            --dangerously-skip-permissions \
-            > result.json 2>&1
-          CLAUDE_EXIT=$?
+            --mode implementation \
+            > result.json 2> error.log
+          RUNNER_EXIT=$?
           set -e
 
-          echo "Claude exit code: $CLAUDE_EXIT"
+          echo "Agent runner exit code: $RUNNER_EXIT"
 
           # Check if we got valid output
           if [ -s result.json ] && jq -e . result.json > /dev/null 2>&1; then
             echo "Implementation completed successfully"
           else
             echo "::error::Implementation ${{ matrix.impl }} failed"
-            echo "=== Claude exit code: $CLAUDE_EXIT ==="
+            echo "=== Agent runner exit code: $RUNNER_EXIT ==="
             echo "=== result.json contents (first 500 chars): ==="
             head -c 500 result.json 2>/dev/null || echo "(empty or missing)"
             echo ""
-            echo "=== Checking claude installation: ==="
-            which claude || echo "claude not found in PATH"
-            echo "PATH: $PATH"
+            echo "=== error.log contents: ==="
+            cat error.log 2>/dev/null || echo "(empty or missing)"
             exit 1
           fi
 
@@ -343,6 +354,18 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
+      - name: Setup Bun for Agent Runner
+        if: ${{ inputs.dry_run != true }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install agent runner dependencies
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          cd ${{ github.workspace }}
+          bun install
+
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}
         uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
@@ -366,8 +389,8 @@ jobs:
           echo "" >> /tmp/feature_request.txt
           cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
 
-          # Substitute using awk (handles multiline)
-          awk '
+          # Substitute using awk and store in variable
+          REVIEW_PROMPT=$(awk '
             BEGIN {
               while ((getline line < "/tmp/feature_request.txt") > 0) {
                 feature = feature (feature ? "\n" : "") line
@@ -379,18 +402,15 @@ jobs:
               gsub(/\{\{NUM_IMPLEMENTATIONS\}\}/, "${{ inputs.num_implementations }}")
               print
             }
-          ' /tmp/review-template.md > /tmp/review-prompt.md
+          ' /tmp/review-template.md)
 
           echo "Starting review..."
 
-          # Define JSON schema for structured output
-          JSON_SCHEMA='{"type":"object","properties":{"best":{"type":"integer","minimum":1,"maximum":${{ inputs.num_implementations }}},"reasoning":{"type":"string"}},"required":["best","reasoning"]}'
-
-          claude --print "$(cat /tmp/review-prompt.md)" \
-            --output-format json \
-            --json-schema "$JSON_SCHEMA" \
+          # Run agent runner in review mode (schema automatically applied)
+          echo "$REVIEW_PROMPT" | bun run scripts/claude-agent-runner.ts \
+            --cwd "$(pwd)" \
             --model ${{ inputs.claude_model }} \
-            --dangerously-skip-permissions \
+            --mode review \
             > review-result.json 2> review-error.log || true
 
           cat review-result.json
@@ -403,30 +423,10 @@ jobs:
           WINNER=$(( (RANDOM % MAX) + 1 ))
           echo "Mock review selecting implementation $WINNER"
 
-          # Cycle through different response formats to test all parsing strategies
-          # This ensures the parser is exercised with different formats across dry runs
-          FORMAT_SELECTOR=$(( ${{ github.run_id }} % 3 ))
+          # Agent runner with --mode review always produces structured_output
+          echo "{\"type\":\"result\",\"result\":\"\",\"structured_output\":{\"best\":$WINNER,\"reasoning\":\"Dry run mock - selected implementation $WINNER\"}}" > review-result.json
 
-          case $FORMAT_SELECTOR in
-            0)
-              # Format 1: structured_output field (primary --json-schema format)
-              echo "Testing parsing Strategy 1: structured_output format"
-              echo "{\"type\":\"result\",\"result\":\"\",\"structured_output\":{\"best\":$WINNER,\"reasoning\":\"Dry run mock - testing structured_output parsing\"}}" > review-result.json
-              ;;
-            1)
-              # Format 2: Direct root-level JSON (tests Strategy 3)
-              echo "Testing parsing Strategy 3: root-level JSON format"
-              echo "{\"best\":$WINNER,\"reasoning\":\"Dry run mock - testing root-level JSON parsing\"}" > review-result.json
-              ;;
-            2)
-              # Format 3: JSON embedded in result string (tests Strategy 2)
-              echo "Testing parsing Strategy 2: result field as JSON string"
-              # The result field contains a JSON string that needs parsing
-              echo "{\"type\":\"result\",\"result\":\"{\\\"best\\\":$WINNER,\\\"reasoning\\\":\\\"Dry run mock - testing result field parsing\\\"}\"}" > review-result.json
-              ;;
-          esac
-
-          echo "=== Mock review-result.json (format $FORMAT_SELECTOR): ==="
+          echo "=== Mock review-result.json: ==="
           cat review-result.json
 
       - name: Parse review and create PR
@@ -434,124 +434,29 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          # Extract the decision from Claude's response
-          # With --json-schema, the result should be valid JSON directly
+          # Extract decision from structured_output (guaranteed by agent runner)
           echo "=== Parsing review result ==="
-          echo "=== Raw review-result.json contents: ==="
           cat review-result.json
           echo ""
-          echo "=== End raw contents ==="
 
-          # Check for Claude CLI errors (rate limits, auth issues, etc.)
-          if jq -e '.is_error == true' review-result.json >/dev/null 2>&1; then
-            ERROR_MSG=$(jq -r '.result // "Unknown error"' review-result.json)
-            echo ""
-            echo "::error::Claude CLI returned an error: $ERROR_MSG"
-            echo ""
-            echo "This is NOT a parsing issue - Claude failed to generate a response."
-            echo "Common causes:"
-            echo "  - Rate limit exceeded (wait for reset time shown above)"
-            echo "  - Authentication issues (check CLAUDE_CODE_OAUTH_TOKEN secret)"
-            echo "  - API outage"
+          DECISION_JSON=$(jq -c '.structured_output' review-result.json 2>/dev/null)
+
+          # Validate the decision exists and has required fields
+          if [ -z "$DECISION_JSON" ] || [ "$DECISION_JSON" = "null" ]; then
+            echo "::error::No structured_output field in review result"
+            echo "Agent runner with --mode review should always produce structured_output"
             exit 1
           fi
 
-          # The output format wraps response in {"result": "..."} where result is JSON string
-          # Try multiple extraction paths for robustness
-          DECISION_JSON=""
-          STRATEGIES_TRIED=""
-
-          # Strategy 1: Check for structured_output field (primary method with --json-schema)
-          echo "Trying Strategy 1: .structured_output field..."
-          STRUCTURED_OUTPUT=$(jq -c '.structured_output' review-result.json 2>/dev/null || echo "null")
-          echo "  .structured_output = $STRUCTURED_OUTPUT"
-          if [ "$STRUCTURED_OUTPUT" != "null" ] && [ -n "$STRUCTURED_OUTPUT" ]; then
-            # Verify it has the 'best' field
-            if echo "$STRUCTURED_OUTPUT" | jq -e '.best' >/dev/null 2>&1; then
-              DECISION_JSON="$STRUCTURED_OUTPUT"
-              echo "  ✓ Found valid decision in .structured_output"
-            else
-              echo "  ✗ .structured_output exists but missing 'best' field"
-              STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 1: .structured_output exists but missing 'best' field (value: $STRUCTURED_OUTPUT)"
-            fi
-          else
-            STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 1: .structured_output is null or empty"
-          fi
-
-          # Strategy 2: With --json-schema, result field should contain JSON string - parse it
-          if [ -z "$DECISION_JSON" ]; then
-            echo "Trying Strategy 2: .result field as JSON string..."
-            RESULT_FIELD=$(jq -r '.result // empty' review-result.json 2>/dev/null)
-            echo "  .result = ${RESULT_FIELD:0:200}..."
-            if [ -n "$RESULT_FIELD" ]; then
-              # Parse result field as JSON and check if it has .best
-              if echo "$RESULT_FIELD" | jq -e '.best' >/dev/null 2>&1; then
-                DECISION_JSON=$(echo "$RESULT_FIELD" | jq -c '.')
-                echo "  ✓ Found valid decision in .result"
-              else
-                STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 2: .result exists but is not JSON with 'best' field"
-              fi
-            else
-              STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 2: .result is empty"
-            fi
-          fi
-
-          # Strategy 3: Check if the file itself is the decision JSON (direct output)
-          if [ -z "$DECISION_JSON" ]; then
-            echo "Trying Strategy 3: root-level JSON with 'best' field..."
-            if jq -e '.best' review-result.json >/dev/null 2>&1; then
-              DECISION_JSON=$(jq -c '.' review-result.json)
-              echo "  ✓ Found valid decision at root level"
-            else
-              STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 3: root JSON does not have 'best' field"
-            fi
-          fi
-
-          # Strategy 4: Fallback - extract from text content (handles non-schema responses)
-          if [ -z "$DECISION_JSON" ]; then
-            echo "Trying Strategy 4: regex extraction from text content..."
-            RESULT=$(jq -r '.result // .content[0].text // .text // .' review-result.json 2>/dev/null || cat review-result.json)
-            # Use grep with perl regex to extract JSON with "best" field
-            REGEX_MATCH=$(echo "$RESULT" | grep -oP '\{[^{}]*"best"\s*:\s*\d+[^{}]*\}' | head -1 || true)
-            if [ -n "$REGEX_MATCH" ]; then
-              DECISION_JSON="$REGEX_MATCH"
-              echo "  ✓ Found decision via regex extraction"
-            else
-              STRATEGIES_TRIED="$STRATEGIES_TRIED\n- Strategy 4: no JSON with 'best' field found in text content"
-            fi
-          fi
-
-          if [ -z "$DECISION_JSON" ]; then
-            echo ""
-            echo "::error::Could not find decision JSON in review output after trying all strategies"
-            echo ""
-            echo "=== Strategies attempted: ===$STRATEGIES_TRIED"
-            echo ""
-            echo "=== Debug info ==="
-            echo "File size: $(wc -c < review-result.json) bytes"
-            echo "Is valid JSON: $(jq -e . review-result.json >/dev/null 2>&1 && echo 'yes' || echo 'no')"
-            echo "Top-level keys: $(jq -r 'keys | join(", ")' review-result.json 2>/dev/null || echo 'N/A')"
-            echo ""
-            echo "Expected format (with --json-schema):"
-            echo '  {"type":"result","result":"","structured_output":{"best":N,"reasoning":"..."}}'
-            echo ""
-            echo "=== Last 50 lines of review-result.json: ==="
-            tail -50 review-result.json
+          if ! echo "$DECISION_JSON" | jq -e '.best' >/dev/null 2>&1; then
+            echo "::error::structured_output missing 'best' field"
             exit 1
           fi
 
-          echo ""
-          echo "=== Successfully extracted decision ==="
-          echo "DECISION_JSON: $DECISION_JSON"
+          echo "✓ Successfully extracted decision from structured_output"
 
           # Parse the extracted JSON
-          BEST=$(echo "$DECISION_JSON" | jq -r '.best // empty')
-
-          if [ -z "$BEST" ]; then
-            echo "::error::Could not parse 'best' from decision JSON"
-            exit 1
-          fi
-
+          BEST=$(echo "$DECISION_JSON" | jq -r '.best')
           REASONING=$(echo "$DECISION_JSON" | jq -r '.reasoning // "No reasoning provided"')
 
           echo "Selected implementation: $BEST"
@@ -615,6 +520,18 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Setup Bun for Agent Runner
+        if: ${{ inputs.dry_run != true }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install agent runner dependencies
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          cd ${{ github.workspace }}
+          bun install
 
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}
@@ -892,16 +809,8 @@ jobs:
           echo "" >> /tmp/feature_request.txt
           cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
 
-          # Build check results summary
-          BUILD_SUMMARY="| Check | Status |
-          |-------|--------|
-          | Build | ${{ steps.build_checks.outputs.BUILD_STATUS }} |
-          | Tests | ${{ steps.build_checks.outputs.TESTS_STATUS }} |
-          | Lint | ${{ steps.build_checks.outputs.LINT_STATUS }} |
-          | TypeCheck | ${{ steps.build_checks.outputs.TYPECHECK_STATUS }} |"
-
-          # Substitute template variables using awk
-          awk '
+          # Substitute template variables using awk and store in variable
+          VERIFY_PROMPT=$(awk '
             BEGIN {
               while ((getline line < "/tmp/feature_request.txt") > 0) {
                 feature = feature (feature ? "\n" : "") line
@@ -921,14 +830,15 @@ jobs:
               gsub(/\{\{BUILD_OUTPUT\}\}/, build_output)
               print
             }
-          ' /tmp/verify-template.md > /tmp/verify-prompt.md
+          ' /tmp/verify-template.md)
 
           echo "Starting verification..."
 
-          claude --print "$(cat /tmp/verify-prompt.md)" \
-            --output-format json \
+          # Run agent runner in implementation mode
+          echo "$VERIFY_PROMPT" | bun run scripts/claude-agent-runner.ts \
+            --cwd "$(pwd)" \
             --model ${{ inputs.claude_model }} \
-            --dangerously-skip-permissions \
+            --mode implementation \
             > verify-result.json 2> verify-error.log || true
 
           cat verify-result.json
