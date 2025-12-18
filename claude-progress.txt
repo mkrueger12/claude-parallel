@@ -1,4 +1,75 @@
-## Session Progress - Task 3: Convert Workflows to Standalone
+## Session Progress - Task 4: Implement Core Installer Logic
+
+### What I Accomplished:
+- Installed fs-extra dependency for robust file operations (with TypeScript types)
+- Created cli/copy-templates.ts (158 lines) with complete file copying logic:
+  * getTemplatesDir() - finds templates directory in development or installed package locations
+  * copyFile() - copies single file with overwrite protection and dry-run support
+  * copyDir() - recursively copies entire directories
+  * copyTemplates() - main orchestration function that selectively copies based on feature selection
+- Updated cli/install.ts to import and use the real copyTemplates implementation
+- Removed placeholder copyTemplates function from install.ts
+
+### Verification Completed:
+✓ TypeScript type-check passes with no errors
+✓ Dry-run mode works correctly (shows what would be copied without writing files)
+✓ Actual file copying works (verified by creating test installation)
+✓ Overwrite protection works (skips existing files unless --force is used)
+✓ Selective copying based on feature flags works:
+  - Always copies: actions (4 files), scripts (1 file), prompts (5 files)
+  - Conditional: workflows (2 files), agents (4 files)
+✓ File contents verified - copied files match source templates exactly
+✓ Test installation with agents created 16 files correctly
+✓ Test installation without agents created 12 files correctly
+
+### Key Implementation Details:
+
+**File Copying Logic:**
+- getTemplatesDir() checks both dev path (../templates) and installed path (../../templates)
+- copyFile() provides overwrite protection, dry-run support, and progress logging
+- copyDir() recursively traverses directories and counts copied files
+- Comprehensive error handling with fs.ensureDir to create parent directories
+
+**Feature Selection Support:**
+- Always copies: actions, scripts, prompts (required for all workflows)
+- planningWorkflow: copies templates/workflows/claude-plan.yml
+- implementWorkflow: copies templates/workflows/claude-implement.yml
+- agents: copies all 4 agent files to .claude/agents/
+
+**Test Results:**
+```
+# Dry-run test:
+Would create 12 files (without agents)
+
+# Actual copy test:
+Created 12 files (without agents)
+Created 16 files (with agents)
+
+# Overwrite protection test:
+Created 0 files (all files already existed, no --force flag)
+```
+
+### Files Created/Modified:
+- cli/copy-templates.ts (new file, 158 lines)
+- cli/install.ts (modified, removed placeholder function, added import)
+- package.json (added fs-extra dependency)
+- bun.lock (updated with new dependencies)
+
+### Current Status:
+- Total tests: 12
+- Tests passing: 3/12 (Tests #3, #4, #5)
+- Tests failing: 9
+
+### Next Steps:
+The next task to work on is Task 5: Add Interactive Prompts
+- Install inquirer dependency for interactive CLI prompts
+- Create cli/prompts.ts with feature selection prompts
+- Update cli/install.ts to use interactive prompts when --skip-prompts is not set
+- Provide user-friendly selection for workflows and agents
+
+---
+
+## Previous Session - Task 3: Convert Workflows to Standalone
 
 ### What I Accomplished:
 - Successfully converted multi-provider-plan-v2.yml to standalone templates/workflows/claude-plan.yml

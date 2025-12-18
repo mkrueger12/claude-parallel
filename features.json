@@ -56,7 +56,7 @@
       "Step 4: Verify .github/claude-parallel/prompts/ contains prompt files",
       "Step 5: Verify .github/actions/ contains action directories"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -68,7 +68,7 @@
       "Step 3: Verify output shows what would be created",
       "Step 4: Verify no files were actually written to the directory"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -129,7 +129,7 @@
       "Step 3: Verify .claude/agents/ directory is created",
       "Step 4: Verify all 4 agent files are present (coding-agent.md, etc.)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
