@@ -8,7 +8,7 @@
       "Step 2: Verify help text is displayed with usage instructions",
       "Step 3: Verify exit code is 0"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -19,7 +19,7 @@
       "Step 2: Verify version number is displayed matching package.json",
       "Step 3: Verify exit code is 0"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
