@@ -1,49 +1,59 @@
-## Session Progress - Task 2: Create Template Files Directory Structure
+## Session Progress - Task 3: Convert Workflows to Standalone
 
 ### What I Accomplished:
-- Successfully created the templates/ directory structure with all required subdirectories
-- Copied all 5 prompt files from prompts/ to templates/prompts/
-- Copied all 4 agent files from .claude/agents/ to templates/agents/
-- Copied 3 action directories from .github/actions/ (get-issue-details, setup-claude, detect-runtime)
-- Created new simplified fetch-agents action for local use in templates/actions/fetch-agents/
-- Created placeholder workflow files (claude-plan.yml and claude-implement.yml) for Task 3
-- Created templates/scripts/package.json with required dependencies
+- Successfully converted multi-provider-plan-v2.yml to standalone templates/workflows/claude-plan.yml
+- Successfully converted reusable-implement-issue.yml to standalone templates/workflows/claude-implement.yml
+- Replaced all external action references (mkrueger12/claude-parallel) with local references (./.github/actions)
+- Replaced all curl commands with cat commands reading from .github/claude-parallel/prompts/
+- Changed script execution from "bun run src/agents/*.ts" to "node .github/claude-parallel/scripts/*.js"
+- Added "Install script dependencies" steps to install npm packages in .github/claude-parallel/scripts
+- Converted claude-implement.yml from reusable workflow (workflow_call) to standalone (issues + workflow_dispatch)
+- Updated all workflow inputs to work with both label triggers and manual dispatch
 
 ### Verification Completed:
- templates/prompts/ contains 5 .md files
- templates/agents/ contains 4 .md files
- templates/actions/ contains 4 subdirectories
- templates/workflows/ contains 2 .yml files
- templates/scripts/ contains package.json
- All files copied verbatim with matching line counts
- Test #3 marked as passing in features.json
+✓ No external repository references: grep -r "mkrueger12" returns empty
+✓ All 'uses:' references are either standard actions or start with './.github/'
+✓ No curl commands to external URLs found
+✓ All script paths point to .github/claude-parallel/scripts/*.js
+✓ All prompt paths point to .github/claude-parallel/prompts/*.md
+✓ Test #4 marked as passing in features.json
 
-### Files Created:
-- templates/prompts/implementation.md
-- templates/prompts/review.md
-- templates/prompts/verify.md
-- templates/prompts/plan-generation.md
-- templates/prompts/consolidate-and-create-linear.md
-- templates/agents/coding-agent.md
-- templates/agents/codebase-locator.md
-- templates/agents/codebase-analyzer.md
-- templates/agents/debug-agent.md
-- templates/actions/get-issue-details/action.yml
-- templates/actions/setup-claude/action.yml
-- templates/actions/detect-runtime/action.yml
-- templates/actions/fetch-agents/action.yml (new simplified version)
-- templates/workflows/claude-plan.yml (placeholder)
-- templates/workflows/claude-implement.yml (placeholder)
-- templates/scripts/package.json
+### Key Changes Made:
+
+**claude-plan.yml (301 lines):**
+- Changed from: `bun run src/agents/planning-agent.ts` → `node .github/claude-parallel/scripts/planning-agent.js`
+- Changed from: `bun run src/agents/linear-agent.ts` → `node .github/claude-parallel/scripts/linear-agent.js`
+- Kept all triggers and job structure identical to original
+- Action reference already local: `./.github/actions/get-issue-details`
+
+**claude-implement.yml (927 lines):**
+- Converted from `workflow_call` to direct triggers: `issues` (labeled) + `workflow_dispatch`
+- Replaced 4 external action references:
+  * `mkrueger12/claude-parallel/.github/actions/get-issue-details@main` → `./.github/actions/get-issue-details`
+  * `mkrueger12/claude-parallel/.github/actions/setup-claude@main` → `./.github/actions/setup-claude`
+  * `mkrueger12/claude-parallel/.github/actions/fetch-agents@main` → `./.github/actions/fetch-agents`
+  * `mkrueger12/claude-parallel/.github/actions/detect-runtime@main` → `./.github/actions/detect-runtime`
+- Replaced 3 curl commands with cat commands:
+  * `curl ... /prompts/implementation.md` → `cat .github/claude-parallel/prompts/implementation.md`
+  * `curl ... /prompts/review.md` → `cat .github/claude-parallel/prompts/review.md`
+  * `curl ... /prompts/verify.md` → `cat .github/claude-parallel/prompts/verify.md`
+- Changed script execution: `bun run scripts/claude-agent-runner.ts` → `node .github/claude-parallel/scripts/claude-agent-runner.js`
+- Added condition for label trigger: `if: github.event.label.name == 'claude-implement' || github.event_name == 'workflow_dispatch'`
+- Converted workflow inputs to handle both trigger types (github.event.inputs.* for dispatch, defaults for label triggers)
+
+### Files Modified:
+- templates/workflows/claude-plan.yml (75 lines → 301 lines)
+- templates/workflows/claude-implement.yml (77 lines → 927 lines)
+- features.json (marked test #4 as passing)
 
 ### Current Status:
 - Total tests: 12
-- Tests passing: 1/12 (Test #3 - Template directory structure)
-- Tests failing: 11
+- Tests passing: 2/12 (Test #3, #4)
+- Tests failing: 10
 
 ### Next Steps:
-The next task to work on is Task 3: Convert Workflows to Standalone
-- Need to convert multi-provider-plan-v2.yml to templates/workflows/claude-plan.yml
-- Need to convert reusable-implement-issue.yml to templates/workflows/claude-implement.yml
-- Replace all external repository references with local paths
-- Remove curl commands and use local file paths instead
+The next task to work on is Task 4: Implement Core Installer Logic
+- Create cli/copy-templates.ts with file copying functions
+- Implement getTemplatesDir(), copyFile(), copyDir(), and copyTemplates() functions
+- Handle path resolution for both dev and installed package contexts
+- Support --force and --dry-run options

@@ -43,7 +43,7 @@
       "Step 3: Verify all 'uses:' references start with './.github/'",
       "Step 4: Verify no curl commands fetch from external URLs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

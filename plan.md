@@ -1,589 +1,552 @@
-# Multi-Provider Plan Generation with Linear Integration Implementation Plan
+# Implementation Plan: CLI Installer for Claude Parallel
 
 ## Overview
 
-This plan implements a GitHub Action that generates implementation plans using multiple AI providers (Anthropic Claude, Google Gemini, OpenAI GPT) through the OpenCode SDK, consolidates them into a unified strategy, and creates Linear issues with sub-tasks for tracking.
+Transform claude-parallel from a fork-based workflow system into a self-contained CLI installer (`npx install-claude-parallel`) that copies all necessary files into any user repository. This follows the pattern of tools like `husky-init` and `create-react-app`, making the system fully portable and customizable after installation.
 
-## Implementation Task List
+## Implementation Task List:
 
-1. **Create OpenCode plan generation script** - TypeScript script that orchestrates parallel plan generation across 3 AI providers
-2. **Create consolidation + Linear script** - Single script that consolidates 3 plans AND creates Linear issues in the same OpenCode session (model has access to Linear MCP tools)
-3. **Create planning prompt template** - Prompt for generating implementation plans from issue descriptions
-4. **Create consolidation + Linear prompt template** - Prompt that instructs the model to consolidate plans AND create Linear issues using MCP tools
-5. **Create setup-opencode composite action** - GitHub Action to install and configure OpenCode SDK with provider authentication
-6. **Create setup-linear-mcp composite action** - GitHub Action to configure Linear MCP server with HTTP transport
-7. **Create main workflow** - `multi-provider-plan.yml` workflow that orchestrates the entire process
-8. **Update README** - Document the new workflow, required secrets, and usage
+1. **Create CLI Package Structure** - Set up the cli/ directory with TypeScript entry point and support files
+2. **Create Template Files** - Organize all workflow, script, prompt, and agent files as templates
+3. **Convert Workflows to Standalone** - Remove external `uses:` references, make workflows self-contained
+4. **Implement Core Installer Logic** - Build the file copying and configuration generation system
+5. **Add Interactive Prompts** - Implement feature selection and configuration prompts
+6. **Bundle Scripts for Distribution** - Configure build system to create standalone JS bundles
+7. **Update Package.json for Publishing** - Add bin field, files field, and npm publishing configuration
+8. **Create .env.example Generator** - Document required environment variables
 
 ## Current State Analysis
 
-**What Exists:**
-- Reusable workflow pattern at `.github/workflows/reusable-implement-issue.yml` (1029 lines)
-- Composite actions for setup-claude (`.github/actions/setup-claude/action.yml`), get-issue-details, fetch-agents, detect-runtime
-- Prompt templates at `.github/prompts/implementation.md`, `review.md`, `verify.md`
-- Pattern of using matrix strategy for parallel execution (lines 86-92 of reusable workflow)
+### Existing Assets to Convert to Templates:
+- **5 Workflow files** in `.github/workflows/`
+- **5 Custom actions** in `.github/actions/`
+- **4 Agent definitions** in `.claude/agents/`
+- **5 Prompt templates** in `prompts/`
+- **4 TypeScript source files** in `src/` that need bundling
 
-**What's Missing:**
-- OpenCode SDK integration (need to install `@opencode-ai/sdk`)
-- Multi-provider orchestration (currently only uses Claude via CLI)
-- Linear MCP server configuration
-- Plan consolidation logic
-- Scripts for OpenCode-based plan generation
+### External Dependencies to Remove:
+- 13 references to `mkrueger12/claude-parallel@main` in `reusable-implement-issue.yml`
+- curl URLs fetching from external repository
+- External prompts_repo defaults
 
-**Key Patterns to Follow:**
-- Use composite actions for reusable setup steps (`.github/actions/*/action.yml` pattern)
-- Store prompts in `.github/prompts/` directory with `{{PLACEHOLDER}}` variables
-- Use TypeScript/JavaScript for complex logic (Node.js runtime in CI)
-- Parse JSON output from AI responses
+### Key Constraints:
+- Must work with Bun and Node.js (current project uses both)
+- TypeScript scripts need to be bundled into standalone JS
+- Package must be publishable to npm with `npx` support
 
 ## Desired End State
 
-After implementation:
-1. A new GitHub Action workflow `multi-provider-plan.yml` triggers on issue creation or `claude-plan` label
-2. The workflow generates 3 implementation plans in parallel (one per provider)
-3. A consolidation step merges the 3 plans into a unified strategy
-4. A Linear parent issue is created with the consolidated plan
-5. Linear sub-issues are created for each implementation step
-6. The workflow posts a summary comment on the original GitHub issue
+After running `npx install-claude-parallel`, a user's repository will contain:
 
-**Verification:**
-- Trigger the workflow manually with a test issue
-- Verify 3 plan artifacts are created (one per provider)
-- Verify consolidated plan is generated
-- Verify Linear parent issue and sub-issues are created
-- Verify GitHub issue comment is posted with Linear links
+```
+user-repo/
+├── .github/
+│   ├── workflows/
+│   │   ├── claude-plan.yml          # Standalone planning workflow
+│   │   └── claude-implement.yml     # Standalone implementation workflow
+│   ├── actions/                     # Local composite actions
+│   │   ├── get-issue-details/
+│   │   ├── setup-claude/
+│   │   ├── fetch-agents/
+│   │   └── detect-runtime/
+│   └── claude-parallel/
+│       ├── scripts/
+│       │   ├── planning-agent.js    # Bundled TypeScript
+│       │   ├── linear-agent.js      # Bundled TypeScript
+│       │   └── claude-agent-runner.js
+│       └── prompts/
+│           ├── implementation.md
+│           ├── review.md
+│           ├── verify.md
+│           ├── plan-generation.md
+│           └── consolidate-and-create-linear.md
+├── .claude/agents/ (optional)       # Only if --include-agents flag
+└── .env.example                     # Documents required secrets
+```
 
-### Key Discoveries
+### Verification:
+- Running `npx install-claude-parallel` in a fresh repo creates the expected structure
+- Workflows trigger correctly on label events
+- All scripts execute without errors (no missing dependencies)
+- `--include-agents` flag installs optional agent files
+- `--force` flag overwrites existing files without prompting
+- Package publishes to npm and can be installed globally
 
-- OpenCode SDK uses `client.session.prompt()` with `model: { providerID, modelID }` to specify providers (research findings)
-- Linear MCP server endpoint: `https://mcp.linear.app/mcp` with OAuth via `mcp-remote` package
-- Current workflow uses `${{ inputs.claude_model }}` variable at `.github/workflows/reusable-implement-issue.yml:229`
-- Existing pattern for JSON schema validation in review step (lines 387-394)
-- Issue body is written to temp file via get-issue-details action (line 59: `/tmp/issue_body.txt`)
+### Key Discoveries:
+- `reusable-implement-issue.yml:103` - External action reference pattern: `mkrueger12/claude-parallel/.github/actions/get-issue-details@main`
+- `planning-agent.ts:51` - Prompt path resolution: `join(__dirname, "..", "..", "prompts", "plan-generation.md")`
+- `package.json:5` - Project already uses ESM (`"type": "module"`)
+- `tsconfig.json:24-26` - Outputs to `dist/` directory with declarations
+- Workflows use `curl` to fetch prompts from external repos (lines 211, 379, 799 in reusable workflow)
 
 ## What We're NOT Doing
 
-1. **NOT modifying existing reusable-implement-issue.yml** - This is a new, separate workflow
-2. **NOT implementing the actual code changes** - This workflow only generates plans
-3. **NOT using GitHub Actions matrix for providers** - Using OpenCode SDK parallel sessions instead
-4. **NOT creating a new MCP server** - Using official Linear MCP server at `mcp.linear.app`
-5. **NOT storing Linear OAuth tokens locally** - Using API key authentication via `LINEAR_API_KEY` secret
-6. **NOT implementing interactive OAuth flow** - Using API key directly in headers
+1. **NOT changing core functionality** - The installer copies existing code, not modifying how it works
+2. **NOT adding new AI features** - Focus is on packaging and distribution only
+3. **NOT supporting multiple package managers for CLI** - npm/npx only for the installer
+4. **NOT creating a monorepo** - Single package with templates directory
+5. **NOT auto-updating** - Users must re-run installer manually to update
 
 ## Implementation Approach
 
-The implementation follows a layered architecture where the consolidation and Linear issue creation happen in **the same model session**:
+Use a template-based installer pattern:
+1. Bundle all source TypeScript into standalone JavaScript files
+2. Organize templates in a hierarchical structure matching target layout
+3. Use @inquirer/prompts for interactive feature selection
+4. Use fs-extra for robust file copying with overwrite protection
+5. Generate .env.example dynamically based on selected features
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      GitHub Actions Workflow                             │
-│                     (multi-provider-plan.yml)                            │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│   Job 1: Generate Plans              Job 2: Consolidate + Create Linear  │
-│   ┌─────────────────────┐           ┌────────────────────────────────┐  │
-│   │ 3 parallel sessions │           │ Single session with MCP tools │  │
-│   │ (one per provider)  │  ──────►  │ 1. Reads 3 plans               │  │
-│   │                     │           │ 2. Consolidates into one       │  │
-│   └─────────────────────┘           │ 3. Calls Linear MCP to create  │  │
-│                                     │    parent + sub-issues         │  │
-│                                     └────────────────────────────────┘  │
-├─────────────────────────────────────────────────────────────────────────┤
-│                           OpenCode SDK                                   │
-│                  (sessions with MCP server access)                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│  ┌───────────┐  ┌───────────┐  ┌───────────┐    ┌──────────────────┐   │
-│  │ Anthropic │  │  OpenAI   │  │  Google   │    │   Linear MCP     │   │
-│  │  Claude   │  │   GPT-4   │  │  Gemini   │    │ (HTTP transport) │   │
-│  └───────────┘  └───────────┘  └───────────┘    └──────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+## Files to Create
 
-**Key Architecture Decision:**
-The consolidation model (Claude) runs in a session with Linear MCP tools available. After reviewing and merging the 3 plans, the **same session** immediately calls the Linear MCP `create_issue` tool to create the parent issue and sub-issues. This ensures:
-- No context loss between consolidation and issue creation
-- The model can adapt issue descriptions based on the consolidated plan
-- Single invocation = simpler workflow, fewer failure points
+### New Files:
+| File | Purpose |
+|------|---------|
+| `cli/install.ts` | Main CLI entry point with shebang |
+| `cli/types.ts` | TypeScript interfaces for CLI |
+| `cli/prompts.ts` | Interactive prompt definitions |
+| `cli/copy-templates.ts` | File copying logic |
+| `cli/generate-env.ts` | .env.example generation |
+| `templates/workflows/claude-plan.yml` | Standalone planning workflow |
+| `templates/workflows/claude-implement.yml` | Standalone implementation workflow |
+| `templates/actions/*/action.yml` | Local composite actions (4 directories) |
+| `templates/scripts/*.js` | Bundled agent scripts (3 files) |
+| `templates/prompts/*.md` | All 5 prompt templates |
+| `templates/agents/*.md` | All 4 agent definitions |
 
-**Strategy:**
-1. Create modular TypeScript scripts in `.github/scripts/` directory
-2. Use composite actions for setup (OpenCode with Linear MCP configured)
-3. Run plan generation in a single job with parallel Promise.all()
-4. Run consolidation + Linear creation in a single OpenCode session with MCP tools
-5. Use Linear API key for MCP authentication (simpler than OAuth flow in CI)
-
-## Files to Create/Edit
-
-| File | Action | Description |
-|------|--------|-------------|
-| `.github/scripts/generate-plans.ts` | Create | OpenCode SDK script for parallel plan generation across 3 providers |
-| `.github/scripts/consolidate-and-create-linear.ts` | Create | Single script that runs one OpenCode session with Linear MCP to consolidate plans AND create issues |
-| `.github/scripts/package.json` | Create | Dependencies for scripts |
-| `.github/scripts/tsconfig.json` | Create | TypeScript configuration |
-| `.github/prompts/plan-generation.md` | Create | Prompt template for generating plans |
-| `.github/prompts/consolidate-and-create-linear.md` | Create | Prompt that instructs model to consolidate AND call Linear MCP tools |
-| `.github/actions/setup-opencode/action.yml` | Create | Composite action for OpenCode setup with Linear MCP configured |
-| `.github/workflows/multi-provider-plan.yml` | Create | Main workflow file |
-| `README.md` | Edit | Add documentation for new workflow |
+### Files to Modify:
+| File | Changes |
+|------|---------|
+| `package.json` | Add `bin`, `files`, dependencies for CLI |
+| `tsconfig.json` | Add `cli/` to includes |
 
 ---
 
-## Task 1: Create TypeScript Scripts Package
+## Task 1: Create CLI Package Structure
 
-**File**: `.github/scripts/package.json`
+**Files**: `cli/install.ts`, `cli/types.ts`
 
-**Description of Changes**: Create a package.json file in `.github/scripts/` that defines the project dependencies for the plan generation scripts. Include:
-- `@opencode-ai/sdk` for multi-provider AI orchestration
-- `@linear/sdk` as fallback for Linear API (if MCP fails)
-- TypeScript and ts-node for execution
-- Type definitions for Node.js
+**Description of Changes**:
 
-**File**: `.github/scripts/tsconfig.json`
+Create `cli/types.ts` with TypeScript interfaces:
+- `InstallOptions` interface: targetDir, includeAgents, force, dryRun, skipPrompts flags
+- `FeatureSelection` interface: planningWorkflow, implementWorkflow, agents booleans
+- `TemplateFile` interface: source path, destination path, optional flag
 
-**Description of Changes**: Create TypeScript configuration with:
-- Target ES2022 for modern Node.js features
-- Module resolution set to NodeNext
-- Strict mode enabled
-- Output directory set to `dist/`
+Create `cli/install.ts` as the main CLI entry point with:
+- Shebang line (`#!/usr/bin/env node`)
+- Command-line argument parsing using process.argv:
+  - `--include-agents` - Include custom Claude agents
+  - `--force` - Overwrite existing files
+  - `--dry-run` - Show what would be done without writing
+  - `--skip-prompts` - Use defaults, don't prompt
+  - `--help` - Display help message
+  - `--version` - Display package version
+- Target directory argument (defaults to process.cwd())
+- Main execution flow:
+  1. Parse arguments
+  2. Run interactive prompts (if not --skip-prompts)
+  3. Copy template files
+  4. Generate .env.example
+  5. Print success message with next steps
 
-### Success Criteria
+### Success Criteria:
 
 #### Automated Verification:
-- [ ] `npm install` completes without errors in `.github/scripts/`
-- [ ] `npx tsc --noEmit` passes with no type errors
-- [ ] Package includes all required dependencies
+- [ ] TypeScript compiles without errors: `bun run type-check`
+- [ ] CLI entry point has correct shebang
+- [ ] `--help` flag displays usage information
+- [ ] `--version` flag displays package version
 
 #### Manual Verification:
-- [ ] Dependencies are appropriate versions (not outdated)
-- [ ] TypeScript config matches Node.js 20 LTS capabilities
+- [ ] Running `bun run cli/install.ts --help` shows proper help text
 
 ---
 
-## Task 2: Create Plan Generation Script
+## Task 2: Create Template Files Directory Structure
 
-**File**: `.github/scripts/generate-plans.ts`
+**Directory**: `templates/`
 
-**Description of Changes**: Create the main script that uses OpenCode SDK to generate implementation plans from 3 AI providers in parallel. The script should:
+**Description of Changes**:
 
-1. **Initialize OpenCode client** with configuration for all 3 providers
-2. **Set up provider authentication** using environment variables:
-   - `ANTHROPIC_API_KEY` for Anthropic
-   - `OPENAI_API_KEY` for OpenAI
-   - `GOOGLE_API_KEY` for Google
-3. **Read model configuration** from environment variables:
-   - `ANTHROPIC_MODEL` (default: `claude-3-5-sonnet-20241022`)
-   - `OPENAI_MODEL` (default: `gpt-4-turbo-preview`)
-   - `GOOGLE_MODEL` (default: `gemini-pro`)
-4. **Create 3 sessions** (one per provider) using `client.session.create()`
-5. **Send prompts in parallel** using `Promise.all()` with `client.session.prompt()`:
-   - Anthropic: `{ providerID: "anthropic", modelID: process.env.ANTHROPIC_MODEL }`
-   - OpenAI: `{ providerID: "openai", modelID: process.env.OPENAI_MODEL }`
-   - Google: `{ providerID: "google", modelID: process.env.GOOGLE_MODEL }`
-6. **Read prompt template** from `.github/prompts/plan-generation.md`
-7. **Substitute placeholders** in template (`{{ISSUE_TITLE}}`, `{{ISSUE_BODY}}`)
-8. **Parse responses** and extract structured plan JSON
-9. **Write output files** to `plans/anthropic.json`, `plans/openai.json`, `plans/google.json`
-10. **Handle errors** gracefully - if one provider fails, continue with others
+Create the templates directory structure by copying existing files:
 
-**Input**: Environment variables for API keys, issue title/body from args or stdin
-**Output**: 3 JSON files with structured implementation plans
+1. Create `templates/workflows/` directory:
+   - Copy `prompts/*.md` files to `templates/prompts/`
 
-### Success Criteria
+2. Create `templates/actions/` directory structure:
+   - Copy `.github/actions/get-issue-details/` to `templates/actions/get-issue-details/`
+   - Copy `.github/actions/setup-claude/` to `templates/actions/setup-claude/`
+   - Copy `.github/actions/detect-runtime/` to `templates/actions/detect-runtime/`
+   - Create new `templates/actions/fetch-agents/` (simplified local version)
+
+3. Create `templates/prompts/` directory:
+   - Copy all 5 files from `prompts/` directory
+
+4. Create `templates/agents/` directory:
+   - Copy all 4 files from `.claude/agents/`
+
+5. Create empty `templates/scripts/` directory (populated by build step)
+
+### Success Criteria:
 
 #### Automated Verification:
-- [ ] Script compiles without TypeScript errors: `npx tsc`
-- [ ] Script can be executed: `npx ts-node generate-plans.ts`
-- [ ] Creates output directory if not exists
-- [ ] Writes valid JSON files for each provider
+- [ ] Directory structure exists: `ls -R templates/`
+- [ ] All 5 prompt files present in `templates/prompts/`
+- [ ] All 4 agent files present in `templates/agents/`
+- [ ] All 4 action directories present in `templates/actions/`
 
 #### Manual Verification:
-- [ ] Plans are coherent and relevant to the input issue
-- [ ] Each provider produces a distinct plan (not identical)
-- [ ] Error handling works when a provider API key is missing
+- [ ] File contents match source files
 
 ---
 
-## Task 3: Create Consolidation + Linear Script (Same Session)
+## Task 3: Convert Workflows to Standalone
 
-**File**: `.github/scripts/consolidate-and-create-linear.ts`
+**Files**: `templates/workflows/claude-plan.yml`, `templates/workflows/claude-implement.yml`
 
-**Description of Changes**: Create a script that runs a **single OpenCode session** where the model:
-1. Reviews and consolidates 3 provider plans
-2. Creates Linear parent issue and sub-issues using MCP tools
+**Description of Changes**:
 
-The key insight is that the OpenCode session has Linear MCP tools available, so the model can call them directly during the same invocation. This is NOT two separate scripts - it's one script that creates one session with MCP access.
+Create `templates/workflows/claude-plan.yml`:
+- Based on `.github/workflows/multi-provider-plan-v2.yml`
+- Change action reference from `./.github/actions/get-issue-details` to `./.github/actions/get-issue-details`
+- Update script paths from `bun run src/agents/planning-agent.ts` to `node .github/claude-parallel/scripts/planning-agent.js`
+- Update linear agent path similarly
+- Install dependencies step should `cd .github/claude-parallel && npm install` (for bundled scripts' deps)
 
-The script should:
+Create `templates/workflows/claude-implement.yml`:
+- Based on `.github/workflows/reusable-implement-issue.yml` but converted to standalone
+- Change from `workflow_call` to direct triggers (`issues`, `workflow_dispatch`)
+- Replace all 13 external action references:
+  - `mkrueger12/claude-parallel/.github/actions/get-issue-details@main` → `./.github/actions/get-issue-details`
+  - `mkrueger12/claude-parallel/.github/actions/setup-claude@main` → `./.github/actions/setup-claude`
+  - `mkrueger12/claude-parallel/.github/actions/fetch-agents@main` → `./.github/actions/fetch-agents`
+  - `mkrueger12/claude-parallel/.github/actions/detect-runtime@main` → `./.github/actions/detect-runtime`
+- Replace all curl commands fetching prompts:
+  - Change `curl ... https://raw.githubusercontent.com/mkrueger12/claude-parallel/...` to `cat .github/claude-parallel/prompts/...`
+- Update script execution from `bun run scripts/claude-agent-runner.ts` to `node .github/claude-parallel/scripts/claude-agent-runner.js`
+- Move inputs to be defaults rather than workflow_call parameters
 
-1. **Read all 3 plan JSON files** from `plans/` directory
-2. **Load prompt template** from `.github/prompts/consolidate-and-create-linear.md`
-3. **Configure OpenCode client** with Linear MCP server:
-   ```typescript
-   const client = new Opencode({
-     config: {
-       mcp: {
-         linear: {
-           type: "remote",
-           url: "https://mcp.linear.app/mcp",
-           headers: {
-             "Authorization": `Bearer ${process.env.LINEAR_API_KEY}`
-           }
-         }
-       }
-     }
-   });
-   ```
-4. **Create a single session** with Anthropic Claude
-5. **Send prompt** that includes:
-   - All 3 plans (Anthropic, OpenAI, Google)
-   - Instructions to consolidate into unified plan
-   - Instructions to call Linear MCP `create_issue` tool for parent issue
-   - Instructions to call Linear MCP `create_issue` tool for each sub-issue with `parentId`
-   - The `LINEAR_TEAM_ID` for issue creation
-6. **The model in this session will**:
-   - Analyze and merge the 3 plans
-   - Call `mcp__linear-server__create_issue` to create parent issue
-   - Extract parent issue UUID from response
-   - Call `mcp__linear-server__create_issue` for each implementation step with `parentId` set
-7. **Capture session output** including:
-   - Consolidated plan (from model reasoning)
-   - Linear issue URLs (from MCP tool responses)
-8. **Write results** to `output/result.json`:
-   ```json
-   {
-     "consolidatedPlan": {
-       "title": "...",
-       "overview": "...",
-       "steps": [...]
-     },
-     "linearIssues": {
-       "parent": { "id": "uuid", "identifier": "ENG-123", "url": "..." },
-       "subIssues": [
-         { "id": "uuid", "identifier": "ENG-124", "url": "...", "step": 1 }
-       ]
-     }
-   }
-   ```
-
-**Why Single Session Matters:**
-- The model retains context of the consolidated plan when creating issues
-- No JSON parsing/passing between scripts - the model knows what it just decided
-- Fewer failure points - one invocation instead of two
-- The model can adapt issue descriptions naturally based on its analysis
-
-### Success Criteria
+### Success Criteria:
 
 #### Automated Verification:
-- [ ] Script compiles without TypeScript errors
-- [ ] Script connects to OpenCode with Linear MCP configured
-- [ ] Session prompt includes all 3 input plans
-- [ ] Output JSON contains both consolidatedPlan and linearIssues
+- [ ] No external repository references: `grep -r "mkrueger12" templates/workflows/` returns empty
+- [ ] No curl commands to external URLs in workflows
+- [ ] All action references start with `./.github/`
 
 #### Manual Verification:
-- [ ] Model successfully calls Linear MCP tools
-- [ ] Parent issue is created with consolidated plan content
-- [ ] Sub-issues are linked to parent (visible in Linear UI)
-- [ ] Issue descriptions reflect the consolidated analysis
+- [ ] Workflow triggers are correct (issues labeled, workflow_dispatch)
+- [ ] All paths point to local `.github/` locations
 
 ---
 
-## Task 4: Create Prompt Templates
+## Task 4: Implement Core Installer Logic
 
-**File**: `.github/prompts/plan-generation.md`
+**File**: `cli/copy-templates.ts`
 
-**Description of Changes**: Create a prompt template that instructs AI providers to generate implementation plans. The prompt should:
+**Description of Changes**:
 
-1. **Set context**: "You are a senior software engineer tasked with creating an implementation plan"
-2. **Provide issue details**: Use `{{ISSUE_TITLE}}` and `{{ISSUE_BODY}}` placeholders
-3. **Define output structure**: Request JSON output with specific schema:
-   - `overview`: Brief description
-   - `steps`: Array of implementation steps with title, description, priority
-   - `risks`: Potential issues and mitigations
-   - `dependencies`: Required tools, libraries, or services
-4. **Include constraints**: Match existing project patterns, consider testing, avoid over-engineering
+Create file copying module with these functions:
 
-**File**: `.github/prompts/consolidate-and-create-linear.md`
+```typescript
+import fs from 'fs-extra';
+import path from 'path';
 
-**Description of Changes**: Create a prompt template that instructs the model to both consolidate plans AND create Linear issues in the same session. The prompt should:
+interface CopyOptions {
+  force: boolean;
+  dryRun: boolean;
+}
 
-1. **Present all 3 plans** with source attribution:
-   - `{{ANTHROPIC_PLAN}}` - Plan from Claude
-   - `{{OPENAI_PLAN}}` - Plan from GPT-4
-   - `{{GOOGLE_PLAN}}` - Plan from Gemini
-2. **Provide Linear context**:
-   - `{{LINEAR_TEAM_ID}}` - Team to create issues in
-   - `{{LINEAR_PROJECT_ID}}` - Project to add issues to (optional)
-   - `{{GITHUB_ISSUE_URL}}` - Link back to original GitHub issue
-3. **Instruct consolidation**:
-   - Analyze all 3 plans
-   - Identify best approaches from each
-   - Create unified implementation strategy
-   - Number steps in order of priority
-4. **Instruct Linear issue creation** (in same session):
-   - "After consolidating, use the `mcp__linear-server__create_issue` tool to create a parent issue with the consolidated plan"
-   - "For each implementation step, create a sub-issue using `mcp__linear-server__create_issue` with `parentId` set to the parent issue UUID"
-   - "Include the GitHub issue link in the parent issue description"
-5. **Define expected tool calls**:
-   ```
-   First, call: mcp__linear-server__create_issue with:
-   - title: "Implementation Plan: {{ISSUE_TITLE}}"
-   - team: "{{LINEAR_TEAM_ID}}"
-   - project: "{{LINEAR_PROJECT_ID}}" (if provided)
-   - description: [consolidated plan markdown]
-   - labels: ["generated-plan", "multi-provider"]
+// Get template directory (works for both dev and installed package)
+function getTemplatesDir(): string
 
-   Then, for each step, call: mcp__linear-server__create_issue with:
-   - title: "Step N: [step title]"
-   - team: "{{LINEAR_TEAM_ID}}"
-   - project: "{{LINEAR_PROJECT_ID}}" (if provided)
-   - parentId: [UUID from parent issue response]
-   - description: [step description]
-   ```
+// Copy a single file with overwrite protection
+async function copyFile(src: string, dest: string, options: CopyOptions): Promise<boolean>
 
-### Success Criteria
+// Copy an entire directory recursively
+async function copyDir(src: string, dest: string, options: CopyOptions): Promise<number>
 
-#### Automated Verification:
-- [ ] Files exist at correct paths
-- [ ] All placeholders are valid (`{{VARIABLE}}` format)
-- [ ] JSON schema examples are valid JSON
-- [ ] Prompt includes MCP tool call instructions
-
-#### Manual Verification:
-- [ ] Prompts are clear and unambiguous
-- [ ] Consolidation instructions produce coherent plans
-- [ ] Linear tool call instructions match MCP tool signatures
-
----
-
-## Task 5: Create Setup OpenCode Composite Action
-
-**File**: `.github/actions/setup-opencode/action.yml`
-
-**Description of Changes**: Create a composite action that sets up the OpenCode SDK environment in GitHub Actions, including Linear MCP configuration. The action should:
-
-1. **Accept inputs**:
-   - `anthropic_api_key` (required)
-   - `openai_api_key` (required)
-   - `google_api_key` (required)
-   - `linear_api_key` (required) - For Linear MCP access
-   - `linear_team_id` (required) - Team for issue creation
-   - `linear_project_id` (optional) - Project to add issues to
-   - `anthropic_model` (optional, default: `claude-3-5-sonnet-20241022`)
-   - `openai_model` (optional, default: `gpt-4-turbo-preview`)
-   - `google_model` (optional, default: `gemini-pro`)
-2. **Install Node.js dependencies** in `.github/scripts/`
-3. **Set environment variables**:
-   - `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY` (auth)
-   - `ANTHROPIC_MODEL`, `OPENAI_MODEL`, `GOOGLE_MODEL` (model selection)
-   - `LINEAR_API_KEY`, `LINEAR_TEAM_ID`, `LINEAR_PROJECT_ID` (Linear MCP)
-4. **Validate authentication** by checking all required keys are provided
-5. **Output status** indicating successful setup
-
-Note: Linear MCP is configured directly in the OpenCode client within the consolidation script, not as a separate setup step. The `LINEAR_API_KEY` is passed via environment variable.
-
-### Success Criteria
-
-#### Automated Verification:
-- [ ] Action validates correctly in workflow
-- [ ] All environment variables are set (auth + models + Linear)
-- [ ] Dependencies install successfully
-- [ ] Fails fast if any required key is missing
-
-#### Manual Verification:
-- [ ] Action is reusable across workflows
-- [ ] Error messages are clear when keys are missing
-- [ ] Model environment variables are correctly passed to scripts
-
----
-
-## Task 6: Create Main Workflow
-
-**File**: `.github/workflows/multi-provider-plan.yml`
-
-**Description of Changes**: Create the main GitHub Actions workflow that orchestrates the entire process. The workflow uses a simplified 2-job architecture since consolidation and Linear issue creation happen in the same session.
-
-**Triggers**:
-```yaml
-on:
-  issues:
-    types: [opened, labeled]
-  workflow_dispatch:
-    inputs:
-      issue_number:
-        description: 'Issue number to generate plan for'
-        required: true
-        type: number
-      linear_project_id:
-        description: 'Linear project ID to add issues to (optional)'
-        required: false
-        type: string
-      anthropic_model:
-        description: 'Anthropic model to use'
-        required: false
-        type: string
-        default: 'claude-3-5-sonnet-20241022'
-      openai_model:
-        description: 'OpenAI model to use'
-        required: false
-        type: string
-        default: 'gpt-4-turbo-preview'
-      google_model:
-        description: 'Google model to use'
-        required: false
-        type: string
-        default: 'gemini-pro'
+// Main copy function that copies all selected features
+export async function copyTemplates(
+  targetDir: string,
+  features: FeatureSelection,
+  options: CopyOptions
+): Promise<void>
 ```
 
-**Jobs**:
+Logic:
+- Use `fs-extra` for `copy`, `ensureDir`, `pathExists` operations
+- Check if file exists before copying (skip with warning unless --force)
+- In dry-run mode, just log what would be done
+- Handle path resolution for both development (`../templates`) and installed package (`node_modules/.../templates`)
+- Log each file copied with relative path
 
-1. **`generate-plans`** job:
-   - Runs on `ubuntu-latest`
-   - Checkout repository
-   - Get issue details using `get-issue-details` action
-   - Setup OpenCode using `setup-opencode` action (passes all env vars including models)
-   - Run `generate-plans.ts` script (3 parallel provider sessions)
-   - Upload `plans/` directory as artifact
-
-2. **`consolidate-and-create-linear`** job:
-   - Depends on `generate-plans`
-   - Download plans artifact
-   - Setup OpenCode with Linear MCP configured
-   - Run `consolidate-and-create-linear.ts` script
-   - **This single script/session**:
-     - Reads all 3 plan JSON files
-     - Sends prompt to Claude with Linear MCP tools available
-     - Model consolidates plans AND calls Linear MCP to create issues
-     - Captures output including Linear issue URLs
-   - Upload `output/result.json` as artifact
-   - Post summary comment on GitHub issue with:
-     - Link to Linear parent issue
-     - List of sub-issues
-     - Brief summary of consolidated plan
-
-**Secrets Required**:
-- `ANTHROPIC_API_KEY`
-- `OPENAI_API_KEY`
-- `GOOGLE_API_KEY` (maps to `GOOGLE_GENERATIVE_AI_API_KEY`)
-- `LINEAR_API_KEY`
-- `LINEAR_TEAM_ID` (can also be a secret or input)
-- `LINEAR_PROJECT_ID` (optional - project to add issues to)
-- `GH_PAT` (for issue comments)
-
-**Condition**: Only runs if label is `claude-plan` OR event is `workflow_dispatch`
-
-### Success Criteria
+### Success Criteria:
 
 #### Automated Verification:
-- [ ] Workflow syntax is valid: `actionlint .github/workflows/multi-provider-plan.yml`
-- [ ] All referenced actions exist
-- [ ] All secrets are documented
-- [ ] Artifacts are passed between jobs correctly
-- [ ] Model inputs have sensible defaults
+- [ ] TypeScript compiles: `bun run type-check`
+- [ ] Handles missing target directory (creates it)
+- [ ] Respects --force flag
+- [ ] Respects --dry-run flag
 
 #### Manual Verification:
-- [ ] Workflow triggers on issue label
-- [ ] Workflow triggers on manual dispatch
-- [ ] Both jobs complete successfully
-- [ ] GitHub issue comment is posted with Linear links
-- [ ] Linear issues are created correctly
+- [ ] Files copied to correct locations
+- [ ] Directory structure matches expected output
 
 ---
 
-## Task 7: Update README Documentation
+## Task 5: Add Interactive Prompts
 
-**File**: `README.md`
+**File**: `cli/prompts.ts`
 
-**Description of Changes**: Add documentation section for the new multi-provider plan workflow. Updates should include:
+**Description of Changes**:
 
-1. **New section**: "Multi-Provider Plan Generation"
-2. **Overview**: Describe the workflow purpose and capabilities
-3. **Required Secrets table**:
-   | Secret | Required | Description |
-   |--------|----------|-------------|
-   | `ANTHROPIC_API_KEY` | Yes | Anthropic API key for Claude |
-   | `OPENAI_API_KEY` | Yes | OpenAI API key for GPT-4 |
-   | `GOOGLE_API_KEY` | Yes | Google AI API key for Gemini |
-   | `LINEAR_API_KEY` | Yes | Linear Personal API key |
-   | `LINEAR_TEAM_ID` | Yes | Linear team ID or name for issue creation |
-   | `LINEAR_PROJECT_ID` | No | Linear project to add issues to |
-   | `GH_PAT` | Yes | GitHub PAT with issue write access |
+Create interactive prompts using @inquirer/prompts:
 
-4. **Workflow Inputs table**:
-   | Input | Default | Description |
-   |-------|---------|-------------|
-   | `linear_project_id` | (none) | Linear project to add issues to |
-   | `anthropic_model` | `claude-3-5-sonnet-20241022` | Model for Anthropic |
-   | `openai_model` | `gpt-4-turbo-preview` | Model for OpenAI |
-   | `google_model` | `gemini-pro` | Model for Google |
+```typescript
+import { checkbox, confirm } from '@inquirer/prompts';
+import type { FeatureSelection } from './types.js';
 
-5. **Usage instructions**:
-   - How to trigger via label (`claude-plan`)
-   - How to trigger via workflow_dispatch with model overrides
-   - Where to find generated Linear issues
-   - How consolidation + Linear creation works in same session
+export async function promptForFeatures(): Promise<FeatureSelection> {
+  const features = await checkbox({
+    message: 'Select features to install:',
+    choices: [
+      { name: 'Multi-provider planning workflow', value: 'planning', checked: true },
+      { name: 'Parallel implementation workflow', value: 'implement', checked: true },
+      { name: 'Custom Claude agents', value: 'agents', checked: false },
+    ],
+  });
 
-6. **Customization options**:
-   - How to modify prompts in `.github/prompts/`
-   - How to change default models via workflow inputs
-   - How to add/remove providers
+  return {
+    planningWorkflow: features.includes('planning'),
+    implementWorkflow: features.includes('implement'),
+    agents: features.includes('agents'),
+  };
+}
 
-### Success Criteria
+export async function confirmOverwrite(files: string[]): Promise<boolean> {
+  return confirm({
+    message: `${files.length} files already exist. Overwrite?`,
+    default: false,
+  });
+}
+```
+
+Handle non-interactive mode:
+- Check `process.stdin.isTTY`
+- If false or `--skip-prompts`, use default selections
+
+### Success Criteria:
 
 #### Automated Verification:
-- [ ] README renders correctly in GitHub
-- [ ] All links are valid
-- [ ] Code blocks have syntax highlighting
+- [ ] TypeScript compiles: `bun run type-check`
+- [ ] Non-TTY mode returns defaults without prompting
 
 #### Manual Verification:
-- [ ] Instructions are clear and complete
-- [ ] Screenshots or examples are helpful
-- [ ] Troubleshooting section covers common issues
+- [ ] Checkbox UI works correctly
+- [ ] Selection values are correct
 
 ---
 
-## Testing Strategy
+## Task 6: Bundle Scripts for Distribution
 
-### Unit Tests
-- Validate JSON schema of plan outputs
-- Test placeholder substitution in prompts
-- Test error handling when provider fails
-- Validate OpenCode client configuration with Linear MCP
+**Files**: Build configuration, `templates/scripts/package.json`
 
-### Integration Tests
-- Run `generate-plans.ts` with mock API responses
-- Run `consolidate-and-create-linear.ts` with sample plan files and Linear sandbox
-- Verify Linear MCP tool calls are made correctly in same session
+**Description of Changes**:
 
-### Manual Testing Steps
-1. Create a test issue with `claude-plan` label
-2. Verify workflow triggers automatically
-3. Check Actions logs for both jobs (`generate-plans` and `consolidate-and-create-linear`)
-4. Verify `plans/` artifacts contain valid JSON from all 3 providers
-5. Verify `output/result.json` contains both `consolidatedPlan` and `linearIssues`
-6. Open Linear and verify parent issue exists with consolidated plan
-7. Verify sub-issues are linked to parent (visible in Linear hierarchy)
-8. Check GitHub issue for summary comment with Linear links
-9. Test workflow_dispatch with existing issue number
-10. Test with different model inputs to verify env var configuration
+1. Create `templates/scripts/package.json`:
+```json
+{
+  "name": "claude-parallel-scripts",
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.70",
+    "@linear/sdk": "^30.0.0",
+    "@opencode-ai/sdk": "^1.0.153"
+  }
+}
+```
+
+2. Add build scripts to root `package.json`:
+```json
+{
+  "scripts": {
+    "build:cli": "tsc -p tsconfig.cli.json",
+    "build:scripts": "bun build src/agents/planning-agent.ts --outfile templates/scripts/planning-agent.js --target node --external @opencode-ai/sdk --external @linear/sdk && bun build src/agents/linear-agent.ts --outfile templates/scripts/linear-agent.js --target node --external @opencode-ai/sdk --external @linear/sdk && bun build scripts/claude-agent-runner.ts --outfile templates/scripts/claude-agent-runner.js --target node --external @anthropic-ai/claude-agent-sdk",
+    "build:all": "npm run build && npm run build:cli && npm run build:scripts",
+    "prepublishOnly": "npm run build:all"
+  }
+}
+```
+
+3. Create `tsconfig.cli.json`:
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/cli",
+    "rootDir": "./cli"
+  },
+  "include": ["cli/**/*.ts"]
+}
+```
+
+### Success Criteria:
+
+#### Automated Verification:
+- [ ] `bun run build:all` completes without errors
+- [ ] `dist/cli/install.js` exists
+- [ ] `templates/scripts/*.js` files exist (3 files)
+- [ ] `templates/scripts/package.json` exists
+
+#### Manual Verification:
+- [ ] Bundled scripts run with `node` after `npm install` in scripts dir
+
+---
+
+## Task 7: Update Package.json for Publishing
+
+**File**: `package.json`
+
+**Description of Changes**:
+
+Update package.json with npm publishing configuration:
+
+```json
+{
+  "name": "install-claude-parallel",
+  "version": "1.0.0",
+  "description": "CLI installer for Claude Parallel workflows",
+  "type": "module",
+  "bin": {
+    "install-claude-parallel": "./dist/cli/install.js"
+  },
+  "files": [
+    "dist/",
+    "templates/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:cli": "tsc -p tsconfig.cli.json",
+    "build:scripts": "...",
+    "build:all": "npm run build && npm run build:cli && npm run build:scripts",
+    "prepublishOnly": "npm run build:all"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.70",
+    "@linear/sdk": "^30.0.0",
+    "@opencode-ai/sdk": "^1.0.153",
+    "@inquirer/prompts": "^7.0.0",
+    "fs-extra": "^11.2.0",
+    "chalk": "^5.3.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^25.0.2",
+    "typescript": "^5.9.3"
+  }
+}
+```
+
+### Success Criteria:
+
+#### Automated Verification:
+- [ ] `bun install` adds new dependencies
+- [ ] `npm pack` creates tarball with correct files
+- [ ] Tarball contains `dist/cli/install.js` and `templates/`
+
+#### Manual Verification:
+- [ ] `npx .` runs the CLI correctly
+
+---
+
+## Task 8: Create .env.example Generator
+
+**File**: `cli/generate-env.ts`
+
+**Description of Changes**:
+
+Create module to generate `.env.example` file:
+
+```typescript
+export function generateEnvExample(features: FeatureSelection): string {
+  let content = `# Claude Parallel Configuration
+# Copy this file to .env and fill in your values
+# See: https://github.com/mkrueger12/claude-parallel for documentation
+
+# Required for all workflows
+GH_PAT=your_github_personal_access_token
+
+# Claude authentication (provide at least one)
+CLAUDE_CODE_OAUTH_TOKEN=your_oauth_token
+# OR
+ANTHROPIC_API_KEY=your_anthropic_api_key
+`;
+
+  if (features.planningWorkflow) {
+    content += `
+# For multi-provider planning (optional - adds more perspectives)
+OPENAI_API_KEY=your_openai_api_key
+GOOGLE_GENERATIVE_AI_API_KEY=your_google_ai_api_key
+
+# For Linear integration (optional)
+LINEAR_API_KEY=your_linear_api_key
+LINEAR_TEAM_ID=your_team_id
+LINEAR_PROJECT_ID=your_project_id
+`;
+  }
+
+  return content;
+}
+
+export async function writeEnvExample(targetDir: string, features: FeatureSelection, options: CopyOptions): Promise<void> {
+  const envPath = path.join(targetDir, '.env.example');
+  const content = generateEnvExample(features);
+
+  if (options.dryRun) {
+    console.log(`Would create: ${envPath}`);
+    return;
+  }
+
+  if (await fs.pathExists(envPath) && !options.force) {
+    console.log(`Skipping: ${envPath} (already exists)`);
+    return;
+  }
+
+  await fs.writeFile(envPath, content);
+  console.log(`Created: ${envPath}`);
+}
+```
+
+### Success Criteria:
+
+#### Automated Verification:
+- [ ] TypeScript compiles: `bun run type-check`
+- [ ] Generated content includes all required variables
+
+#### Manual Verification:
+- [ ] Comments are clear and helpful
+- [ ] Variables are grouped logically
 
 ---
 
 ## Migration Notes
 
-This is a new workflow, no migration required. However:
+### For Existing Fork Users:
+1. Run `npx install-claude-parallel --force` in the target repo
+2. Delete old workflow files if they have different names
+3. Re-apply any custom prompt modifications to new locations
+4. GitHub secrets remain the same (no changes needed)
 
-1. **Secrets Setup**: Users must add 5 new secrets before using the workflow
-2. **Linear Team**: Users should have their Linear team ID ready or know their team name
-3. **Label Creation**: Users should create the `claude-plan` label in their repository
-4. **Permissions**: Workflow requires `issues: write` and `pull-requests: write` permissions
-
----
+### Breaking Changes:
+- Package name: `claude-parallel` → `install-claude-parallel`
+- Script locations: `src/agents/` → `.github/claude-parallel/scripts/`
+- Prompt locations: `prompts/` → `.github/claude-parallel/prompts/`
+- Workflows are now standalone (no external references)
 
 ## References
 
-- GitHub Issue: [#27 - Add multi-provider plan generation with Linear integration](https://github.com/mkrueger12/claude-parallel/issues/27)
-- OpenCode SDK Documentation: https://opencode.ai/docs/sdk/
-- Linear MCP Server: https://linear.app/docs/mcp
-- Existing workflow pattern: `.github/workflows/reusable-implement-issue.yml:86-92` (matrix strategy)
-- Existing prompt pattern: `.github/prompts/implementation.md` (template with placeholders)
-- Existing action pattern: `.github/actions/setup-claude/action.yml` (composite action structure)
+- Existing reusable workflow: `.github/workflows/reusable-implement-issue.yml`
+- Existing planning agent: `src/agents/planning-agent.ts:1-229`
+- NPM bin configuration: https://docs.npmjs.com/cli/v9/configuring-npm/package-json#bin
+- @inquirer/prompts: https://www.npmjs.com/package/@inquirer/prompts
+- fs-extra: https://www.npmjs.com/package/fs-extra

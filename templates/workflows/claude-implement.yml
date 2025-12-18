@@ -1,1 +1,927 @@
-# TODO: Task 3 - Convert reusable-implement-issue.yml to standalone workflow
+name: Claude Implement Issue
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to implement'
+        required: true
+        type: number
+      num_implementations:
+        description: 'Number of parallel implementations'
+        required: false
+        type: number
+        default: 3
+      claude_model:
+        description: 'Claude model to use'
+        required: false
+        type: string
+        default: 'claude-opus-4-5-20251101'
+      bot_name:
+        description: 'Git author name for commits'
+        required: false
+        type: string
+        default: 'Claude Parallel Bot'
+      bot_email:
+        description: 'Git author email for commits'
+        required: false
+        type: string
+        default: 'bot@claude-parallel.dev'
+      dry_run:
+        description: 'Skip Claude, use mock responses'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  generate-matrix:
+    if: github.event.label.name == 'claude-implement' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generate.outputs.matrix }}
+    steps:
+      - name: Validate authentication
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          if [[ -z "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" ]] && [[ -z "${{ secrets.ANTHROPIC_API_KEY }}" ]]; then
+            echo "Error: At least one authentication method must be provided"
+            echo "Please provide either CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY"
+            exit 1
+          fi
+
+      - name: Generate matrix
+        id: generate
+        run: |
+          # Generate array [1, 2, ..., num_implementations]
+          NUM_IMPLS=${{ github.event_name == 'workflow_dispatch' && github.event.inputs.num_implementations || 3 }}
+          MATRIX=$(seq 1 $NUM_IMPLS | jq -s -c '.')
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "Generated matrix: $MATRIX"
+
+  implement:
+    needs: generate-matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        impl: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Get issue details
+        id: issue
+        uses: ./.github/actions/get-issue-details
+        with:
+          issue_number: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.issue_number || github.event.issue.number }}
+          github_token: ${{ secrets.GH_PAT }}
+          event_name: ${{ github.event_name }}
+          event_issue_number: ${{ github.event.issue.number || '' }}
+
+      - name: Create implementation branch
+        run: |
+          BRANCH="impl-${{ github.run_id }}-${{ matrix.impl }}"
+          git checkout -b "$BRANCH"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+      - name: Setup Claude CLI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: ./.github/actions/setup-claude
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Setup Bun for Agent Runner
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install agent runner dependencies
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd ${{ github.workspace }}
+          bun install
+
+      - name: Fetch custom agents
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: ./.github/actions/fetch-agents
+
+      - name: Detect runtime
+        id: runtime
+        uses: ./.github/actions/detect-runtime
+
+      - name: Setup Bun
+        if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.js
+        if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager != 'bun'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        if: steps.runtime.outputs.runtime == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Go
+        if: steps.runtime.outputs.runtime == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Setup Rust
+        if: steps.runtime.outputs.runtime == 'rust'
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install dependencies
+        run: |
+          case "${{ steps.runtime.outputs.runtime }}" in
+            js)
+              if [ -f "package.json" ]; then
+                case "${{ steps.runtime.outputs.package_manager }}" in
+                  bun) bun install ;;
+                  pnpm) npm install -g pnpm && pnpm install ;;
+                  yarn) yarn install ;;
+                  npm) npm install ;;
+                esac
+              fi
+              ;;
+            python)
+              if [ -f "requirements.txt" ]; then
+                pip install -r requirements.txt
+              elif [ -f "pyproject.toml" ]; then
+                if [ "${{ steps.runtime.outputs.package_manager }}" = "poetry" ]; then
+                  pip install poetry && poetry install
+                else
+                  pip install .
+                fi
+              fi
+              ;;
+            go)
+              if [ -f "go.mod" ]; then
+                go mod download
+              fi
+              ;;
+            rust)
+              if [ -f "Cargo.toml" ]; then
+                cargo fetch
+              fi
+              ;;
+          esac
+
+      - name: Install script dependencies
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd .github/claude-parallel/scripts
+          npm install
+
+      - name: Run implementation
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Build feature request file
+          echo "${{ steps.issue.outputs.title }}" > /tmp/feature_request.txt
+          echo "" >> /tmp/feature_request.txt
+          cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
+
+          # Read implementation prompt template
+          IMPL_TEMPLATE=$(cat .github/claude-parallel/prompts/implementation.md)
+
+          # Substitute using awk and store in variable
+          IMPL_PROMPT=$(awk '
+            BEGIN {
+              while ((getline line < "/tmp/feature_request.txt") > 0) {
+                feature = feature (feature ? "\n" : "") line
+              }
+            }
+            { gsub(/\{\{FEATURE_REQUEST\}\}/, feature); print }
+          ' <<< "$IMPL_TEMPLATE")
+
+          echo "Starting implementation ${{ matrix.impl }}..."
+          echo "Prompt size: $(echo "$IMPL_PROMPT" | wc -c) bytes"
+
+          # Run agent runner and capture exit code
+          set +e
+          MODEL="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.claude_model || 'claude-opus-4-5-20251101' }}"
+          echo "$IMPL_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
+            --cwd "$(pwd)" \
+            --model "$MODEL" \
+            --mode implementation \
+            > result.json 2> error.log
+          RUNNER_EXIT=$?
+          set -e
+
+          echo "Agent runner exit code: $RUNNER_EXIT"
+
+          # Check if we got valid output
+          if [ -s result.json ] && jq -e . result.json > /dev/null 2>&1; then
+            echo "Implementation completed successfully"
+          else
+            echo "::error::Implementation ${{ matrix.impl }} failed"
+            echo "=== Agent runner exit code: $RUNNER_EXIT ==="
+            echo "=== result.json contents (first 500 chars): ==="
+            head -c 500 result.json 2>/dev/null || echo "(empty or missing)"
+            echo ""
+            echo "=== error.log contents: ==="
+            cat error.log 2>/dev/null || echo "(empty or missing)"
+            exit 1
+          fi
+
+      - name: Mock implementation (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          # Create mock result
+          echo '{"result": "Mock implementation ${{ matrix.impl }} completed"}' > result.json
+
+          # Create a mock change to test the workflow
+          echo "# Mock Implementation ${{ matrix.impl }}" >> MOCK_CHANGES.md
+          echo "" >> MOCK_CHANGES.md
+          echo "Issue: ${{ steps.issue.outputs.title }}" >> MOCK_CHANGES.md
+          echo "Run ID: ${{ github.run_id }}" >> MOCK_CHANGES.md
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> MOCK_CHANGES.md
+
+      - name: Commit changes
+        run: |
+          BOT_NAME="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bot_name || 'Claude Parallel Bot' }}"
+          BOT_EMAIL="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bot_email || 'bot@claude-parallel.dev' }}"
+
+          git config user.name "$BOT_NAME"
+          git config user.email "$BOT_EMAIL"
+
+          # Add all changes
+          git add -A
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            echo "HAS_CHANGES=false" >> $GITHUB_ENV
+          else
+            git commit -m "Implementation ${{ matrix.impl }}: ${{ steps.issue.outputs.title }}"
+            echo "HAS_CHANGES=true" >> $GITHUB_ENV
+          fi
+
+      - name: Push branch
+        if: env.HAS_CHANGES == 'true'
+        run: |
+          git push origin "$BRANCH"
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: impl-${{ matrix.impl }}
+          path: |
+            result.json
+            error.log
+          retention-days: 1
+
+  review:
+    needs: [generate-matrix, implement]
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    outputs:
+      winning_branch: ${{ steps.create_pr.outputs.winning_branch }}
+      pr_number: ${{ steps.create_pr.outputs.pr_number }}
+      issue_number: ${{ steps.issue.outputs.number }}
+      issue_title: ${{ steps.issue.outputs.title }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Get issue details
+        id: issue
+        uses: ./.github/actions/get-issue-details
+        with:
+          issue_number: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.issue_number || github.event.issue.number }}
+          github_token: ${{ secrets.GH_PAT }}
+          event_name: ${{ github.event_name }}
+          event_issue_number: ${{ github.event.issue.number || '' }}
+
+      - name: Download all implementation results
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Fetch implementation branches
+        run: |
+          mkdir -p worktrees
+          for i in $(echo '${{ needs.generate-matrix.outputs.matrix }}' | jq -r '.[]'); do
+            BRANCH="impl-${{ github.run_id }}-$i"
+            if git fetch origin "$BRANCH" 2>/dev/null; then
+              git worktree add "worktrees/impl-$i" "origin/$BRANCH"
+              echo "Fetched impl-$i"
+            else
+              echo "Branch $BRANCH not found (implementation may have failed)"
+            fi
+          done
+
+      - name: Setup Claude CLI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: ./.github/actions/setup-claude
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Setup Bun for Agent Runner
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install agent runner dependencies
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd ${{ github.workspace }}
+          bun install
+
+      - name: Fetch custom agents
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: ./.github/actions/fetch-agents
+
+      - name: Install script dependencies
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd .github/claude-parallel/scripts
+          npm install
+
+      - name: Review implementations
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Build feature request file
+          echo "${{ steps.issue.outputs.title }}" > /tmp/feature_request.txt
+          echo "" >> /tmp/feature_request.txt
+          cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
+
+          # Read review prompt template
+          REVIEW_TEMPLATE=$(cat .github/claude-parallel/prompts/review.md)
+
+          # Get num_implementations from matrix
+          NUM_IMPLS=$(echo '${{ needs.generate-matrix.outputs.matrix }}' | jq 'length')
+
+          # Substitute using awk and store in variable
+          REVIEW_PROMPT=$(awk '
+            BEGIN {
+              while ((getline line < "/tmp/feature_request.txt") > 0) {
+                feature = feature (feature ? "\n" : "") line
+              }
+            }
+            {
+              gsub(/\{\{FEATURE_REQUEST\}\}/, feature)
+              gsub(/\{\{WORKTREES_DIR\}\}/, "worktrees")
+              gsub(/\{\{NUM_IMPLEMENTATIONS\}\}/, "'"$NUM_IMPLS"'")
+              print
+            }
+          ' <<< "$REVIEW_TEMPLATE")
+
+          echo "Starting review..."
+
+          # Run agent runner in review mode (schema automatically applied)
+          MODEL="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.claude_model || 'claude-opus-4-5-20251101' }}"
+          echo "$REVIEW_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
+            --cwd "$(pwd)" \
+            --model "$MODEL" \
+            --mode review \
+            > review-result.json 2> review-error.log || true
+
+          cat review-result.json
+
+      - name: Mock review (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          # Pick a random winner (1-num_implementations) for testing
+          NUM_IMPLS=$(echo '${{ needs.generate-matrix.outputs.matrix }}' | jq 'length')
+          WINNER=$(( (RANDOM % NUM_IMPLS) + 1 ))
+          echo "Mock review selecting implementation $WINNER"
+
+          # Agent runner with --mode review always produces structured_output
+          echo "{\"type\":\"result\",\"result\":\"\",\"structured_output\":{\"best\":$WINNER,\"reasoning\":\"Dry run mock - selected implementation $WINNER\"}}" > review-result.json
+
+          echo "=== Mock review-result.json: ==="
+          cat review-result.json
+
+      - name: Parse review and create PR
+        id: create_pr
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # Extract decision from structured_output (guaranteed by agent runner)
+          echo "=== Parsing review result ==="
+          cat review-result.json
+          echo ""
+
+          DECISION_JSON=$(jq -c '.structured_output' review-result.json 2>/dev/null)
+
+          # Validate the decision exists and has required fields
+          if [ -z "$DECISION_JSON" ] || [ "$DECISION_JSON" = "null" ]; then
+            echo "::error::No structured_output field in review result"
+            echo "Agent runner with --mode review should always produce structured_output"
+            exit 1
+          fi
+
+          if ! echo "$DECISION_JSON" | jq -e '.best' >/dev/null 2>&1; then
+            echo "::error::structured_output missing 'best' field"
+            exit 1
+          fi
+
+          echo "✓ Successfully extracted decision from structured_output"
+
+          # Parse the extracted JSON
+          BEST=$(echo "$DECISION_JSON" | jq -r '.best')
+          REASONING=$(echo "$DECISION_JSON" | jq -r '.reasoning // "No reasoning provided"')
+
+          echo "Selected implementation: $BEST"
+
+          WINNING_BRANCH="impl-${{ github.run_id }}-$BEST"
+          echo "winning_branch=$WINNING_BRANCH" >> $GITHUB_OUTPUT
+
+          # Get num_implementations from matrix
+          NUM_IMPLS=$(echo '${{ needs.generate-matrix.outputs.matrix }}' | jq 'length')
+
+          # Create PR
+          PR_BODY="## AI-Generated Implementation (Best of $NUM_IMPLS)
+
+          **Issue:** #${{ steps.issue.outputs.number }}
+          **Selected:** Implementation $BEST
+
+          ### Reasoning
+          $REASONING
+
+          ---
+          *Generated by Claude Parallel workflow*"
+
+          PR_URL=$(gh pr create \
+            --head "$WINNING_BRANCH" \
+            --title "Feature: ${{ steps.issue.outputs.title }}" \
+            --body "$PR_BODY" \
+            --draft)
+
+          # Extract PR number from URL
+          PR_NUMBER=$(echo "$PR_URL" | grep -oE '[0-9]+$')
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "Created PR #$PR_NUMBER"
+
+      - name: Cleanup losing branches
+        if: always() && steps.create_pr.outputs.winning_branch != ''
+        run: |
+          WINNING="${{ steps.create_pr.outputs.winning_branch }}"
+          # Extract impl number (last character after final dash)
+          BEST="${WINNING##*-}"
+
+          for i in $(echo '${{ needs.generate-matrix.outputs.matrix }}' | jq -r '.[]'); do
+            if [ "$i" != "$BEST" ]; then
+              BRANCH="impl-${{ github.run_id }}-$i"
+              git push origin --delete "$BRANCH" 2>/dev/null || true
+            fi
+          done
+
+  verify:
+    needs: review
+    if: needs.review.outputs.pr_number != ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout winning branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.review.outputs.winning_branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Setup Claude CLI
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: ./.github/actions/setup-claude
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Setup Bun for Agent Runner
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install agent runner dependencies
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd ${{ github.workspace }}
+          bun install
+
+      - name: Fetch custom agents
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        uses: ./.github/actions/fetch-agents
+
+      - name: Detect runtime
+        id: runtime
+        uses: ./.github/actions/detect-runtime
+
+      - name: Setup Bun
+        if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager == 'bun'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Node.js
+        if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager != 'bun'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        if: steps.runtime.outputs.runtime == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Go
+        if: steps.runtime.outputs.runtime == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Setup Rust
+        if: steps.runtime.outputs.runtime == 'rust'
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install dependencies
+        run: |
+          case "${{ steps.runtime.outputs.runtime }}" in
+            js)
+              if [ -f "package.json" ]; then
+                case "${{ steps.runtime.outputs.package_manager }}" in
+                  bun) bun install ;;
+                  pnpm) npm install -g pnpm && pnpm install ;;
+                  yarn) yarn install ;;
+                  npm) npm install ;;
+                esac
+              fi
+              ;;
+            python)
+              if [ -f "requirements.txt" ]; then
+                pip install -r requirements.txt
+              elif [ -f "pyproject.toml" ]; then
+                if [ "${{ steps.runtime.outputs.package_manager }}" = "poetry" ]; then
+                  pip install poetry && poetry install
+                else
+                  pip install .
+                fi
+              fi
+              ;;
+            go)
+              if [ -f "go.mod" ]; then
+                go mod download
+              fi
+              ;;
+            rust)
+              if [ -f "Cargo.toml" ]; then
+                cargo fetch
+              fi
+              ;;
+          esac
+
+      - name: Run build checks
+        id: build_checks
+        run: |
+          mkdir -p /tmp/build-results
+
+          # Initialize statuses
+          BUILD_STATUS="skip"
+          TESTS_STATUS="skip"
+          LINT_STATUS="skip"
+          TYPECHECK_STATUS="skip"
+
+          # Run build
+          echo "=== Running build ===" > /tmp/build-results/build.txt
+          case "${{ steps.runtime.outputs.runtime }}" in
+            js)
+              if [ -f "package.json" ] && grep -q '"build"' package.json; then
+                if ${{ steps.runtime.outputs.package_manager }} run build >> /tmp/build-results/build.txt 2>&1; then
+                  BUILD_STATUS="pass"
+                else
+                  BUILD_STATUS="fail"
+                fi
+              else
+                echo "No build script found" >> /tmp/build-results/build.txt
+              fi
+              ;;
+            python)
+              if [ -f "setup.py" ] || ([ -f "pyproject.toml" ] && grep -q '\[build-system\]' pyproject.toml); then
+                if python -m build >> /tmp/build-results/build.txt 2>&1; then
+                  BUILD_STATUS="pass"
+                else
+                  BUILD_STATUS="fail"
+                fi
+              else
+                echo "No build system found" >> /tmp/build-results/build.txt
+              fi
+              ;;
+            go)
+              if go build ./... >> /tmp/build-results/build.txt 2>&1; then
+                BUILD_STATUS="pass"
+              else
+                BUILD_STATUS="fail"
+              fi
+              ;;
+            rust)
+              if cargo build >> /tmp/build-results/build.txt 2>&1; then
+                BUILD_STATUS="pass"
+              else
+                BUILD_STATUS="fail"
+              fi
+              ;;
+          esac
+          echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_OUTPUT
+
+          # Run tests
+          echo "=== Running tests ===" > /tmp/build-results/tests.txt
+          case "${{ steps.runtime.outputs.runtime }}" in
+            js)
+              if [ -f "package.json" ] && grep -q '"test"' package.json; then
+                if ${{ steps.runtime.outputs.package_manager }} test >> /tmp/build-results/tests.txt 2>&1; then
+                  TESTS_STATUS="pass"
+                else
+                  TESTS_STATUS="fail"
+                fi
+              else
+                echo "No test script found" >> /tmp/build-results/tests.txt
+              fi
+              ;;
+            python)
+              if command -v pytest >/dev/null 2>&1; then
+                if pytest >> /tmp/build-results/tests.txt 2>&1; then
+                  TESTS_STATUS="pass"
+                else
+                  TESTS_STATUS="fail"
+                fi
+              else
+                echo "pytest not found" >> /tmp/build-results/tests.txt
+              fi
+              ;;
+            go)
+              if go test ./... >> /tmp/build-results/tests.txt 2>&1; then
+                TESTS_STATUS="pass"
+              else
+                TESTS_STATUS="fail"
+              fi
+              ;;
+            rust)
+              if cargo test >> /tmp/build-results/tests.txt 2>&1; then
+                TESTS_STATUS="pass"
+              else
+                TESTS_STATUS="fail"
+              fi
+              ;;
+          esac
+          echo "TESTS_STATUS=$TESTS_STATUS" >> $GITHUB_OUTPUT
+
+          # Run lint
+          echo "=== Running lint ===" > /tmp/build-results/lint.txt
+          case "${{ steps.runtime.outputs.runtime }}" in
+            js)
+              if [ -f "package.json" ] && grep -q '"lint"' package.json; then
+                if ${{ steps.runtime.outputs.package_manager }} run lint >> /tmp/build-results/lint.txt 2>&1; then
+                  LINT_STATUS="pass"
+                else
+                  LINT_STATUS="fail"
+                fi
+              else
+                echo "No lint script found" >> /tmp/build-results/lint.txt
+              fi
+              ;;
+            python)
+              if command -v ruff >/dev/null 2>&1; then
+                if ruff check . >> /tmp/build-results/lint.txt 2>&1; then
+                  LINT_STATUS="pass"
+                else
+                  LINT_STATUS="fail"
+                fi
+              else
+                echo "ruff not found" >> /tmp/build-results/lint.txt
+              fi
+              ;;
+            go)
+              if command -v golint >/dev/null 2>&1; then
+                if golint ./... >> /tmp/build-results/lint.txt 2>&1; then
+                  LINT_STATUS="pass"
+                else
+                  LINT_STATUS="fail"
+                fi
+              else
+                echo "golint not found" >> /tmp/build-results/lint.txt
+              fi
+              ;;
+            rust)
+              if cargo clippy >> /tmp/build-results/lint.txt 2>&1; then
+                LINT_STATUS="pass"
+              else
+                LINT_STATUS="fail"
+              fi
+              ;;
+          esac
+          echo "LINT_STATUS=$LINT_STATUS" >> $GITHUB_OUTPUT
+
+          # Run typecheck
+          echo "=== Running typecheck ===" > /tmp/build-results/typecheck.txt
+          case "${{ steps.runtime.outputs.runtime }}" in
+            js)
+              if [ -f "tsconfig.json" ]; then
+                if npx tsc --noEmit >> /tmp/build-results/typecheck.txt 2>&1; then
+                  TYPECHECK_STATUS="pass"
+                else
+                  TYPECHECK_STATUS="fail"
+                fi
+              else
+                echo "No tsconfig.json found" >> /tmp/build-results/typecheck.txt
+              fi
+              ;;
+            python)
+              if command -v mypy >/dev/null 2>&1; then
+                if mypy . >> /tmp/build-results/typecheck.txt 2>&1; then
+                  TYPECHECK_STATUS="pass"
+                else
+                  TYPECHECK_STATUS="fail"
+                fi
+              else
+                echo "mypy not found" >> /tmp/build-results/typecheck.txt
+              fi
+              ;;
+            *)
+              echo "Typecheck not applicable for ${{ steps.runtime.outputs.runtime }}" >> /tmp/build-results/typecheck.txt
+              ;;
+          esac
+          echo "TYPECHECK_STATUS=$TYPECHECK_STATUS" >> $GITHUB_OUTPUT
+
+          # Combine all results
+          cat /tmp/build-results/*.txt > /tmp/build-results/all.txt
+          echo "Build: $BUILD_STATUS"
+          echo "Tests: $TESTS_STATUS"
+          echo "Lint: $LINT_STATUS"
+          echo "TypeCheck: $TYPECHECK_STATUS"
+
+      - name: Get issue details
+        id: issue
+        uses: ./.github/actions/get-issue-details
+        with:
+          issue_number: ${{ needs.review.outputs.issue_number }}
+          github_token: ${{ secrets.GH_PAT }}
+          event_name: workflow_dispatch
+
+      - name: Install script dependencies
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          cd .github/claude-parallel/scripts
+          npm install
+
+      - name: Run verification
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          # Build feature request file
+          echo "${{ steps.issue.outputs.title }}" > /tmp/feature_request.txt
+          echo "" >> /tmp/feature_request.txt
+          cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
+
+          # Read verify prompt template
+          VERIFY_TEMPLATE=$(cat .github/claude-parallel/prompts/verify.md)
+
+          # Substitute template variables using awk and store in variable
+          VERIFY_PROMPT=$(awk '
+            BEGIN {
+              while ((getline line < "/tmp/feature_request.txt") > 0) {
+                feature = feature (feature ? "\n" : "") line
+              }
+              while ((getline line < "/tmp/build-results/all.txt") > 0) {
+                build_output = build_output (build_output ? "\n" : "") line
+              }
+            }
+            {
+              gsub(/\{\{FEATURE_REQUEST\}\}/, feature)
+              gsub(/\{\{WINNING_BRANCH\}\}/, "'"${{ needs.review.outputs.winning_branch }}"'")
+              gsub(/\{\{PR_NUMBER\}\}/, "'"${{ needs.review.outputs.pr_number }}"'")
+              gsub(/\{\{BUILD_STATUS\}\}/, "'"${{ steps.build_checks.outputs.BUILD_STATUS }}"'")
+              gsub(/\{\{TESTS_STATUS\}\}/, "'"${{ steps.build_checks.outputs.TESTS_STATUS }}"'")
+              gsub(/\{\{LINT_STATUS\}\}/, "'"${{ steps.build_checks.outputs.LINT_STATUS }}"'")
+              gsub(/\{\{TYPECHECK_STATUS\}\}/, "'"${{ steps.build_checks.outputs.TYPECHECK_STATUS }}"'")
+              gsub(/\{\{BUILD_OUTPUT\}\}/, build_output)
+              print
+            }
+          ' <<< "$VERIFY_TEMPLATE")
+
+          echo "Starting verification..."
+
+          # Run agent runner in implementation mode
+          MODEL="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.claude_model || 'claude-opus-4-5-20251101' }}"
+          echo "$VERIFY_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
+            --cwd "$(pwd)" \
+            --model "$MODEL" \
+            --mode implementation \
+            > verify-result.json 2> verify-error.log || true
+
+          cat verify-result.json
+
+      - name: Mock verification (dry run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          # Create mock verification result based on build checks
+          BUILD="${{ steps.build_checks.outputs.BUILD_STATUS }}"
+          TESTS="${{ steps.build_checks.outputs.TESTS_STATUS }}"
+
+          if [ "$BUILD" = "pass" ] || [ "$BUILD" = "skip" ]; then
+            VERIFIED="true"
+            SUMMARY="Dry run verification passed"
+          else
+            VERIFIED="false"
+            SUMMARY="Dry run verification failed due to build errors"
+          fi
+
+          # Create mock result (no leading whitespace - matches Claude output format)
+          echo "{\"result\": \"Mock verification complete. {\\\"verified\\\": $VERIFIED, \\\"summary\\\": \\\"$SUMMARY\\\", \\\"issues\\\": []}\"}" > verify-result.json
+          cat verify-result.json
+
+      - name: Post verification results to PR
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # Use pre-computed build results
+          BUILD="${{ steps.build_checks.outputs.BUILD_STATUS }}"
+          TESTS="${{ steps.build_checks.outputs.TESTS_STATUS }}"
+          LINT="${{ steps.build_checks.outputs.LINT_STATUS }}"
+          TYPECHECK="${{ steps.build_checks.outputs.TYPECHECK_STATUS }}"
+
+          # Extract the verification result for summary and issues
+          RESULT=$(jq -r '.result // .content[0].text // .text // .' verify-result.json)
+          VERIFY_JSON=$(echo "$RESULT" | grep -oE '\{[^{}]*"verified"[^{}]*\}' | tail -1)
+
+          if [ -z "$VERIFY_JSON" ]; then
+            VERIFIED="false"
+            SUMMARY="Could not parse Claude verification output"
+            ISSUES=""
+          else
+            VERIFIED=$(echo "$VERIFY_JSON" | jq -r '.verified // false')
+            SUMMARY=$(echo "$VERIFY_JSON" | jq -r '.summary // "No summary"')
+            ISSUES=$(echo "$VERIFY_JSON" | jq -r '.issues // [] | .[]' | sed 's/^/- /')
+          fi
+
+          # Determine overall status
+          if [ "$BUILD" = "fail" ] || [ "$TESTS" = "fail" ]; then
+            STATUS=":x: **Verification Failed**"
+          elif [ "$VERIFIED" = "true" ]; then
+            STATUS=":white_check_mark: **Verified**"
+          else
+            STATUS=":warning: **Needs Review**"
+          fi
+
+          # Format status icons
+          format_status() {
+            case "$1" in
+              pass) echo ":white_check_mark: pass" ;;
+              fail) echo ":x: fail" ;;
+              skip) echo ":heavy_minus_sign: skip" ;;
+              *) echo ":question: $1" ;;
+            esac
+          }
+
+          COMMENT="## Verification Results
+
+          $STATUS
+
+          | Check | Status |
+          |-------|--------|
+          | Build | $(format_status "$BUILD") |
+          | Tests | $(format_status "$TESTS") |
+          | Lint | $(format_status "$LINT") |
+          | TypeCheck | $(format_status "$TYPECHECK") |
+
+          ### Summary
+          $SUMMARY"
+
+          if [ -n "$ISSUES" ]; then
+            COMMENT="$COMMENT
+
+          ### Issues Found
+          $ISSUES"
+          fi
+
+          gh pr comment "${{ needs.review.outputs.pr_number }}" --body "$COMMENT"
+
+      - name: Upload verification result
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-result
+          path: |
+            verify-result.json
+            verify-error.log
+          retention-days: 7
