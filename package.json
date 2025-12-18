@@ -1,35 +1,47 @@
 {
-  "name": "claude-parallel",
+  "name": "install-claude-parallel",
   "version": "1.0.0",
-  "description": "Workflow system for parallel Claude Code implementations with multi-provider plan generation",
+  "description": "CLI installer for Claude Parallel - parallel AI implementations with GitHub Actions",
   "type": "module",
+  "bin": {
+    "install-claude-parallel": "./dist/cli/install.js"
+  },
+  "files": [
+    "dist/",
+    "templates/"
+  ],
   "scripts": {
     "build": "tsc",
     "build:cli": "tsc -p tsconfig.cli.json",
     "build:scripts": "bun build src/agents/planning-agent.ts --outfile templates/scripts/planning-agent.js --target node && bun build src/agents/linear-agent.ts --outfile templates/scripts/linear-agent.js --target node && bun build scripts/claude-agent-runner.ts --outfile templates/scripts/claude-agent-runner.js --target node",
     "build:all": "npm run build:cli && npm run build:scripts",
     "type-check": "tsc --noEmit && tsc -p tsconfig.cli.json --noEmit",
-    "prepublishOnly": "npm run build:all",
-    "planning-agent": "bun run src/agents/planning-agent.ts",
-    "linear-agent": "bun run src/agents/linear-agent.ts",
-    "claude-agent-runner": "bun run scripts/claude-agent-runner.ts"
+    "prepublishOnly": "npm run build:all"
   },
   "keywords": [
     "github-actions",
     "claude-code",
-    "opencode",
-    "linear",
+    "claude",
     "ai",
-    "multi-provider"
+    "cli",
+    "installer",
+    "automation",
+    "parallel-implementations"
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mkrueger12/claude-parallel.git"
+  },
+  "homepage": "https://github.com/mkrueger12/claude-parallel#readme",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.70",
     "@inquirer/prompts": "^8.1.0",
     "@linear/sdk": "^30.0.0",
     "@opencode-ai/sdk": "^1.0.153",
-    "fs-extra": "^11.3.2"
+    "chalk": "^5.6.2",
+    "fs-extra": "^11.2.0"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
@@ -37,7 +49,6 @@
     "typescript": "^5.9.3"
   },
   "engines": {
-    "node": ">=20.0.0",
-    "bun": ">=1.0.0"
+    "node": ">=20.0.0"
   }
 }
