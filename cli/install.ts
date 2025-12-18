@@ -13,6 +13,7 @@ import { readFileSync } from 'fs';
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import type { InstallOptions, FeatureSelection, TemplateFile } from './types.js';
+import { copyTemplates } from './copy-templates.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -166,23 +167,6 @@ async function promptForFeatures(options: InstallOptions): Promise<FeatureSelect
   };
 }
 
-/**
- * Placeholder: Copy template files to target directory
- * This will be implemented in a future task
- */
-async function copyTemplates(
-  options: InstallOptions,
-  features: FeatureSelection
-): Promise<void> {
-  // TODO: Implement file copying logic
-  console.log('TODO: Copy template files');
-  console.log('Target directory:', options.targetDir);
-  console.log('Features:', features);
-  console.log('Options:', {
-    force: options.force,
-    dryRun: options.dryRun,
-  });
-}
 
 /**
  * Placeholder: Generate .env.example file
@@ -222,7 +206,7 @@ async function main(): Promise<void> {
 
     // Copy template files
     console.log('📋 Copying template files...');
-    await copyTemplates(options, features);
+    await copyTemplates(options.targetDir, features, options);
 
     // Generate environment file
     console.log('⚙️  Generating configuration files...');

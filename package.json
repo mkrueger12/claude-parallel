@@ -23,9 +23,11 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.70",
     "@linear/sdk": "^30.0.0",
-    "@opencode-ai/sdk": "^1.0.153"
+    "@opencode-ai/sdk": "^1.0.153",
+    "fs-extra": "^11.3.2"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^25.0.2",
     "typescript": "^5.9.3"
   },
