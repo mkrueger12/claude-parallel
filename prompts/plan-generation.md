@@ -158,6 +158,8 @@ You MUST respond with a structured Markdown implementation plan. Do NOT use JSON
     - Include "what we're NOT doing"
     - Ignore any directories that mention "prompts"
 
+    - Unless otherwise noted, backwards compatibility is not required.
+
 ## Task Details
 
 ## Issue Title
