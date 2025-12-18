@@ -10,9 +10,9 @@
  */
 
 import { readFileSync } from 'fs';
-import { resolve, dirname, join } from 'path';
+import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import type { InstallOptions, FeatureSelection, TemplateFile } from './types.js';
+import type { InstallOptions, FeatureSelection } from './types.js';
 import { copyTemplates } from './copy-templates.js';
 import { promptForFeatures, getDefaultFeatures } from './prompts.js';
 
@@ -76,7 +76,7 @@ DOCUMENTATION:
  */
 function getVersion(): string {
   try {
-    const packageJsonPath = resolve(__dirname, '../package.json');
+    const packageJsonPath = resolve(__dirname, '../../package.json');
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
     return packageJson.version || '1.0.0';
   } catch (error) {
@@ -140,9 +140,9 @@ function parseArguments(): InstallOptions {
 
       default:
         // First positional argument is target directory
-        if (!arg.startsWith('-') && options.targetDir === process.cwd()) {
+        if (arg && !arg.startsWith('-') && options.targetDir === process.cwd()) {
           options.targetDir = resolve(process.cwd(), arg);
-        } else if (arg.startsWith('-')) {
+        } else if (arg && arg.startsWith('-')) {
           console.error(`Error: Unknown option '${arg}'`);
           console.error('Run with --help for usage information');
           process.exit(1);
@@ -161,8 +161,8 @@ function parseArguments(): InstallOptions {
  * This will be implemented in a future task
  */
 async function generateEnvFile(
-  options: InstallOptions,
-  features: FeatureSelection
+  _options: InstallOptions,
+  _features: FeatureSelection
 ): Promise<void> {
   // TODO: Implement .env.example generation based on selected features
   console.log('TODO: Generate .env.example');

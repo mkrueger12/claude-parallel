@@ -1,4 +1,100 @@
-## Session Progress - Task 5: Add Interactive Prompts
+## Session Progress - Task 6: Bundle Scripts for Distribution
+
+### What I Accomplished:
+- Created tsconfig.cli.json for CLI-specific TypeScript compilation:
+  * Extends base tsconfig.json configuration
+  * Outputs to dist/cli/ directory from cli/ source directory
+  * Includes declaration files and declaration maps
+  * Excludes node_modules, dist, and templates
+- Updated package.json scripts section with comprehensive build commands:
+  * build:cli - compiles CLI TypeScript files using tsconfig.cli.json
+  * build:scripts - bundles three TypeScript files into standalone JavaScript with bun:
+    - src/agents/planning-agent.ts → templates/scripts/planning-agent.js (47KB)
+    - src/agents/linear-agent.ts → templates/scripts/linear-agent.js (48KB)
+    - scripts/claude-agent-runner.ts → templates/scripts/claude-agent-runner.js (453KB)
+  * build:all - runs both build:cli and build:scripts
+  * type-check - runs TypeScript type checking on both src and cli directories
+  * prepublishOnly - automatically runs build:all before npm publish
+- Fixed TypeScript compilation errors in cli/install.ts:
+  * Removed unused imports (join, TemplateFile)
+  * Added null checks for arg variable in parseArguments
+  * Prefixed unused parameters with underscore in generateEnvFile
+  * Fixed package.json path resolution (../package.json → ../../package.json)
+
+### Verification Completed:
+✓ tsconfig.cli.json created with correct extends and compiler options
+✓ TypeScript compilation succeeds for CLI files (bun run build:cli)
+✓ TypeScript compilation succeeds for all files (bun run type-check)
+✓ Script bundling succeeds with bun build command
+✓ All output files created in correct locations:
+  - dist/cli/install.js (6.9KB)
+  - dist/cli/types.js (136B)
+  - dist/cli/prompts.js (2.1KB)
+  - dist/cli/copy-templates.js (4.2KB)
+  - templates/scripts/planning-agent.js (47KB)
+  - templates/scripts/linear-agent.js (48KB)
+  - templates/scripts/claude-agent-runner.js (453KB)
+  - templates/scripts/package.json (existing, 221B)
+✓ Shebang preserved in dist/cli/install.js
+✓ CLI works with --help flag (displays usage information)
+✓ CLI works with --version flag (displays v1.0.0 without warnings)
+✓ build:all command runs successfully (builds CLI + scripts)
+✓ Test #8 marked as passing in features.json
+✓ Test #12 marked as passing in features.json
+
+### Key Implementation Details:
+
+**Build System Architecture:**
+- Two separate TypeScript configurations:
+  * tsconfig.json - for src/ directory (library code)
+  * tsconfig.cli.json - for cli/ directory (CLI tool)
+- Two build approaches:
+  * tsc for CLI - outputs separate .js files that can import each other
+  * bun build for scripts - creates standalone bundles with all dependencies
+
+**Bundle Characteristics:**
+- Scripts are bundled with all dependencies (standalone executables)
+- Target is node environment (not browser)
+- Bundle sizes are reasonable:
+  * planning-agent: 47KB (19 modules)
+  * linear-agent: 48KB (19 modules)
+  * claude-agent-runner: 453KB (3 modules, includes @anthropic-ai/claude-agent-sdk)
+
+**Path Resolution Fix:**
+- CLI compiles to dist/cli/, so needs to go up two levels to find package.json
+- Changed from resolve(__dirname, '../package.json') to resolve(__dirname, '../../package.json')
+- Version command now works without warnings
+
+**TypeScript Strictness:**
+- All strict type checking enabled
+- Unused variables properly handled with underscore prefix
+- Null checks added where needed
+- No type errors in codebase
+
+### Files Created/Modified:
+- tsconfig.cli.json (new file, 10 lines)
+- package.json (updated scripts section with 6 new commands)
+- cli/install.ts (fixed TypeScript errors, improved path resolution)
+- dist/cli/* (compiled JavaScript files with source maps and declarations)
+- templates/scripts/*.js (bundled script files)
+- features.json (marked tests #8 and #12 as passing)
+
+### Current Status:
+- Total tests: 12
+- Tests passing: 8/12 (Tests #3, #4, #5, #6, #7, #8, #11, #12)
+- Tests failing: 4
+
+### Next Steps:
+The next task to work on is Task 7: Update Package.json for Publishing
+- Change package name to 'install-claude-parallel'
+- Add bin field pointing to dist/cli/install.js
+- Add files field to include dist/ and templates/ directories
+- Verify all required dependencies are listed
+- Consider adding keywords for npm discoverability
+
+---
+
+## Previous Session - Task 5: Add Interactive Prompts
 
 ### What I Accomplished:
 - Installed @inquirer/prompts dependency (version 8.1.0)
