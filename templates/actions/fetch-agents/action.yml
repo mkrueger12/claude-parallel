@@ -1,0 +1,17 @@
+name: 'Fetch Custom Agents'
+description: 'Copies agents from local .claude/agents directory'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup agents directory
+      shell: bash
+      run: |
+        mkdir -p $HOME/.claude/agents
+        if [ -d ".claude/agents" ]; then
+          cp -r .claude/agents/* $HOME/.claude/agents/
+          echo "Copied local agents to $HOME/.claude/agents"
+          ls -la $HOME/.claude/agents/
+        else
+          echo "No local .claude/agents directory found"
+        fi

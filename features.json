@@ -1,0 +1,146 @@
+[
+  {
+    "category": "functional",
+    "description": "CLI entry point executes and displays help when run with --help flag",
+    "plan_ref": "Task 1 - Create CLI Package Structure",
+    "steps": [
+      "Step 1: Run 'node dist/cli/install.js --help' from project root",
+      "Step 2: Verify help text is displayed with usage instructions",
+      "Step 3: Verify exit code is 0"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CLI displays version when run with --version flag",
+    "plan_ref": "Task 1 - Create CLI Package Structure",
+    "steps": [
+      "Step 1: Run 'node dist/cli/install.js --version' from project root",
+      "Step 2: Verify version number is displayed matching package.json",
+      "Step 3: Verify exit code is 0"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Template directory structure is created with all required files",
+    "plan_ref": "Task 2 - Create Template Files Directory Structure",
+    "steps": [
+      "Step 1: Check templates/prompts/ directory exists with 5 .md files",
+      "Step 2: Check templates/agents/ directory exists with 4 .md files",
+      "Step 3: Check templates/actions/ directory exists with 4 subdirectories",
+      "Step 4: Check templates/workflows/ directory exists with 2 .yml files"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Standalone workflows have no external repository references",
+    "plan_ref": "Task 3 - Convert Workflows to Standalone",
+    "steps": [
+      "Step 1: Run grep for 'mkrueger12' in templates/workflows/",
+      "Step 2: Verify no matches are found",
+      "Step 3: Verify all 'uses:' references start with './.github/'",
+      "Step 4: Verify no curl commands fetch from external URLs"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CLI copies templates to target directory when run without --dry-run",
+    "plan_ref": "Task 4 - Implement Core Installer Logic",
+    "steps": [
+      "Step 1: Create a temporary test directory",
+      "Step 2: Run installer CLI pointing to the test directory with --skip-prompts",
+      "Step 3: Verify .github/workflows/ directory is created with workflow files",
+      "Step 4: Verify .github/claude-parallel/prompts/ contains prompt files",
+      "Step 5: Verify .github/actions/ contains action directories"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CLI respects --dry-run flag and does not write files",
+    "plan_ref": "Task 4 - Implement Core Installer Logic",
+    "steps": [
+      "Step 1: Create a temporary test directory",
+      "Step 2: Run installer CLI with --dry-run --skip-prompts flags",
+      "Step 3: Verify output shows what would be created",
+      "Step 4: Verify no files were actually written to the directory"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CLI prompts for feature selection in interactive mode",
+    "plan_ref": "Task 5 - Add Interactive Prompts",
+    "steps": [
+      "Step 1: Verify @inquirer/prompts is installed as dependency",
+      "Step 2: Verify cli/prompts.ts exports promptForFeatures function",
+      "Step 3: Verify function returns FeatureSelection interface type"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Bundled scripts are created in templates/scripts/ directory",
+    "plan_ref": "Task 6 - Bundle Scripts for Distribution",
+    "steps": [
+      "Step 1: Run 'bun run build:scripts' command",
+      "Step 2: Verify templates/scripts/planning-agent.js exists",
+      "Step 3: Verify templates/scripts/linear-agent.js exists",
+      "Step 4: Verify templates/scripts/claude-agent-runner.js exists",
+      "Step 5: Verify templates/scripts/package.json exists with dependencies"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Package.json has correct bin and files configuration for npm publishing",
+    "plan_ref": "Task 7 - Update Package.json for Publishing",
+    "steps": [
+      "Step 1: Read package.json and verify 'name' is 'install-claude-parallel'",
+      "Step 2: Verify 'bin' field points to './dist/cli/install.js'",
+      "Step 3: Verify 'files' array includes 'dist/' and 'templates/'",
+      "Step 4: Verify required dependencies are listed (@inquirer/prompts, fs-extra, chalk)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CLI generates .env.example file with correct environment variables",
+    "plan_ref": "Task 8 - Create .env.example Generator",
+    "steps": [
+      "Step 1: Run installer CLI in test directory with --skip-prompts",
+      "Step 2: Verify .env.example file is created",
+      "Step 3: Verify file contains GH_PAT variable",
+      "Step 4: Verify file contains CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY",
+      "Step 5: Verify file contains documentation comments"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "CLI includes agents when --include-agents flag is provided",
+    "plan_ref": "Task 2 - Create Template Files Directory Structure",
+    "steps": [
+      "Step 1: Create temporary test directory",
+      "Step 2: Run installer with --include-agents --skip-prompts flags",
+      "Step 3: Verify .claude/agents/ directory is created",
+      "Step 4: Verify all 4 agent files are present (coding-agent.md, etc.)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "TypeScript compilation succeeds for CLI and all source files",
+    "plan_ref": "Task 6 - Bundle Scripts for Distribution",
+    "steps": [
+      "Step 1: Run 'bun run type-check' command",
+      "Step 2: Verify no TypeScript errors are reported",
+      "Step 3: Run 'bun run build:cli' command",
+      "Step 4: Verify dist/cli/install.js is created"
+    ],
+    "passes": false
+  }
+]
