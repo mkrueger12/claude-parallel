@@ -1,4 +1,78 @@
-## Session Progress - Task 4: Implement Core Installer Logic
+## Session Progress - Task 5: Add Interactive Prompts
+
+### What I Accomplished:
+- Installed @inquirer/prompts dependency (version 8.1.0)
+- Created cli/prompts.ts (73 lines) with complete interactive prompt logic:
+  * getDefaultFeatures() - returns default feature selection (no prompts)
+  * promptForFeatures() - interactive checkbox prompt for selecting features
+  * confirmOverwrite() - confirms before overwriting existing files
+- Updated cli/install.ts to use the prompt functions:
+  * Removed placeholder promptForFeatures function
+  * Imported getDefaultFeatures and promptForFeatures from prompts module
+  * Updated main() to call getDefaultFeatures when --skip-prompts is used
+  * Updated main() to call promptForFeatures for interactive mode
+
+### Verification Completed:
+✓ TypeScript type-check passes with no errors
+✓ @inquirer/prompts added to package.json dependencies
+✓ cli/prompts.ts exports all required functions with correct signatures:
+  - getDefaultFeatures(includeAgents?: boolean): FeatureSelection
+  - promptForFeatures(includeAgents?: boolean): Promise<FeatureSelection>
+  - confirmOverwrite(existingFiles: string[]): Promise<boolean>
+✓ Functions return FeatureSelection interface type
+✓ Non-interactive mode detection works (process.stdin.isTTY check)
+✓ CLI still works with --help, --version flags
+✓ --skip-prompts flag uses getDefaultFeatures (no interactive prompts)
+✓ --dry-run with --skip-prompts shows correct output
+✓ Test #7 marked as passing in features.json
+
+### Key Implementation Details:
+
+**Interactive Prompts:**
+- Uses @inquirer/prompts checkbox for multi-select feature selection
+- Three choices: planning workflow, implementation workflow, custom agents
+- All choices checked by default (except agents if not --include-agents)
+- Non-interactive mode detection with process.stdin.isTTY
+
+**Default Features:**
+- Planning workflow: always enabled by default
+- Implementation workflow: always enabled by default
+- Agents: enabled only if includeAgents parameter is true
+
+**Integration with install.ts:**
+- --skip-prompts flag: calls getDefaultFeatures (no user interaction)
+- Interactive mode: calls promptForFeatures (shows checkbox prompts)
+- Both paths return FeatureSelection interface for copyTemplates
+
+**confirmOverwrite Function:**
+- Takes array of existing file paths
+- Lists first 5 files, shows count if more
+- Returns Promise<boolean> for overwrite confirmation
+- Handles non-interactive mode gracefully
+
+### Files Created/Modified:
+- cli/prompts.ts (new file, 73 lines)
+- cli/install.ts (modified, removed placeholder, added imports)
+- package.json (added @inquirer/prompts dependency)
+- bun.lock (updated with new dependencies)
+- features.json (marked test #7 as passing)
+
+### Current Status:
+- Total tests: 12
+- Tests passing: 6/12 (Tests #3, #4, #5, #6, #7, #11)
+- Tests failing: 6
+
+### Next Steps:
+The next task to work on is Task 6: Bundle Scripts for Distribution
+- Add build:scripts command to package.json
+- Install esbuild or bun build tool for bundling
+- Create bundled standalone JavaScript from TypeScript sources
+- Copy bundled scripts to templates/scripts/ directory
+- Create package.json for scripts with runtime dependencies
+
+---
+
+## Previous Session - Task 4: Implement Core Installer Logic
 
 ### What I Accomplished:
 - Installed fs-extra dependency for robust file operations (with TypeScript types)
