@@ -117,7 +117,7 @@
       "Step 4: Verify file contains CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY",
       "Step 5: Verify file contains documentation comments"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
