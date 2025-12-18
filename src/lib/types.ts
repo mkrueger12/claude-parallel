@@ -28,8 +28,8 @@ export type Provider = 'anthropic' | 'openai' | 'google';
  * Provider-specific default models
  */
 export const DEFAULT_MODELS: Record<Provider, string> = {
-  anthropic: "claude-haiku-4-5-20251001",
-  openai: "gpt-5.1-codex-mini",
+  anthropic: "claude-opus-4-5",
+  openai: "gpt-5.2-pro",
   google: "gemini-2.5-flash",
 };
 
