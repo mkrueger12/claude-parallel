@@ -32,12 +32,12 @@ on:
         description: 'Anthropic model to use'
         required: false
         type: string
-        default: 'claude-sonnet-4-5'
+        default: 'claude-opus-4-5'
       openai_model:
         description: 'OpenAI model to use'
         required: false
         type: string
-        default: 'gpt-5.1-codex-max'
+        default: 'gpt-5.2-pro'
       google_model:
         description: 'Google model to use'
         required: false
@@ -108,7 +108,7 @@ jobs:
         env:
           PROVIDER: anthropic
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-sonnet-4-5' }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-opus-4-5' }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
         run: |
@@ -161,7 +161,7 @@ jobs:
         env:
           PROVIDER: openai
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.1-codex-max' }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.2-pro' }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
         run: |
