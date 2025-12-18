@@ -186,6 +186,8 @@ Create the parent issue adhering to the following format. Call `mcp__linear-serv
 
 #### Step 2: Create Sub-Issues for Each Implementation Step
 
+**IMPORTANT**: Sub-issues should be sized to approximately 400 lines of new code. This is not always possible, but it is the goal. When creating sub-issues, try estimate the number of lines of new code that will be added. This is a loose rule of thumb, not a strict requirement. You may increase the size of a sub-issue if it is necessary to implement a feature. If you are unsure, err on the side of creating smaller sub-issues.
+
 For EACH task in your final plan, call `mcp__linear-server__create_issue` with:
 
 ```javascript
