@@ -79,7 +79,7 @@
       "Step 2: Verify cli/prompts.ts exports promptForFeatures function",
       "Step 3: Verify function returns FeatureSelection interface type"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

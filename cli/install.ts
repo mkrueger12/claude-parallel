@@ -14,6 +14,7 @@ import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import type { InstallOptions, FeatureSelection, TemplateFile } from './types.js';
 import { copyTemplates } from './copy-templates.js';
+import { promptForFeatures, getDefaultFeatures } from './prompts.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -153,19 +154,6 @@ function parseArguments(): InstallOptions {
   return options;
 }
 
-/**
- * Placeholder: Prompt user for feature selection
- * This will be implemented in a future task
- */
-async function promptForFeatures(options: InstallOptions): Promise<FeatureSelection> {
-  // TODO: Implement interactive prompts using inquirer or similar
-  // For now, return defaults based on options
-  return {
-    planningWorkflow: true,
-    implementWorkflow: true,
-    agents: options.includeAgents,
-  };
-}
 
 
 /**
@@ -198,10 +186,10 @@ async function main(): Promise<void> {
     // Get feature selection (prompt or use defaults)
     let features: FeatureSelection;
     if (options.skipPrompts) {
-      features = await promptForFeatures(options);
+      features = getDefaultFeatures(options.includeAgents);
       console.log('Using default configuration (--skip-prompts)\n');
     } else {
-      features = await promptForFeatures(options);
+      features = await promptForFeatures(options.includeAgents);
     }
 
     // Copy template files
