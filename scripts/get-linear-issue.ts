@@ -88,9 +88,10 @@ async function fetchLinearIssue(issueId: string, apiKey: string): Promise<Linear
 
 function extractIssueId(input: string): string {
   // If it's a URL, extract the issue ID from it
-  // Linear URLs: https://linear.app/{workspace}/{team}/{issue-id}
+  // Linear URLs: https://linear.app/{workspace}/issue/{issue-id}/{slug}
   // or: https://linear.app/issue/{issue-id}
-  const urlMatch = input.match(/linear\.app\/(?:issue\/)?([A-Z]+-\d+)/i);
+  // Just look for the issue ID pattern anywhere in the string
+  const urlMatch = input.match(/([A-Z]+-\d+)/i);
   if (urlMatch) {
     return urlMatch[1];
   }
