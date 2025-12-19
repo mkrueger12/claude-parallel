@@ -17,6 +17,52 @@ This is your session context file. Update this document at the end of each sessi
 
 ## Recent Sessions
 
+### Session 9 - December 19, 2025
+**Accomplished**:
+- **Complete Workflow Migration to Linear**: Migrated implementation workflow from GitHub issues to Linear issues (breaking change)
+- Created new Linear issue fetcher script with GraphQL API integration
+- Updated all workflow files to use Linear as the single source of truth
+
+**Implementation Details**:
+- **Created `scripts/get-linear-issue.ts`** (153 lines)
+  - Fetches Linear issue details via GraphQL API
+  - Accepts Linear issue ID (e.g., "ENG-123") or full Linear URL
+  - Outputs issue data in GitHub Actions format (id, number, title, body_file)
+- **Updated `.github/workflows/reusable-implement-issue.yml`**
+  - Renamed: "Reusable Claude Implement Linear Issue"
+  - Input changed: `linear_issue` (required) replaces `issue_number`
+  - Removed: `event_name`, `event_issue_number` parameters
+  - Added: `LINEAR_API_KEY` as required secret
+  - Replaced all 3 "Get issue details" steps with Linear fetch script calls
+  - Fixed placeholder: Changed `{{FEATURE_REQUEST}}` to `{{LINEAR_ISSUE}}` (3 locations)
+  - Updated PR body to reference Linear issue instead of GitHub issue
+- **Updated `.github/workflows/claude-implement-issue.yml`**
+  - Renamed: "Claude Implement Linear Issue"
+  - Input: `linear_issue` replaces `issue_number`
+  - Removed: `issues: read` permission (no longer needed)
+  - Added: `LINEAR_API_KEY` secret to workflow call
+
+**Breaking Changes**:
+- No backwards compatibility with GitHub issues
+- All workflows now require Linear issue as input
+- `LINEAR_API_KEY` is now a required secret
+
+**Commits**:
+- `e205e24` - Migrate implementation workflow from GitHub issues to Linear issues
+- `134ce92` - Fix placeholder: use {{LINEAR_ISSUE}} instead of {{FEATURE_REQUEST}}
+
+**Files Modified**:
+- Created: `scripts/get-linear-issue.ts`
+- Updated: `.github/workflows/reusable-implement-issue.yml`, `.github/workflows/claude-implement-issue.yml`
+- Total changes: 3 files, 198 insertions(+), 44 deletions(-)
+
+**Next**:
+- Update documentation (CLAUDE.md, README.md) to reflect Linear-only workflow
+- Test the workflow with a real Linear issue
+- Consider adding Linear issue commenting for status updates
+
+---
+
 ### Session 5 - December 16, 2025
 **Accomplished**:
 - **Prompt Directory Reorganization**: Moved all prompt files from `.github/prompts/` to root-level `prompts/` directory
@@ -244,11 +290,13 @@ Prompts are content/templates that can be customized by users, not GitHub Action
 
 1. ✅ ~~Resolve SDK exit code 1 issue~~ - **RESOLVED**
 2. ✅ ~~Merge PR #36 for the SDK migration (DEL-1295 implementation)~~ - **MERGED**
-3. Test the SDK-migrated `parallel-impl.sh` script with a real feature request
-4. Test the refactored multi-provider plan v2 workflow with a real GitHub issue
-5. Verify Linear issue creation and parent/child relationships work correctly
-6. Consider adding unit tests for the new utility functions in `src/lib/`
-7. Consider adding GitHub issue commenting to workflows for status updates
+3. ✅ ~~Migrate implementation workflow from GitHub to Linear~~ - **COMPLETED**
+4. Update documentation (CLAUDE.md, README.md) to reflect Linear-only workflow
+5. Test the Linear implementation workflow with a real Linear issue
+6. Test the refactored multi-provider plan v2 workflow with a real issue
+7. Verify Linear issue creation and parent/child relationships work correctly
+8. Consider adding unit tests for the new utility functions in `src/lib/`
+9. Consider adding Linear issue commenting to workflows for status updates
 
 ---
 
