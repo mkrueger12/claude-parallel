@@ -1,30 +1,78 @@
 # Session Context: claude-parallel
 
 **Date**: December 19, 2025
-**Status**: Active development - Linear workflow migration complete
+**Status**: Active development - Linear MCP integration complete
 
 ---
 
 ## Current State
 
-**Latest Work**: Session 9 completed - Implementation workflow fully migrated from GitHub to Linear
+**Latest Work**: Session 10 completed - Simplified Linear integration using MCP instead of pre-fetching
 **Repository**: Clean working tree on branch `main`
 **Latest Commits**:
-- `20270b4` - Session 9 documentation
-- `134ce92` - Fix {{LINEAR_ISSUE}} placeholder
-- `e205e24` - Migrate workflow to Linear
+- `7ff1ae2` - Configure Linear MCP in agent runner for implementation workflow
+- `27aa347` - Simplify Linear integration by using MCP instead of pre-fetching
+- `5253e01` - Fix Linear issue ID extraction regex to handle workspace URLs
 
 **Key Changes**:
-- Created `scripts/get-linear-issue.ts` for Linear GraphQL API integration
-- Updated both workflow files to use Linear issues exclusively
-- `LINEAR_API_KEY` is now required for workflows
-- No backwards compatibility with GitHub issues
+- Removed `scripts/get-linear-issue.ts` - No longer needed for API calls
+- Simplified workflow to pass Linear issue ID/URL directly to agents
+- Added Linear MCP configuration to `claude-agent-runner.ts`
+- Both workflows now use `LINEAR_API_KEY` consistently
+- Reduced workflow complexity by ~200 lines
 
 ---
 
 ## Recent Sessions
 
+*Session 10 (Dec 19, 2025) - Linear MCP Integration - Current session*
 *Session 9 (Dec 19, 2025) - Linear Workflow Migration - [Archived](archive/2025-12-19-linear-workflow-migration.md)*
+
+---
+
+### Session 10 - December 19, 2025
+**Accomplished**:
+- **Linear MCP Integration**: Removed custom API script and simplified workflow to use Linear MCP directly
+- Identified critical issue: Linear MCP wasn't configured in implementation workflow
+- Fixed agent runner to properly configure Linear MCP when `LINEAR_API_KEY` is available
+- Comprehensive workflow simplification:
+  - Removed `scripts/get-linear-issue.ts` (155 lines)
+  - Removed 3 "Setup Bun for Linear fetch" steps
+  - Removed 3 "Get Linear issue details" steps
+  - Simplified prompt substitution from awk to sed
+- Updated documentation to reflect Linear MCP usage
+
+**Technical Details**:
+- Updated `scripts/claude-agent-runner.ts` to configure Linear MCP:
+  - Uses stdio transport with `@linear/mcp-server-linear` via npx
+  - Falls back gracefully with warnings if `LINEAR_API_KEY` not set
+  - Logs MCP configuration status for debugging
+- Re-added `LINEAR_API_KEY` as required secret in workflow (needed for MCP)
+- Added `LINEAR_API_KEY` env var to implementation, review, and verify steps
+- Linear issue ID/URL now passed directly in prompts (e.g., `{{LINEAR_ISSUE}}`)
+- Agents fetch Linear details during execution using MCP tools
+
+**Files Modified**:
+- `scripts/claude-agent-runner.ts` - Added Linear MCP configuration (23 lines)
+- `.github/workflows/reusable-implement-issue.yml` - Simplified workflow (214 lines removed net)
+- `CLAUDE.md` - Updated docs for LINEAR_API_KEY usage and MCP integration
+- Deleted: `scripts/get-linear-issue.ts`
+
+**Commits**:
+- `27aa347` - Simplify Linear integration by using MCP instead of pre-fetching
+- `7ff1ae2` - Configure Linear MCP in agent runner for implementation workflow
+
+**Benefits**:
+- Simpler architecture with fewer dependencies
+- No custom API scripts in GitHub Actions
+- Leverages existing Linear MCP integration
+- Faster workflow execution (eliminated redundant steps)
+- Both workflows now use `LINEAR_API_KEY` consistently
+
+**Next**:
+- Test the updated workflow with a real Linear issue
+- Verify Linear MCP tools work correctly in GitHub Actions environment
+- Monitor for any npx installation issues with @linear/mcp-server-linear
 
 ---
 
@@ -256,12 +304,13 @@ Prompts are content/templates that can be customized by users, not GitHub Action
 1. ✅ ~~Resolve SDK exit code 1 issue~~ - **RESOLVED**
 2. ✅ ~~Merge PR #36 for the SDK migration (DEL-1295 implementation)~~ - **MERGED**
 3. ✅ ~~Migrate implementation workflow from GitHub to Linear~~ - **COMPLETED**
-4. Update documentation (CLAUDE.md, README.md) to reflect Linear-only workflow
+4. ✅ ~~Simplify Linear integration using MCP~~ - **COMPLETED**
 5. Test the Linear implementation workflow with a real Linear issue
-6. Test the refactored multi-provider plan v2 workflow with a real issue
-7. Verify Linear issue creation and parent/child relationships work correctly
-8. Consider adding unit tests for the new utility functions in `src/lib/`
-9. Consider adding Linear issue commenting to workflows for status updates
+6. Verify Linear MCP tools work correctly in GitHub Actions environment
+7. Test the refactored multi-provider plan v2 workflow with a real issue
+8. Verify Linear issue creation and parent/child relationships work correctly
+9. Consider adding unit tests for the new utility functions in `src/lib/`
+10. Consider adding Linear issue commenting to workflows for status updates
 
 ---
 
