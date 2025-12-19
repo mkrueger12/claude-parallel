@@ -223,7 +223,7 @@ jobs:
                 feature = feature (feature ? "\n" : "") line
               }
             }
-            { gsub(/\{\{FEATURE_REQUEST\}\}/, feature); print }
+            { gsub(/\{\{LINEAR_ISSUE\}\}/, feature); print }
           ' /tmp/implementation-template.md)
 
           echo "Starting implementation ${{ matrix.impl }}..."
@@ -395,7 +395,7 @@ jobs:
               }
             }
             {
-              gsub(/\{\{FEATURE_REQUEST\}\}/, feature)
+              gsub(/\{\{LINEAR_ISSUE\}\}/, feature)
               gsub(/\{\{WORKTREES_DIR\}\}/, "worktrees")
               gsub(/\{\{NUM_IMPLEMENTATIONS\}\}/, "${{ inputs.num_implementations }}")
               print
@@ -822,7 +822,7 @@ jobs:
               }
             }
             {
-              gsub(/\{\{FEATURE_REQUEST\}\}/, feature)
+              gsub(/\{\{LINEAR_ISSUE\}\}/, feature)
               gsub(/\{\{WINNING_BRANCH\}\}/, "'"${{ needs.review.outputs.winning_branch }}"'")
               gsub(/\{\{PR_NUMBER\}\}/, "'"${{ needs.review.outputs.pr_number }}"'")
               gsub(/\{\{BUILD_STATUS\}\}/, "'"${{ steps.build_checks.outputs.BUILD_STATUS }}"'")
