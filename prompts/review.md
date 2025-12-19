@@ -1,6 +1,6 @@
 You are reviewing {{NUM_IMPLEMENTATIONS}} parallel implementations of this feature request:
 
-"{{FEATURE_REQUEST}}"
+{{LINEAR_ISSUE}}
 
 The implementations are in:
 - {{WORKTREES_DIR}}/impl-1
