@@ -47,8 +47,6 @@ on:
         required: false
       ANTHROPIC_API_KEY:
         required: false
-      LINEAR_API_KEY:
-        required: true
       GH_PAT:
         required: true
 
@@ -89,18 +87,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
-
-      - name: Setup Bun for Linear fetch
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Get Linear issue details
-        id: issue
-        env:
-          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-        run: |
-          bun run scripts/get-linear-issue.ts "${{ inputs.linear_issue }}"
 
       - name: Create implementation branch
         run: |
@@ -211,22 +197,11 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
-          # Build feature request file
-          echo "${{ steps.issue.outputs.title }}" > /tmp/feature_request.txt
-          echo "" >> /tmp/feature_request.txt
-          cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
-
-          # Substitute using awk and store in variable
-          IMPL_PROMPT=$(awk '
-            BEGIN {
-              while ((getline line < "/tmp/feature_request.txt") > 0) {
-                feature = feature (feature ? "\n" : "") line
-              }
-            }
-            { gsub(/\{\{LINEAR_ISSUE\}\}/, feature); print }
-          ' /tmp/implementation-template.md)
+          # Substitute LINEAR_ISSUE placeholder with the issue ID/URL
+          IMPL_PROMPT=$(sed "s|{{LINEAR_ISSUE}}|${{ inputs.linear_issue }}|g" /tmp/implementation-template.md)
 
           echo "Starting implementation ${{ matrix.impl }}..."
+          echo "Linear issue: ${{ inputs.linear_issue }}"
           echo "Prompt size: $(echo "$IMPL_PROMPT" | wc -c) bytes"
 
           # Run agent runner and capture exit code
@@ -264,7 +239,7 @@ jobs:
           # Create a mock change to test the workflow
           echo "# Mock Implementation ${{ matrix.impl }}" >> MOCK_CHANGES.md
           echo "" >> MOCK_CHANGES.md
-          echo "Issue: ${{ steps.issue.outputs.title }}" >> MOCK_CHANGES.md
+          echo "Issue: ${{ inputs.linear_issue }}" >> MOCK_CHANGES.md
           echo "Run ID: ${{ github.run_id }}" >> MOCK_CHANGES.md
           echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> MOCK_CHANGES.md
 
@@ -280,7 +255,7 @@ jobs:
             echo "No changes to commit"
             echo "HAS_CHANGES=false" >> $GITHUB_ENV
           else
-            git commit -m "Implementation ${{ matrix.impl }}: ${{ steps.issue.outputs.title }}"
+            git commit -m "Implementation ${{ matrix.impl }}: ${{ inputs.linear_issue }}"
             echo "HAS_CHANGES=true" >> $GITHUB_ENV
           fi
 
@@ -305,8 +280,6 @@ jobs:
     outputs:
       winning_branch: ${{ steps.create_pr.outputs.winning_branch }}
       pr_number: ${{ steps.create_pr.outputs.pr_number }}
-      issue_number: ${{ steps.issue.outputs.number }}
-      issue_title: ${{ steps.issue.outputs.title }}
 
     steps:
       - name: Checkout
@@ -314,18 +287,6 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
-
-      - name: Setup Bun for Linear fetch
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Get Linear issue details
-        id: issue
-        env:
-          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-        run: |
-          bun run scripts/get-linear-issue.ts "${{ inputs.linear_issue }}"
 
       - name: Download all implementation results
         uses: actions/download-artifact@v4
@@ -382,27 +343,15 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
-          # Build feature request file
-          echo "${{ steps.issue.outputs.title }}" > /tmp/feature_request.txt
-          echo "" >> /tmp/feature_request.txt
-          cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
-
-          # Substitute using awk and store in variable
-          REVIEW_PROMPT=$(awk '
-            BEGIN {
-              while ((getline line < "/tmp/feature_request.txt") > 0) {
-                feature = feature (feature ? "\n" : "") line
-              }
-            }
-            {
-              gsub(/\{\{LINEAR_ISSUE\}\}/, feature)
-              gsub(/\{\{WORKTREES_DIR\}\}/, "worktrees")
-              gsub(/\{\{NUM_IMPLEMENTATIONS\}\}/, "${{ inputs.num_implementations }}")
-              print
-            }
-          ' /tmp/review-template.md)
+          # Substitute template variables
+          REVIEW_PROMPT=$(sed \
+            -e "s|{{LINEAR_ISSUE}}|${{ inputs.linear_issue }}|g" \
+            -e "s|{{WORKTREES_DIR}}|worktrees|g" \
+            -e "s|{{NUM_IMPLEMENTATIONS}}|${{ inputs.num_implementations }}|g" \
+            /tmp/review-template.md)
 
           echo "Starting review..."
+          echo "Linear issue: ${{ inputs.linear_issue }}"
 
           # Run agent runner in review mode (schema automatically applied)
           echo "$REVIEW_PROMPT" | bun run scripts/claude-agent-runner.ts \
@@ -465,7 +414,7 @@ jobs:
           # Create PR
           PR_BODY="## AI-Generated Implementation (Best of ${{ inputs.num_implementations }})
 
-          **Linear Issue:** ${{ steps.issue.outputs.number }}
+          **Linear Issue:** ${{ inputs.linear_issue }}
           **Selected:** Implementation $BEST
 
           ### Reasoning
@@ -476,7 +425,7 @@ jobs:
 
           PR_URL=$(gh pr create \
             --head "$WINNING_BRANCH" \
-            --title "Feature: ${{ steps.issue.outputs.title }}" \
+            --title "Implementation: ${{ inputs.linear_issue }}" \
             --body "$PR_BODY" \
             --draft)
 
@@ -783,18 +732,6 @@ jobs:
           echo "Lint: $LINT_STATUS"
           echo "TypeCheck: $TYPECHECK_STATUS"
 
-      - name: Setup Bun for Linear fetch
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Get Linear issue details
-        id: issue
-        env:
-          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-        run: |
-          bun run scripts/get-linear-issue.ts "${{ inputs.linear_issue }}"
-
       - name: Fetch verify prompt
         if: ${{ inputs.dry_run != true }}
         run: |
@@ -806,35 +743,22 @@ jobs:
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
-          # Build feature request file
-          echo "${{ steps.issue.outputs.title }}" > /tmp/feature_request.txt
-          echo "" >> /tmp/feature_request.txt
-          cat ${{ steps.issue.outputs.body_file }} >> /tmp/feature_request.txt
+          # Read build output for substitution
+          BUILD_OUTPUT=$(cat /tmp/build-results/all.txt)
 
-          # Substitute template variables using awk and store in variable
-          VERIFY_PROMPT=$(awk '
-            BEGIN {
-              while ((getline line < "/tmp/feature_request.txt") > 0) {
-                feature = feature (feature ? "\n" : "") line
-              }
-              while ((getline line < "/tmp/build-results/all.txt") > 0) {
-                build_output = build_output (build_output ? "\n" : "") line
-              }
-            }
-            {
-              gsub(/\{\{LINEAR_ISSUE\}\}/, feature)
-              gsub(/\{\{WINNING_BRANCH\}\}/, "'"${{ needs.review.outputs.winning_branch }}"'")
-              gsub(/\{\{PR_NUMBER\}\}/, "'"${{ needs.review.outputs.pr_number }}"'")
-              gsub(/\{\{BUILD_STATUS\}\}/, "'"${{ steps.build_checks.outputs.BUILD_STATUS }}"'")
-              gsub(/\{\{TESTS_STATUS\}\}/, "'"${{ steps.build_checks.outputs.TESTS_STATUS }}"'")
-              gsub(/\{\{LINT_STATUS\}\}/, "'"${{ steps.build_checks.outputs.LINT_STATUS }}"'")
-              gsub(/\{\{TYPECHECK_STATUS\}\}/, "'"${{ steps.build_checks.outputs.TYPECHECK_STATUS }}"'")
-              gsub(/\{\{BUILD_OUTPUT\}\}/, build_output)
-              print
-            }
-          ' /tmp/verify-template.md)
+          # Substitute template variables
+          VERIFY_PROMPT=$(sed \
+            -e "s|{{LINEAR_ISSUE}}|${{ inputs.linear_issue }}|g" \
+            -e "s|{{WINNING_BRANCH}}|${{ needs.review.outputs.winning_branch }}|g" \
+            -e "s|{{PR_NUMBER}}|${{ needs.review.outputs.pr_number }}|g" \
+            -e "s|{{BUILD_STATUS}}|${{ steps.build_checks.outputs.BUILD_STATUS }}|g" \
+            -e "s|{{TESTS_STATUS}}|${{ steps.build_checks.outputs.TESTS_STATUS }}|g" \
+            -e "s|{{LINT_STATUS}}|${{ steps.build_checks.outputs.LINT_STATUS }}|g" \
+            -e "s|{{TYPECHECK_STATUS}}|${{ steps.build_checks.outputs.TYPECHECK_STATUS }}|g" \
+            /tmp/verify-template.md | awk -v build="$BUILD_OUTPUT" '{gsub(/\{\{BUILD_OUTPUT\}\}/, build); print}')
 
           echo "Starting verification..."
+          echo "Linear issue: ${{ inputs.linear_issue }}"
 
           # Run agent runner in implementation mode
           echo "$VERIFY_PROMPT" | bun run scripts/claude-agent-runner.ts \

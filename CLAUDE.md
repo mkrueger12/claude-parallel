@@ -97,10 +97,12 @@ The repository implements two complementary workflows:
 - **Trigger**: Label `claude-implement` on GitHub issues or manual dispatch
 - **Process**:
   1. Matrix job generates N parallel implementations (default: 3)
-  2. Each implementation runs in isolation with auto-detected runtime environment
-  3. Review job evaluates all implementations
-  4. Winner creates a draft PR
-- **Uses**: Custom Claude Code agents from `.claude/agents/`
+  2. Each implementation receives the Linear issue ID/URL and fetches details using Linear MCP
+  3. Implementations run in isolation with auto-detected runtime environment
+  4. Review job evaluates all implementations
+  5. Winner creates a draft PR
+- **Uses**: Custom Claude Code agents from `.claude/agents/` and Linear MCP server
+- **Requirements**: Linear MCP server must be configured in Claude settings for implementations to fetch issue details
 
 ### Custom Agent System
 
@@ -199,6 +201,7 @@ Required secrets (set in GitHub or `.env` for local development):
   - `ANTHROPIC_API_KEY`: API key from [console.anthropic.com](https://console.anthropic.com) (fallback)
   - Both options are supported; the workflow uses whichever is available
 - `GH_PAT`: GitHub Personal Access Token with repo permissions
+- **Note**: Linear MCP server must be configured in Claude Code settings to fetch Linear issue details during implementation
 
 **For Multi-Provider Plan Workflow:**
 - `CLAUDE_CODE_OAUTH_TOKEN`: Claude Code OAuth token (required for OpenCode SDK)
@@ -383,19 +386,30 @@ sudo apt install gh jq
 brew install gh jq
 ```
 
-### "Linear API key is invalid"
+### "Linear API key is invalid" (Multi-Provider Plan Workflow)
 
+For the multi-provider plan workflow:
 1. Go to https://linear.app/settings/api
 2. Create a new Personal API key
 3. Add to GitHub Secrets as `LINEAR_API_KEY`
 
-### "Team not found"
+Note: The implementation workflow uses Linear MCP instead of API keys.
+
+### "Team not found" (Multi-Provider Plan Workflow)
 
 `LINEAR_TEAM_ID` should be either:
 - Team's ID (e.g., `abc123...`)
 - Team's key/name (e.g., `ENG` or `PRODUCT`)
 
 Find in URL: `https://linear.app/{workspace}/{team-key}/...`
+
+### "Could not fetch Linear issue" (Implementation Workflow)
+
+If implementations fail to fetch Linear issue details:
+1. Ensure Linear MCP server is configured in your Claude Code settings
+2. Verify the MCP server has the correct `LINEAR_API_KEY`
+3. Check that the Linear issue ID/URL is valid (e.g., `ENG-123` or full Linear URL)
+4. See https://github.com/anthropics/claude-code/blob/main/docs/mcp.md for setup instructions
 
 ### Workflow doesn't trigger on label
 
@@ -417,15 +431,17 @@ If you've set up the Sessions Directory Pattern (`npx create-sessions-dir`):
 
 Learn more: https://vieko.dev/sessions
 
-## External Tools (Optional)
+## External Tools
 
 **For GitHub integration:**
 ```bash
 gh auth login    # Required for PR/issue fetching
 ```
 
-**For Linear integration:**
-Configure the Linear MCP server in your Claude settings.
-See: https://github.com/anthropics/claude-code/blob/main/docs/mcp.md
+**For Linear integration (Required for Implementation Workflow):**
+The implementation workflow requires the Linear MCP server to be configured in your Claude Code settings to fetch issue details during execution.
 
-Commands will gracefully handle missing tools and prompt for manual input.
+Configure the Linear MCP server by following the instructions at:
+https://github.com/anthropics/claude-code/blob/main/docs/mcp.md
+
+Note: The multi-provider plan workflow uses `LINEAR_API_KEY` directly (does not require Linear MCP).
