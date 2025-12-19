@@ -25,6 +25,9 @@ mcp__linear-server__get_issue(id: "DEL-####")
 
 
 ## Instructions
+- Always follow the .sessions pattern in @claude-parallel/.sessions/README.md
+
+
 When given a Linear issue:
 - Read the issue and subissues completely, including any comments.
 - Read all files mentioned in the plan
