@@ -1,11 +1,11 @@
-name: Reusable Claude Implement Issue
+name: Reusable Claude Implement Linear Issue
 
 on:
   workflow_call:
     inputs:
-      issue_number:
-        description: 'Issue number (for workflow_dispatch trigger)'
-        required: false
+      linear_issue:
+        description: 'Linear issue ID (e.g., ENG-123) or URL'
+        required: true
         type: string
       num_implementations:
         description: 'Number of parallel implementations'
@@ -42,21 +42,13 @@ on:
         required: false
         type: boolean
         default: false
-      event_name:
-        description: 'The github.event_name from caller'
-        required: false
-        type: string
-        default: 'workflow_dispatch'
-      event_issue_number:
-        description: 'The github.event.issue.number from caller'
-        required: false
-        type: string
-        default: ''
     secrets:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
       ANTHROPIC_API_KEY:
         required: false
+      LINEAR_API_KEY:
+        required: true
       GH_PAT:
         required: true
 
@@ -98,14 +90,17 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
 
-      - name: Get issue details
-        id: issue
-        uses: mkrueger12/claude-parallel/.github/actions/get-issue-details@main
+      - name: Setup Bun for Linear fetch
+        uses: oven-sh/setup-bun@v2
         with:
-          issue_number: ${{ inputs.issue_number }}
-          github_token: ${{ secrets.GH_PAT }}
-          event_name: ${{ inputs.event_name }}
-          event_issue_number: ${{ inputs.event_issue_number }}
+          bun-version: latest
+
+      - name: Get Linear issue details
+        id: issue
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          bun run scripts/get-linear-issue.ts "${{ inputs.linear_issue }}"
 
       - name: Create implementation branch
         run: |
@@ -320,14 +315,17 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
 
-      - name: Get issue details
-        id: issue
-        uses: mkrueger12/claude-parallel/.github/actions/get-issue-details@main
+      - name: Setup Bun for Linear fetch
+        uses: oven-sh/setup-bun@v2
         with:
-          issue_number: ${{ inputs.issue_number }}
-          github_token: ${{ secrets.GH_PAT }}
-          event_name: ${{ inputs.event_name }}
-          event_issue_number: ${{ inputs.event_issue_number }}
+          bun-version: latest
+
+      - name: Get Linear issue details
+        id: issue
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          bun run scripts/get-linear-issue.ts "${{ inputs.linear_issue }}"
 
       - name: Download all implementation results
         uses: actions/download-artifact@v4
@@ -467,7 +465,7 @@ jobs:
           # Create PR
           PR_BODY="## AI-Generated Implementation (Best of ${{ inputs.num_implementations }})
 
-          **Issue:** #${{ steps.issue.outputs.number }}
+          **Linear Issue:** ${{ steps.issue.outputs.number }}
           **Selected:** Implementation $BEST
 
           ### Reasoning
@@ -785,13 +783,17 @@ jobs:
           echo "Lint: $LINT_STATUS"
           echo "TypeCheck: $TYPECHECK_STATUS"
 
-      - name: Get issue details
-        id: issue
-        uses: mkrueger12/claude-parallel/.github/actions/get-issue-details@main
+      - name: Setup Bun for Linear fetch
+        uses: oven-sh/setup-bun@v2
         with:
-          issue_number: ${{ needs.review.outputs.issue_number }}
-          github_token: ${{ secrets.GH_PAT }}
-          event_name: workflow_dispatch
+          bun-version: latest
+
+      - name: Get Linear issue details
+        id: issue
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+        run: |
+          bun run scripts/get-linear-issue.ts "${{ inputs.linear_issue }}"
 
       - name: Fetch verify prompt
         if: ${{ inputs.dry_run != true }}
