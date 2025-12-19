@@ -191,17 +191,37 @@ async function main() {
   console.error(`✓ Received prompt: ${prompt.length} characters`);
   console.error('');
 
+  // Build MCP servers configuration
+  const mcpServers: Record<string, any> = {
+    deepwiki: {
+      type: 'sse' as const,
+      url: 'https://mcp.deepwiki.com/sse',
+    },
+  };
+
+  // Add Linear MCP if API key is available
+  const linearApiKey = process.env.LINEAR_API_KEY;
+  if (linearApiKey) {
+    console.error(`✓ LINEAR_API_KEY found - enabling Linear MCP`);
+    mcpServers.linear = {
+      type: 'stdio' as const,
+      command: 'npx',
+      args: ['-y', '@linear/mcp-server-linear'],
+      env: {
+        LINEAR_API_KEY: linearApiKey,
+      },
+    };
+  } else {
+    console.error(`⚠️  LINEAR_API_KEY not found - Linear MCP disabled`);
+    console.error(`   Set LINEAR_API_KEY to enable Linear issue fetching`);
+  }
+
   // Build query options
   const queryOptions = {
     cwd: args.cwd,
     model: args.model,
     mode: args.mode,
-    mcpServers: {
-      deepwiki: {
-        type: 'sse' as const,
-        url: 'https://mcp.deepwiki.com/sse',
-      },
-    },
+    mcpServers,
     ...(args.mode === 'review' ? { outputSchema: REVIEW_DECISION_SCHEMA } : {}),
   };
 

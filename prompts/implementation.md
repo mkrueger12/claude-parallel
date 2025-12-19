@@ -90,3 +90,5 @@ When something isn't working as expected:
 - If you find items marked as complete but not complete assign a fix to a subagent.
 - Once you have verified everything is complete, your work is done.
 
+- Use the DeepWiki MCP to ask questions of third party codebases and get clarity on package version and implementation details.
+

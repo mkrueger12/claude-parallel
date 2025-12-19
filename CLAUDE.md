@@ -102,7 +102,7 @@ The repository implements two complementary workflows:
   4. Review job evaluates all implementations
   5. Winner creates a draft PR
 - **Uses**: Custom Claude Code agents from `.claude/agents/` and Linear MCP server
-- **Requirements**: Linear MCP server must be configured in Claude settings for implementations to fetch issue details
+- **Requirements**: `LINEAR_API_KEY` must be configured to enable Linear MCP integration
 
 ### Custom Agent System
 
@@ -200,8 +200,8 @@ Required secrets (set in GitHub or `.env` for local development):
   - `CLAUDE_CODE_OAUTH_TOKEN`: OAuth token from [claude.ai/settings](https://claude.ai/settings) (recommended for local runs)
   - `ANTHROPIC_API_KEY`: API key from [console.anthropic.com](https://console.anthropic.com) (fallback)
   - Both options are supported; the workflow uses whichever is available
+- `LINEAR_API_KEY`: Linear Personal API key (enables Linear MCP for fetching issue details)
 - `GH_PAT`: GitHub Personal Access Token with repo permissions
-- **Note**: Linear MCP server must be configured in Claude Code settings to fetch Linear issue details during implementation
 
 **For Multi-Provider Plan Workflow:**
 - `CLAUDE_CODE_OAUTH_TOKEN`: Claude Code OAuth token (required for OpenCode SDK)
@@ -386,14 +386,12 @@ sudo apt install gh jq
 brew install gh jq
 ```
 
-### "Linear API key is invalid" (Multi-Provider Plan Workflow)
+### "Linear API key is invalid"
 
-For the multi-provider plan workflow:
+Both workflows require `LINEAR_API_KEY`:
 1. Go to https://linear.app/settings/api
 2. Create a new Personal API key
 3. Add to GitHub Secrets as `LINEAR_API_KEY`
-
-Note: The implementation workflow uses Linear MCP instead of API keys.
 
 ### "Team not found" (Multi-Provider Plan Workflow)
 
@@ -406,10 +404,10 @@ Find in URL: `https://linear.app/{workspace}/{team-key}/...`
 ### "Could not fetch Linear issue" (Implementation Workflow)
 
 If implementations fail to fetch Linear issue details:
-1. Ensure Linear MCP server is configured in your Claude Code settings
-2. Verify the MCP server has the correct `LINEAR_API_KEY`
-3. Check that the Linear issue ID/URL is valid (e.g., `ENG-123` or full Linear URL)
-4. See https://github.com/anthropics/claude-code/blob/main/docs/mcp.md for setup instructions
+1. Verify `LINEAR_API_KEY` is set in GitHub Secrets
+2. Check that the Linear issue ID/URL is valid (e.g., `ENG-123` or full Linear URL)
+3. Look for "LINEAR_API_KEY not found" warnings in workflow logs
+4. The agent runner automatically configures Linear MCP using the API key
 
 ### Workflow doesn't trigger on label
 
@@ -438,10 +436,13 @@ Learn more: https://vieko.dev/sessions
 gh auth login    # Required for PR/issue fetching
 ```
 
-**For Linear integration (Required for Implementation Workflow):**
-The implementation workflow requires the Linear MCP server to be configured in your Claude Code settings to fetch issue details during execution.
+**For Linear integration:**
+Both workflows require a `LINEAR_API_KEY` environment variable:
 
-Configure the Linear MCP server by following the instructions at:
-https://github.com/anthropics/claude-code/blob/main/docs/mcp.md
+1. Go to https://linear.app/settings/api
+2. Create a new Personal API key
+3. Add to GitHub Secrets as `LINEAR_API_KEY` or set in `.env` for local development
 
-Note: The multi-provider plan workflow uses `LINEAR_API_KEY` directly (does not require Linear MCP).
+The implementation workflow automatically configures Linear MCP using this API key, enabling Claude to fetch Linear issue details during execution.
+
+The multi-provider plan workflow uses the API key with the OpenCode SDK's Linear MCP integration.

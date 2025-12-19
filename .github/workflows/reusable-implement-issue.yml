@@ -47,6 +47,8 @@ on:
         required: false
       ANTHROPIC_API_KEY:
         required: false
+      LINEAR_API_KEY:
+        required: true
       GH_PAT:
         required: true
 
@@ -194,6 +196,8 @@ jobs:
 
       - name: Run implementation
         if: ${{ inputs.dry_run != true }}
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
@@ -340,6 +344,8 @@ jobs:
 
       - name: Review implementations
         if: ${{ inputs.dry_run != true }}
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
@@ -740,6 +746,8 @@ jobs:
 
       - name: Run verification
         if: ${{ inputs.dry_run != true }}
+        env:
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
