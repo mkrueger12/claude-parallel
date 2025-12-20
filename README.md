@@ -2,6 +2,31 @@
 
 A reusable GitHub Actions workflow that runs parallel Claude Code implementations, automatically reviews them, and creates a draft PR with the best implementation.
 
+## Installation
+
+Install claude-parallel into your repository:
+
+```bash
+bunx install-claude-parallel
+```
+
+This will add:
+- GitHub Actions workflows for planning and implementation
+- Scripts for AI agents (planning, linear, claude agent runner)
+- Prompt templates
+- Claude Code agent definitions
+
+### CLI Options
+
+| Flag | Description |
+|------|-------------|
+| `--help` | Show usage information |
+| `--yes` | Skip confirmation prompts |
+| `--dry-run` | Preview changes without installing |
+| `--force` | Overwrite all files, including user-modified ones |
+
+See [docs/installer.md](docs/installer.md) for detailed documentation.
+
 ## How It Works
 
 1. **Triggered by Linear issues** or manual dispatch

@@ -1,25 +1,38 @@
 {
-  "name": "claude-parallel",
+  "name": "install-claude-parallel",
   "version": "1.0.0",
-  "description": "Workflow system for parallel Claude Code implementations with multi-provider plan generation",
+  "description": "Install claude-parallel workflows, scripts, and agents into any repository",
   "type": "module",
+  "bin": {
+    "install-claude-parallel": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist/",
+    "templates/"
+  ],
   "scripts": {
     "build": "tsc",
+    "build:templates": "bun run scripts/build-templates.ts",
     "type-check": "tsc --noEmit",
     "planning-agent": "bun run src/agents/planning-agent.ts",
     "linear-agent": "bun run src/agents/linear-agent.ts",
     "claude-agent-runner": "bun run scripts/claude-agent-runner.ts"
   },
   "keywords": [
+    "claude",
+    "parallel",
     "github-actions",
-    "claude-code",
-    "opencode",
-    "linear",
     "ai",
-    "multi-provider"
+    "automation",
+    "installer",
+    "cli"
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mkrueger12/claude-parallel"
+  },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.70",
     "@linear/sdk": "^30.0.0",
@@ -32,5 +45,8 @@
   "engines": {
     "node": ">=20.0.0",
     "bun": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
