@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "build:templates": "bun run scripts/build-templates.ts",
     "type-check": "tsc --noEmit",
     "planning-agent": "bun run src/agents/planning-agent.ts",
     "linear-agent": "bun run src/agents/linear-agent.ts",

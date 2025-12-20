@@ -44,7 +44,8 @@ const __dirname = dirname(__filename);
 
 const AGENT_NAME = "linear-agent";
 const DEFAULT_MODEL = "claude-opus-4-5";
-const PROMPT_FILE = join(__dirname, "..", "..", "prompts", "consolidate-and-create-linear.md");
+// Resolve prompt relative to installed location (.github/claude-parallel/prompts/)
+const PROMPT_FILE = join(process.cwd(), ".github", "claude-parallel", "prompts", "consolidate-and-create-linear.md");
 
 // ============================================================================
 // Main Execution

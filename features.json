@@ -88,7 +88,7 @@
       "Verify templates/scripts/linear-agent.js exists",
       "Verify templates/scripts/claude-agent-runner.js exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -100,7 +100,7 @@
       "Verify it starts with #!/usr/bin/env node or similar",
       "Verify scripts resolve prompts relative to installed location (process.cwd())"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

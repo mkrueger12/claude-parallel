@@ -48,7 +48,8 @@ const __dirname = dirname(__filename);
 // ============================================================================
 
 const AGENT_NAME = "planning-agent";
-const PROMPT_FILE = join(__dirname, "..", "..", "prompts", "plan-generation.md");
+// Resolve prompt relative to installed location (.github/claude-parallel/prompts/)
+const PROMPT_FILE = join(process.cwd(), ".github", "claude-parallel", "prompts", "plan-generation.md");
 
 // ============================================================================
 // Main Execution
