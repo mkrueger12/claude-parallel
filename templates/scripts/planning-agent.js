@@ -2,8 +2,7 @@
 
 // src/agents/planning-agent.ts
 import { readFile } from "fs/promises";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
 
 // src/lib/types.ts
 var DEFAULT_MODELS = {
@@ -1599,8 +1598,6 @@ function setupEventMonitoring(client3) {
 }
 
 // src/agents/planning-agent.ts
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname(__filename2);
 var AGENT_NAME = "planning-agent";
 var PROMPT_FILE = join(process.cwd(), ".github", "claude-parallel", "prompts", "plan-generation.md");
 async function main() {

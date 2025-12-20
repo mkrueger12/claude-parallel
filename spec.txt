@@ -1,13 +1,15 @@
-# Claude Parallel - Automated Parallel AI Implementation System
+# Claude Parallel - Installer CLI for Parallel AI Implementation Workflows
 
 ## Project Overview
-A GitHub Actions workflow system that runs parallel Claude Code implementations, automatically reviews them, and creates draft PRs with the best implementation. The system also supports multi-provider AI plan generation using Anthropic Claude, OpenAI GPT, and Google Gemini to create comprehensive implementation plans with Linear issue tracking.
+An npm-installable CLI tool that installs standalone GitHub Actions workflows for parallel Claude Code implementations into any repository. Once installed with `npx install-claude-parallel`, the workflows run parallel implementations, automatically review them, and create draft PRs with the best implementation. The system also supports multi-provider AI plan generation using Anthropic Claude, OpenAI GPT, and Google Gemini to create comprehensive implementation plans with Linear issue tracking.
 
 ## Technology Stack
 
 ### Core Infrastructure
-- **CI/CD**: GitHub Actions with reusable workflows
+- **Distribution**: npm package (`install-claude-parallel`) with CLI installer
+- **CI/CD**: GitHub Actions with standalone workflows (no external references)
 - **Scripting**: Bash shell scripts, TypeScript with Bun runtime
+- **Bundling**: Bun bundler for self-contained JavaScript files
 - **Version Control**: Git with worktree support
 - **AI Integration**:
   - Claude Agent SDK (`@anthropic-ai/claude-agent-sdk`) for local parallel implementations
@@ -28,14 +30,19 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 - **PHP**: composer
 
 ### GitHub Actions Architecture
-- Reusable workflows for maximum flexibility
-- Custom composite actions for setup and runtime detection
+- Standalone workflows installed into user repositories
+- Self-contained scripts (bundled JavaScript) for all operations
 - Matrix strategy for parallel execution
 - Artifact management for result sharing
+- No external repository references or dependencies
 
 ## Prerequisites
 
-### For Using the Workflows
+### For Installing the Workflows
+- Node.js >= 20.0.0 (for running `npx install-claude-parallel`)
+- Git repository (recommended but not required)
+
+### For Using the Installed Workflows
 - GitHub repository with Actions enabled
 - GitHub Personal Access Token (GH_PAT) with repo permissions
 - At least one AI provider authentication:
@@ -60,6 +67,32 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
 - Git, gh CLI, and jq utilities
 
 ## Core Features
+
+### Installer CLI
+- **Distribution Method**: npm package installable with `npx install-claude-parallel`
+- **Installation Features**:
+  - Copies standalone workflows to `.github/workflows/`
+  - Installs bundled scripts to `.github/claude-parallel/scripts/`
+  - Installs prompt templates to `.github/claude-parallel/prompts/`
+  - Installs Claude Code agents to `.claude/agents/`
+  - Creates `.env.example` with documented secrets
+- **Update Management**:
+  - Manifest-based file tracking with SHA-256 hashes
+  - Detects user modifications and preserves them
+  - Safe re-runs update only unchanged files
+  - `--force` flag for complete overwrite
+- **CLI Flags**:
+  - `--help`: Show usage information
+  - `--yes`: Skip confirmation prompts
+  - `--dry-run`: Preview changes without applying
+  - `--force`: Overwrite all files including user modifications
+- **Installed Files** (17 total):
+  - 2 workflows (claude-plan.yml, claude-implement.yml)
+  - 4 bundled scripts (planning-agent.js, linear-agent.js, claude-agent-runner.js, detect-runtime.sh)
+  - 5 prompt templates
+  - 4 agent definitions
+  - 1 .env.example
+  - 1 .install-manifest.json
 
 ### Parallel Implementation Workflow
 - **Trigger Methods**:
@@ -87,16 +120,17 @@ A GitHub Actions workflow system that runs parallel Claude Code implementations,
   - Custom prompt templates with variable substitution
   - Structured output with JSON schema validation
 - **Custom Agent System**:
-  - Fetchable from external repositories
+  - Installed in `.claude/agents/` directory
   - Specialized agents for different tasks
   - Agent delegation for planning and implementation
   - Research agents (codebase-locator, codebase-analyzer)
   - Implementation agents (coding-agent)
+  - Debug agent (debug-agent)
 - **Prompt Template System**:
-  - Markdown-based prompt templates
+  - Markdown-based prompt templates installed in `.github/claude-parallel/prompts/`
   - Variable substitution (FEATURE_REQUEST, NUM_IMPLEMENTATIONS, etc.)
-  - Template versioning via Git references
-  - Customizable per organization
+  - Templates are standalone files (no external fetching)
+  - Customizable by users after installation
 
 ### Automated Code Review
 - **Multi-Implementation Comparison**:
@@ -441,10 +475,10 @@ The local `parallel-impl.sh` script uses the **Claude Agent SDK** (`@anthropic-a
 claude-parallel/
 ├── .github/
 │   ├── workflows/
-│   │   ├── reusable-implement-issue.yml    # Main implementation workflow
+│   │   ├── reusable-implement-issue.yml    # Legacy reusable workflow (for reference)
 │   │   ├── claude-implement-issue.yml       # Caller workflow example
 │   │   ├── multi-provider-plan-v2.yml       # Multi-provider planning workflow
-│   │   └── test-opencode-version.yml        # Testing workflow
+│   │   └── claude.yml                       # Claude Code action workflow
 │   └── actions/
 │       ├── get-issue-details/              # Fetch issue metadata
 │       ├── setup-claude/                   # Install Claude CLI
@@ -458,11 +492,17 @@ claude-parallel/
 │       ├── codebase-analyzer.md            # Implementation analysis agent
 │       └── debug-agent.md                  # Debugging agent
 ├── scripts/                                # Utility scripts
-│   └── claude-agent-runner.ts              # CLI wrapper for Claude Agent SDK
+│   ├── claude-agent-runner.ts              # CLI wrapper for Claude Agent SDK
+│   ├── build-templates.ts                  # Build script for bundling templates
+│   └── test-install.sh                     # Installation test script
 ├── src/                                    # TypeScript source code
 │   ├── agents/
 │   │   ├── planning-agent.ts               # Single provider plan generation (OpenCode SDK)
 │   │   └── linear-agent.ts                 # Plan consolidation and Linear creation (OpenCode SDK)
+│   ├── cli/                                # Installer CLI source
+│   │   ├── index.ts                        # CLI entry point
+│   │   ├── install.ts                      # Main install logic
+│   │   └── manifest.ts                     # Manifest read/write and hashing
 │   ├── lib/
 │   │   ├── types.ts                        # Shared TypeScript interfaces
 │   │   ├── utils.ts                        # Utility functions
@@ -471,17 +511,41 @@ claude-parallel/
 │   └── index.ts                            # Public API exports
 ├── dist/                                   # Compiled TypeScript output
 │   ├── agents/
+│   ├── cli/                                # Compiled CLI code
 │   ├── lib/
 │   └── index.js                            # Compiled entry point
-├── prompts/                                # Prompt templates (top-level)
-│   ├── implementation.md                   # Implementation prompt template
-│   ├── review.md                           # Review prompt template
-│   ├── verify.md                           # Verification prompt template
-│   ├── plan-generation.md                  # Single-provider plan template
-│   └── consolidate-and-create-linear.md    # Multi-provider consolidation
+├── templates/                              # Template files for installation
+│   ├── workflows/
+│   │   ├── claude-plan.yml                 # Standalone planning workflow template
+│   │   └── claude-implement.yml            # Standalone implementation workflow template
+│   ├── scripts/
+│   │   ├── planning-agent.js               # Bundled planning agent (46KB)
+│   │   ├── linear-agent.js                 # Bundled linear agent (47KB)
+│   │   ├── claude-agent-runner.js          # Bundled agent runner (453KB)
+│   │   └── detect-runtime.sh               # Runtime detection bash script
+│   ├── prompts/
+│   │   ├── plan-generation.md              # Plan generation prompt
+│   │   ├── consolidate-and-create-linear.md # Plan consolidation prompt
+│   │   ├── implementation.md               # Implementation prompt
+│   │   ├── review.md                       # Review prompt
+│   │   └── verify.md                       # Verification prompt
+│   ├── agents/
+│   │   ├── coding-agent.md                 # Coding agent definition
+│   │   ├── codebase-locator.md             # Locator agent definition
+│   │   ├── codebase-analyzer.md            # Analyzer agent definition
+│   │   └── debug-agent.md                  # Debug agent definition
+│   └── .env.example                        # Environment variables template
+├── docs/
+│   └── installer.md                        # Installer documentation
+├── prompts/                                # Source prompts (copied to templates/)
+│   ├── implementation.md
+│   ├── review.md
+│   ├── verify.md
+│   ├── plan-generation.md
+│   └── consolidate-and-create-linear.md
 ├── .sessions/                              # Session tracking (if using sessions pattern)
 ├── parallel-impl.sh                        # Local CLI script
-├── package.json                            # Node.js dependencies and scripts
+├── package.json                            # Node.js dependencies and scripts (install-claude-parallel)
 ├── bun.lock                                # Bun lockfile
 ├── tsconfig.json                           # TypeScript configuration
 ├── spec.txt                                # This file - project specification
@@ -492,6 +556,20 @@ Additional directories created at runtime:
 node_modules/                               # Installed dependencies
 ../parallel-impls/                          # Worktrees for local execution
   impl-{timestamp}-{n}/                     # Individual implementation worktrees
+
+After installation in user repository:
+user-repo/
+├── .github/
+│   ├── workflows/
+│   │   ├── claude-plan.yml                 # Multi-provider planning workflow
+│   │   └── claude-implement.yml            # Parallel implementation workflow
+│   └── claude-parallel/
+│       ├── scripts/                        # Bundled scripts (4 files)
+│       ├── prompts/                        # Prompt templates (5 files)
+│       └── .install-manifest.json          # Installation manifest with file hashes
+├── .claude/
+│   └── agents/                             # Claude Code agents (4 files)
+└── .env.example                            # Documented environment variables
 ```
 
 ## Usage Patterns

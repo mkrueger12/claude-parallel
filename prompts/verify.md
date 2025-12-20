@@ -71,7 +71,7 @@ Since builds have already been run, focus on:
    - Review the changes against the linear issue
    - Review the implementation against the Feature Verification section in each Linear issue. Be skeptical and review each feature indivudually even if it is marked as passing.
    - Use the @agent-coding-agent to implement any features that are not implemented.
-   - Once you are VERY confident the implementation is complete and correct, mark each issue as `passing` and assign it a status of `Ready for Review`
+   - Once you are VERY confident the implementation is complete and correct, mark each issue as `passing` and assign it a status of `Ready for Review`. Be very skeptical. Retest the implementation to ensure it is correct.
 
 4. Update spec.txt
    - Review and update the spec.txt file to reflect any changes to the application.

@@ -2,8 +2,7 @@
 
 // src/agents/linear-agent.ts
 import { readFile } from "fs/promises";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
 
 // src/lib/types.ts
 var API_KEY_ENV_VARS = {
@@ -1601,8 +1600,6 @@ function setupEventMonitoring(client3) {
 }
 
 // src/agents/linear-agent.ts
-var __filename2 = fileURLToPath(import.meta.url);
-var __dirname2 = dirname(__filename2);
 var AGENT_NAME = "linear-agent";
 var DEFAULT_MODEL = "claude-opus-4-5";
 var PROMPT_FILE = join(process.cwd(), ".github", "claude-parallel", "prompts", "consolidate-and-create-linear.md");
