@@ -27,8 +27,14 @@
 
 import { readFile } from 'fs/promises';
 import { stdin } from 'process';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { runClaudeQuery } from '../src/lib/claude-agent-sdk.js';
 import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // ============================================================================
 // Review Decision Schema
@@ -215,6 +221,14 @@ async function main() {
     console.error(`⚠️  LINEAR_API_KEY not found - Linear MCP disabled`);
     console.error(`   Set LINEAR_API_KEY to enable Linear issue fetching`);
   }
+
+  // Add AST-Grep MCP server (always enabled)
+  console.error(`✓ Enabling AST-Grep MCP server for code pattern matching`);
+  mcpServers['ast-grep'] = {
+    type: 'stdio' as const,
+    command: 'bun',
+    args: ['run', join(__dirname, '../src/mcp/ast-grep-server.ts')],
+  };
 
   // Build query options
   const queryOptions = {

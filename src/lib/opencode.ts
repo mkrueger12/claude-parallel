@@ -4,6 +4,12 @@
 
 import { createOpencode } from '@opencode-ai/sdk';
 import type { Provider } from './types.js';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Options for creating an OpenCode server
@@ -24,6 +30,7 @@ export interface OpencodeServerOptions {
     glob?: boolean;
     grep?: boolean;
     webfetch?: boolean;
+    astgrep?: boolean;
     [key: string]: boolean | undefined;
   };
   agentPermissions?: {
@@ -56,6 +63,37 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
     linearApiKey,
   } = options;
 
+  // Build MCP servers configuration
+  const mcpServers: Record<string, any> = {};
+
+  // Add Linear MCP if API key is available
+  if (linearApiKey) {
+    mcpServers.linear = {
+      type: 'remote' as const,
+      url: 'https://mcp.linear.app/mcp',
+      headers: {
+        Authorization: `Bearer ${linearApiKey}`,
+      },
+    };
+  }
+
+  // Add AST-Grep MCP if enabled
+  if (agentTools.astgrep) {
+    mcpServers['ast-grep'] = {
+      type: 'local' as const,
+      command: 'bun',
+      args: ['run', join(__dirname, '../mcp/ast-grep-server.ts')],
+    };
+  }
+
+  // Build updated agentTools with MCP tool permissions
+  const finalAgentTools = { ...agentTools };
+
+  // Add MCP tool permissions when astgrep is enabled
+  if (agentTools.astgrep) {
+    finalAgentTools['mcp__ast-grep__*'] = true;
+  }
+
   // Build OpenCode configuration
   const opcodeConfig: any = {
     provider: {
@@ -66,16 +104,8 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
         },
       },
     },
-    ...(linearApiKey && {
-      mcp: {
-        linear: {
-          type: 'remote' as const,
-          url: 'https://mcp.linear.app/mcp',
-          headers: {
-            Authorization: `Bearer ${linearApiKey}`,
-          },
-        },
-      },
+    ...(Object.keys(mcpServers).length > 0 && {
+      mcp: mcpServers,
     }),
     agent: {
       [agentName]: {
@@ -83,7 +113,7 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
         mode: "subagent",
         model,
         prompt: agentPrompt,
-        tools: agentTools,
+        tools: finalAgentTools,
         maxSteps,
         permission: agentPermissions,
       },

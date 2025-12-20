@@ -47,7 +47,7 @@
       "Verify server uses stdio transport type",
       "Verify command and args are correctly configured"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -59,7 +59,7 @@
       "Verify agentTools interface has astgrep?: boolean property",
       "Verify createOpencodeServer handles astgrep option"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -72,7 +72,7 @@
       "Verify 'mcp__ast-grep__*' is added to agentTools when enabled",
       "Verify permissions are set for ast-grep tools"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
