@@ -22,7 +22,8 @@
     "check:fix": "biome check . --write",
     "planning-agent": "bun run src/agents/planning-agent.ts",
     "linear-agent": "bun run src/agents/linear-agent.ts",
-    "claude-agent-runner": "bun run scripts/claude-agent-runner.ts"
+    "claude-agent-runner": "bun run scripts/claude-agent-runner.ts",
+    "prepare": "husky"
   },
   "keywords": [
     "claude",
@@ -47,6 +48,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.10",
     "@types/node": "^25.0.2",
+    "husky": "^9.1.7",
     "typescript": "^5.9.3"
   },
   "engines": {
