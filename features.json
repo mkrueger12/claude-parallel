@@ -50,7 +50,7 @@
       "Search for 'uses: mkrueger12/claude-parallel'",
       "Verify no matches found"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -63,7 +63,7 @@
       "Search for 'curl.*raw.githubusercontent.com'",
       "Verify no matches found"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -75,7 +75,7 @@
       "Run yaml linter on templates/workflows/claude-implement.yml",
       "Verify both files parse without errors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
