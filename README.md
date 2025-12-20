@@ -1,3 +1,5 @@
+**Parallel AI coding. Automatic best-of-N selection.**
+
 # Claude Parallel Implementation Workflow
 
 A reusable GitHub Actions workflow that runs parallel Claude Code implementations, automatically reviews them, and creates a draft PR with the best implementation.
