@@ -219,6 +219,6 @@
       "Verify no raw.githubusercontent.com references",
       "Verify workflows reference local .github/claude-parallel/ paths"
     ],
-    "passes": false
+    "passes": true
   }
 ]
