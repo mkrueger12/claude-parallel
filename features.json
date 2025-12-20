@@ -1,224 +1,150 @@
 [
   {
     "category": "functional",
-    "id": "task-1-templates-directory",
-    "description": "Templates directory contains workflows, scripts, prompts, agents, and .env.example",
-    "plan_ref": "Task 1 - DEL-1308: Define templates & installed layout",
+    "id": "task-1-mcp-server-exists",
+    "description": "AST-Grep MCP server file exists and is valid TypeScript",
+    "plan_ref": "Task 1 - Create AST-Grep MCP Server",
     "steps": [
-      "Check that templates/ directory exists",
-      "Verify templates/workflows/ contains claude-plan.yml and claude-implement.yml",
-      "Verify templates/scripts/ contains detect-runtime.sh",
-      "Verify templates/prompts/ contains all 5 prompt files",
-      "Verify templates/agents/ contains all 4 agent markdown files",
-      "Verify templates/.env.example exists"
+      "Check that src/mcp/ast-grep-server.ts exists",
+      "Verify the file imports from @modelcontextprotocol/sdk",
+      "Verify the file exports createAstGrepMcpServer function or runs as standalone"
     ],
     "passes": true
   },
   {
     "category": "functional",
-    "id": "task-1-no-external-refs",
-    "description": "Templates do not reference mkrueger12/claude-parallel or raw.githubusercontent.com",
-    "plan_ref": "Task 1 - DEL-1308: Define templates & installed layout",
+    "id": "task-1-mcp-server-tools",
+    "description": "MCP server exposes ast_grep_search and ast_grep_rewrite tools",
+    "plan_ref": "Task 1 - Create AST-Grep MCP Server",
     "steps": [
-      "Search templates/ directory for 'mkrueger12/claude-parallel'",
-      "Search templates/ directory for 'raw.githubusercontent.com'",
-      "Verify no matches found in any template files"
+      "Read src/mcp/ast-grep-server.ts",
+      "Verify ast_grep_search tool is defined with pattern, language, path parameters",
+      "Verify ast_grep_rewrite tool is defined with pattern, rewrite, language, path parameters"
     ],
     "passes": true
   },
   {
     "category": "functional",
-    "id": "task-1-detect-runtime",
-    "description": "detect-runtime.sh outputs in GitHub Actions-compatible way",
-    "plan_ref": "Task 1 - DEL-1308: Define templates & installed layout",
+    "id": "task-1-mcp-server-cli-integration",
+    "description": "MCP server correctly executes ast-grep CLI commands",
+    "plan_ref": "Task 1 - Create AST-Grep MCP Server",
     "steps": [
-      "Read templates/scripts/detect-runtime.sh",
-      "Verify it uses GITHUB_OUTPUT for setting outputs",
-      "Verify it detects runtime (js, python, go, rust, unknown)",
-      "Verify it detects package manager"
+      "Read src/mcp/ast-grep-server.ts",
+      "Verify execFile or spawn is used to run ast-grep command",
+      "Verify --json output format is used",
+      "Verify language mapping is correct (js, ts, py, go, rs)"
     ],
     "passes": true
   },
   {
     "category": "functional",
-    "id": "task-2-no-reusable-workflow",
-    "description": "No uses: mkrueger12/claude-parallel exists in standalone workflows",
-    "plan_ref": "Task 2 - DEL-1309: Create standalone workflow templates",
+    "id": "task-2-claude-sdk-integration",
+    "description": "Claude Agent SDK runner includes AST-Grep MCP server configuration",
+    "plan_ref": "Task 2 - Integrate with Claude Agent SDK",
     "steps": [
-      "Read templates/workflows/claude-plan.yml",
-      "Read templates/workflows/claude-implement.yml",
-      "Search for 'uses: mkrueger12/claude-parallel'",
-      "Verify no matches found"
+      "Read scripts/claude-agent-runner.ts",
+      "Verify ast-grep MCP server is added to mcpServers object",
+      "Verify server uses stdio transport type",
+      "Verify command and args are correctly configured"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "functional",
-    "id": "task-2-no-curl-prompts",
-    "description": "No curl raw.githubusercontent.com for prompts/agents in workflows",
-    "plan_ref": "Task 2 - DEL-1309: Create standalone workflow templates",
+    "id": "task-3-opencode-sdk-interface",
+    "description": "OpenCode SDK agentTools interface includes astgrep option",
+    "plan_ref": "Task 3 - Integrate with OpenCode SDK",
     "steps": [
-      "Read templates/workflows/claude-plan.yml",
-      "Read templates/workflows/claude-implement.yml",
-      "Search for 'curl.*raw.githubusercontent.com'",
-      "Verify no matches found"
+      "Read src/lib/opencode.ts",
+      "Verify agentTools interface has astgrep?: boolean property",
+      "Verify createOpencodeServer handles astgrep option"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "functional",
-    "id": "task-2-yaml-valid",
-    "description": "Workflow YAML syntax is valid",
-    "plan_ref": "Task 2 - DEL-1309: Create standalone workflow templates",
+    "id": "task-3-opencode-sdk-mcp-config",
+    "description": "OpenCode SDK configures AST-Grep MCP when astgrep is enabled",
+    "plan_ref": "Task 3 - Integrate with OpenCode SDK",
     "steps": [
-      "Run yaml linter on templates/workflows/claude-plan.yml",
-      "Run yaml linter on templates/workflows/claude-implement.yml",
-      "Verify both files parse without errors"
+      "Read src/lib/opencode.ts",
+      "Verify mcp section includes ast-grep configuration when enabled",
+      "Verify 'mcp__ast-grep__*' is added to agentTools when enabled",
+      "Verify permissions are set for ast-grep tools"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "functional",
-    "id": "task-3-bundled-scripts-exist",
-    "description": "Bundled scripts are created in templates/scripts/",
-    "plan_ref": "Task 3 - DEL-1310: Bundle scripts for workflows",
+    "id": "task-4-type-definitions",
+    "description": "Type definitions for AST-Grep are added to types.ts",
+    "plan_ref": "Task 4 - Update Type Definitions",
     "steps": [
-      "Run the build script to generate bundled outputs",
-      "Verify templates/scripts/planning-agent.js exists",
-      "Verify templates/scripts/linear-agent.js exists",
-      "Verify templates/scripts/claude-agent-runner.js exists"
+      "Read src/lib/types.ts",
+      "Verify AstGrepMatch interface exists",
+      "Verify AstGrepRange interface exists",
+      "Verify AstGrepLanguage type exists"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "functional",
-    "id": "task-3-scripts-self-contained",
-    "description": "Bundled scripts are self-contained with shebang",
-    "plan_ref": "Task 3 - DEL-1310: Bundle scripts for workflows",
+    "id": "task-4-type-exports",
+    "description": "AST-Grep types are exported from package index",
+    "plan_ref": "Task 4 - Update Type Definitions",
     "steps": [
-      "Read first line of templates/scripts/planning-agent.js",
-      "Verify it starts with #!/usr/bin/env node or similar",
-      "Verify scripts resolve prompts relative to installed location (process.cwd())"
+      "Read src/index.ts",
+      "Verify AstGrepMatch, AstGrepRange, AstGrepLanguage are exported"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "functional",
-    "id": "task-4-cli-entry-point",
-    "description": "CLI can be invoked with npx install-claude-parallel",
-    "plan_ref": "Task 4 - DEL-1311: Implement installer CLI",
+    "id": "task-5-agent-documentation",
+    "description": "Agent documentation for AST-Grep usage is created",
+    "plan_ref": "Task 5 - Create Agent Documentation",
     "steps": [
-      "Verify src/cli/index.ts exists",
-      "Verify package.json has bin field pointing to dist/cli/index.js",
-      "Run npm link and verify install-claude-parallel command works"
+      "Check that .claude/agents/ast-grep-guide.md exists",
+      "Verify documentation explains when to use AST-Grep vs grep",
+      "Verify documentation includes pattern syntax with metavariables",
+      "Verify documentation includes language selection guidance",
+      "Verify documentation includes examples"
     ],
-    "passes": true
+    "passes": false
   },
   {
     "category": "functional",
-    "id": "task-4-installer-creates-files",
-    "description": "Installer creates all required files in target repo",
-    "plan_ref": "Task 4 - DEL-1311: Implement installer CLI",
+    "id": "task-6-package-dependency",
+    "description": "Package.json includes MCP SDK dependency",
+    "plan_ref": "Task 6 - Add Build Script Updates",
     "steps": [
-      "Create a test directory",
-      "Run installer with --yes flag",
-      "Verify .github/workflows/claude-plan.yml exists",
-      "Verify .github/workflows/claude-implement.yml exists",
-      "Verify .github/claude-parallel/scripts/ contains JS files",
-      "Verify .github/claude-parallel/prompts/ contains MD files",
-      "Verify .claude/agents/ contains agent MD files",
-      "Verify .env.example exists"
-    ],
-    "passes": true
-  },
-  {
-    "category": "functional",
-    "id": "task-4-manifest-conflict-detection",
-    "description": "Re-running installer respects user modifications (unless --force)",
-    "plan_ref": "Task 4 - DEL-1311: Implement installer CLI",
-    "steps": [
-      "Run installer once to create files",
-      "Modify one of the installed files",
-      "Re-run installer without --force",
-      "Verify modified file is NOT overwritten",
-      "Verify manifest shows conflict"
-    ],
-    "passes": true
-  },
-  {
-    "category": "functional",
-    "id": "task-4-dry-run-mode",
-    "description": "Dry-run mode shows what would be changed without making changes",
-    "plan_ref": "Task 4 - DEL-1311: Implement installer CLI",
-    "steps": [
-      "Create a test directory",
-      "Run installer with --dry-run flag",
-      "Verify no files are created",
-      "Verify output shows list of files that would be created"
-    ],
-    "passes": true
-  },
-  {
-    "category": "functional",
-    "id": "task-4-help-flag",
-    "description": "--help shows usage information",
-    "plan_ref": "Task 4 - DEL-1311: Implement installer CLI",
-    "steps": [
-      "Run installer with --help flag",
-      "Verify output includes usage information",
-      "Verify output includes description of all flags"
-    ],
-    "passes": true
-  },
-  {
-    "category": "functional",
-    "id": "task-5-readme-documentation",
-    "description": "README has clear installer documentation",
-    "plan_ref": "Task 5 - DEL-1312: Documentation & release preparation",
-    "steps": [
-      "Read README.md",
-      "Verify it contains 'Installer usage' or equivalent section",
-      "Verify it documents npx install-claude-parallel command",
-      "Verify it documents available flags"
-    ],
-    "passes": true
-  },
-  {
-    "category": "functional",
-    "id": "task-5-npm-pack",
-    "description": "npm pack includes dist/ and templates/",
-    "plan_ref": "Task 5 - DEL-1312: Documentation & release preparation",
-    "steps": [
-      "Run npm pack --dry-run",
-      "Verify dist/ directory is included",
-      "Verify templates/ directory is included"
-    ],
-    "passes": true
-  },
-  {
-    "category": "functional",
-    "id": "task-5-test-script",
-    "description": "Installation test script passes",
-    "plan_ref": "Task 5 - DEL-1312: Documentation & release preparation",
-    "steps": [
-      "Verify scripts/test-install.sh exists",
-      "Run scripts/test-install.sh",
-      "Verify exit code is 0"
+      "Read package.json",
+      "Verify @modelcontextprotocol/sdk is in dependencies"
     ],
     "passes": true
   },
   {
     "category": "integration",
-    "id": "e2e-installed-workflows-run",
-    "description": "Installed workflows do NOT reference external repos and run using local files only",
-    "plan_ref": "DEL-1307: Parent issue verification criteria",
+    "id": "typescript-compilation",
+    "description": "All TypeScript files compile without errors",
+    "plan_ref": "All Tasks - TypeScript Compilation",
     "steps": [
-      "Install templates in a test repo",
-      "Read installed workflows",
-      "Verify no mkrueger12/claude-parallel references",
-      "Verify no raw.githubusercontent.com references",
-      "Verify workflows reference local .github/claude-parallel/ paths"
+      "Run bun run type-check",
+      "Verify no TypeScript compilation errors"
     ],
     "passes": true
+  },
+  {
+    "category": "integration",
+    "id": "e2e-mcp-server-startup",
+    "description": "AST-Grep MCP server can be started and responds to requests",
+    "plan_ref": "Task 1 - End-to-End Verification",
+    "steps": [
+      "Start the MCP server process",
+      "Send a ListTools request",
+      "Verify response includes ast_grep_search and ast_grep_rewrite tools",
+      "Shutdown the server cleanly"
+    ],
+    "passes": false
   }
 ]
