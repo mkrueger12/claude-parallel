@@ -7,7 +7,7 @@ A reusable GitHub Actions workflow that runs parallel Claude Code implementation
 Install claude-parallel into your repository:
 
 ```bash
-npx install-claude-parallel
+bunx install-claude-parallel
 ```
 
 This will add:
