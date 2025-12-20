@@ -1,14 +1,14 @@
 # Session Context: claude-parallel
 
 **Date**: December 20, 2025
-**Status**: Manual testing completed, ready for merge and release
+**Status**: Prompt path resolution fixed, ready for merge and release
 
 ---
 
 ## Current State
 
-**Latest Work**: Manual testing of installer CLI (Session 12)
-**Repository**: Clean working tree on branch `impl-20385608334-3`
+**Latest Work**: Fixed prompt path resolution bug (Session 13)
+**Repository**: Clean working tree on branch `main`
 **Latest Commits**:
 - `6148e16` - Implementation 3: DEL-1307 completion
 - `fd27626` - Mark all feature tests as passing (17/17)
@@ -27,9 +27,9 @@
 
 ## Recent Sessions
 
-*Session 12 (Dec 20, 2025) - Manual Testing & Verification*
+*Session 13 (Dec 20, 2025) - Prompt Path Resolution Fix*
+*Session 12 (Dec 20, 2025) - Manual Testing & Verification - [Archived](archive/2025-12-20-manual-testing.md)*
 *Session 11 (Dec 20, 2025) - Installer CLI Implementation - [Archived](archive/2025-12-20-installer-cli-implementation.md)*
-*Session 10 (Dec 19, 2025) - Linear MCP Integration - [Archived](archive/2025-12-20-linear-mcp-integration.md)*
 
 ---
 
@@ -68,27 +68,41 @@ Sessions 1-11 have been archived. Key milestones:
 
 ## Notes
 
-### Session 12 Accomplishments (Dec 20, 2025)
+### Session 13 Accomplishments (Dec 20, 2025)
 
-**Manual Testing Results**:
-- ✅ Test 1.1: Fresh installation - Creates all 16 files correctly
-- ✅ Test 1.2: Update without modifications - Updates files successfully
-- ✅ Test 1.3: User modification detection - Skips modified files with warning
-- ✅ Test 1.4: Force overwrite - `--force` flag overwrites user modifications
-- ✅ Test 1.5: Dry run - `--dry-run` previews changes without applying them
-- ✅ Test 3.1: Template build system - Bundles scripts correctly (planning-agent.js: 46K, linear-agent.js: 47K, claude-agent-runner.js: 453K)
+**Bug Fix: Prompt Path Resolution**
 
-**Verified Components**:
-- Installer CLI with manifest tracking (SHA-256 hashes)
-- Template file mapping (workflows → .github/workflows/, agents → .claude/agents/, etc.)
-- User modification detection using file hashes
-- All CLI flags working correctly (--force, --dry-run, --yes, --help)
-- Bundled scripts are executable and self-contained
+**Problem Identified**:
+- Multi-provider plan workflow failing with error: `Failed to read prompt file: /home/runner/work/claude-parallel/claude-parallel/.github/claude-parallel/prompts/plan-generation.md`
+- Both `planning-agent.ts` and `linear-agent.ts` were hardcoding paths to `.github/claude-parallel/prompts/`
+- This only worked when installed via the installer, not when running from source repository
 
-**Package Details**:
-- Package name: `install-claude-parallel`
-- Version: 1.0.0
-- Entry point: `dist/cli/index.js`
-- Includes: `dist/` (compiled TypeScript) + `templates/` (workflows, scripts, agents, prompts)
+**Changes Made**:
+1. **src/agents/planning-agent.ts**:
+   - Added `findPromptFile()` helper function
+   - Checks both installed location (`.github/claude-parallel/prompts/`) and source location (`prompts/`)
+   - Returns first found path with clear error messages if not found
+   - Imported `access` from `fs/promises` for file existence checking
 
-**Ready for Release**: All manual tests passed. Ready to merge to main and publish to npm.
+2. **src/agents/linear-agent.ts**:
+   - Applied same fix with `findPromptFile()` helper
+   - Checks both locations for `consolidate-and-create-linear.md`
+   - Consistent error handling
+
+**Verification**:
+- ✅ TypeScript type checking passed
+- ✅ Build completed successfully
+- ✅ LSP diagnostics clean (no errors or warnings)
+- ✅ Prompt files confirmed in `prompts/` directory
+
+**Impact**:
+- Workflows now work correctly in both contexts (installed and source repository)
+- Better error messages when prompt files are missing
+- More flexible path resolution for future changes
+
+### Session 12 Accomplishments (Dec 20, 2025) - [Archived](archive/2025-12-20-manual-testing.md)
+
+**Manual Testing Results**: All tests passed
+- Fresh installation, updates, user modification detection, force overwrite, dry run
+- Template build system verified
+- Package ready for npm publish

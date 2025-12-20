@@ -29,7 +29,7 @@
  *   linear-agent.ts
  */
 
-import { readFile } from 'fs/promises';
+import { readFile, access } from 'fs/promises';
 import { join } from 'path';
 import { extractTextFromParts, validateEnvVars, getApiKey } from '../lib/utils.js';
 import { createOpencodeServer, setupEventMonitoring } from '../lib/opencode.js';
@@ -43,8 +43,27 @@ import { createOpencodeServer, setupEventMonitoring } from '../lib/opencode.js';
 
 const AGENT_NAME = "linear-agent";
 const DEFAULT_MODEL = "claude-opus-4-5";
-// Resolve prompt relative to installed location (.github/claude-parallel/prompts/)
-const PROMPT_FILE = join(process.cwd(), ".github", "claude-parallel", "prompts", "consolidate-and-create-linear.md");
+
+// Helper to find prompt file in multiple possible locations
+async function findPromptFile(): Promise<string> {
+  const possiblePaths = [
+    // Installed location (via installer)
+    join(process.cwd(), ".github", "claude-parallel", "prompts", "consolidate-and-create-linear.md"),
+    // Source repository location
+    join(process.cwd(), "prompts", "consolidate-and-create-linear.md"),
+  ];
+
+  for (const path of possiblePaths) {
+    try {
+      await access(path);
+      return path;
+    } catch {
+      // File doesn't exist at this path, try next
+    }
+  }
+
+  throw new Error(`Could not find consolidate-and-create-linear.md in any of these locations:\n${possiblePaths.map(p => `  - ${p}`).join('\n')}`);
+}
 
 // ============================================================================
 // Main Execution
@@ -100,11 +119,14 @@ async function main() {
 
   // Read external prompt template file
   let promptTemplate: string;
+  let promptFile: string;
   try {
-    promptTemplate = await readFile(PROMPT_FILE, 'utf-8');
-    console.error(`✓ Loaded prompt template from ${PROMPT_FILE}`);
+    promptFile = await findPromptFile();
+    promptTemplate = await readFile(promptFile, 'utf-8');
+    console.error(`✓ Loaded prompt template from ${promptFile}`);
   } catch (error) {
-    console.error(`✗ Failed to read prompt file: ${PROMPT_FILE}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to read prompt file: ${errorMessage}`);
     console.error("Please create consolidate-and-create-linear.md file in the prompts directory");
     process.exit(1);
   }

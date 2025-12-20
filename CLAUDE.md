@@ -446,3 +446,5 @@ Both workflows require a `LINEAR_API_KEY` environment variable:
 The implementation workflow automatically configures Linear MCP using this API key, enabling Claude to fetch Linear issue details during execution.
 
 The multi-provider plan workflow uses the API key with the OpenCode SDK's Linear MCP integration.
+
+- You the available LSP server to check for type errors and warnings. 
