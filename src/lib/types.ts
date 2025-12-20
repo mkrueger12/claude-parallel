@@ -41,3 +41,60 @@ export const API_KEY_ENV_VARS: Record<Provider, string[]> = {
   openai: ['OPENAI_API_KEY'],
   google: ['GOOGLE_GENERATIVE_AI_API_KEY'],
 };
+
+/**
+ * Supported programming languages for AST-Grep
+ */
+export type AstGrepLanguage =
+  | 'js' | 'jsx' | 'ts' | 'tsx'
+  | 'py' | 'python'
+  | 'go'
+  | 'rs' | 'rust'
+  | 'c' | 'cpp' | 'cxx'
+  | 'java'
+  | 'cs' | 'csharp'
+  | 'rb' | 'ruby'
+  | 'php'
+  | 'swift'
+  | 'kt' | 'kotlin'
+  | 'html'
+  | 'css'
+  | 'json';
+
+/**
+ * Position range information for AST-Grep matches
+ */
+export interface AstGrepRange {
+  byteOffset: {
+    start: number;
+    end: number;
+  };
+  start: {
+    line: number;
+    column: number;
+  };
+  end: {
+    line: number;
+    column: number;
+  };
+}
+
+/**
+ * Metavariable capture from AST-Grep pattern matching
+ */
+export interface AstGrepMetaVariable {
+  text: string;
+  range: AstGrepRange;
+}
+
+/**
+ * AST-Grep match result
+ */
+export interface AstGrepMatch {
+  text: string;
+  range: AstGrepRange;
+  file: string;
+  lines: string;
+  language?: string;
+  metaVariables?: Record<string, AstGrepMetaVariable>;
+}

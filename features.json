@@ -85,7 +85,7 @@
       "Verify AstGrepRange interface exists",
       "Verify AstGrepLanguage type exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -96,7 +96,7 @@
       "Read src/index.ts",
       "Verify AstGrepMatch, AstGrepRange, AstGrepLanguage are exported"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -6,7 +6,15 @@
  */
 
 // Export all types
-export type { Part, Provider, ProviderConfig } from './lib/types.js';
+export type {
+  Part,
+  Provider,
+  ProviderConfig,
+  AstGrepLanguage,
+  AstGrepRange,
+  AstGrepMetaVariable,
+  AstGrepMatch,
+} from './lib/types.js';
 export { DEFAULT_MODELS, API_KEY_ENV_VARS } from './lib/types.js';
 
 // Export all utility functions
@@ -30,3 +38,6 @@ export {
   getAuthentication,
   runClaudeQuery,
 } from './lib/claude-agent-sdk.js';
+
+// Export AST-Grep MCP server
+export { createAstGrepMcpServer } from './mcp/ast-grep-server.js';
