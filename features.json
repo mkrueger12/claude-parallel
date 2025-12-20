@@ -110,7 +110,7 @@
       "Verify documentation includes language selection guidance",
       "Verify documentation includes examples"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
