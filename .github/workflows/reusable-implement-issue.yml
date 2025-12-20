@@ -277,9 +277,48 @@ jobs:
             error.log
           retention-days: 1
 
-  review:
+  count-successes:
     needs: [generate-matrix, implement]
     if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    outputs:
+      num_successful: ${{ steps.count.outputs.num_successful }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Count successful implementations
+        id: count
+        run: |
+          SUCCESS_COUNT=0
+          for i in $(echo '${{ needs.generate-matrix.outputs.matrix }}' | jq -r '.[]'); do
+            BRANCH="impl-${{ github.run_id }}-$i"
+            if git fetch origin "$BRANCH" 2>/dev/null; then
+              echo "✓ Implementation $i succeeded"
+              SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+            else
+              echo "✗ Implementation $i failed (branch not found)"
+            fi
+          done
+
+          echo "num_successful=$SUCCESS_COUNT" >> $GITHUB_OUTPUT
+          echo ""
+          echo "================================"
+          echo "Successfully completed: $SUCCESS_COUNT out of ${{ inputs.num_implementations }} implementations"
+          echo "================================"
+
+          if [ "$SUCCESS_COUNT" -lt 2 ]; then
+            echo "::error::Only $SUCCESS_COUNT implementation(s) succeeded. At least 2 are required for review."
+            exit 1
+          fi
+
+  review:
+    needs: [generate-matrix, count-successes]
+    if: always() && !cancelled() && needs.count-successes.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       winning_branch: ${{ steps.create_pr.outputs.winning_branch }}
@@ -455,8 +494,8 @@ jobs:
           done
 
   verify:
-    needs: review
-    if: needs.review.outputs.pr_number != ''
+    needs: [count-successes, review]
+    if: always() && needs.count-successes.result == 'success' && needs.review.outputs.pr_number != ''
     runs-on: ubuntu-latest
 
     steps:
