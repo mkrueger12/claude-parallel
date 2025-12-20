@@ -30,13 +30,12 @@
  */
 
 import { readFile } from 'fs/promises';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import { extractTextFromParts, validateEnvVars, getApiKey } from '../lib/utils.js';
 import { createOpencodeServer, setupEventMonitoring } from '../lib/opencode.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Note: __filename and __dirname are not needed here anymore
+// Prompts are resolved from process.cwd() in installed locations
 
 // ============================================================================
 // Configuration

@@ -112,7 +112,7 @@
       "Verify package.json has bin field pointing to dist/cli/index.js",
       "Run npm link and verify install-claude-parallel command works"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -129,7 +129,7 @@
       "Verify .claude/agents/ contains agent MD files",
       "Verify .env.example exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -143,7 +143,7 @@
       "Verify modified file is NOT overwritten",
       "Verify manifest shows conflict"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -156,7 +156,7 @@
       "Verify no files are created",
       "Verify output shows list of files that would be created"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -168,7 +168,7 @@
       "Verify output includes usage information",
       "Verify output includes description of all flags"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

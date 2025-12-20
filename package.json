@@ -1,8 +1,15 @@
 {
-  "name": "claude-parallel",
+  "name": "install-claude-parallel",
   "version": "1.0.0",
   "description": "Workflow system for parallel Claude Code implementations with multi-provider plan generation",
   "type": "module",
+  "bin": {
+    "install-claude-parallel": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist/",
+    "templates/"
+  ],
   "scripts": {
     "build": "tsc",
     "build:templates": "bun run scripts/build-templates.ts",
@@ -33,5 +40,8 @@
   "engines": {
     "node": ">=20.0.0",
     "bun": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
