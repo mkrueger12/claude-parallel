@@ -1,6 +1,11 @@
 # Claude Progress Notes
 
-## Session Summary: Task 4 (DEL-1311) - Implement Installer CLI
+## Session Summary: Task 5 (DEL-1312) - Documentation & Release Preparation
+
+**Date:** 2025-12-20
+**Status:** COMPLETED ✓
+
+## Previous Session: Task 4 (DEL-1311) - Implement Installer CLI
 
 **Date:** 2025-12-20
 **Status:** COMPLETED ✓
@@ -141,12 +146,107 @@ This involves:
 4. Verify npm pack includes correct files
 5. Test installation in a real-world repository
 
+## Task 5 Accomplishments
+
+### What Was Accomplished
+
+1. **Updated README.md with Installer Section**
+   - Added "Installation" section near the top (after description, before "How It Works")
+   - Documented `npx install-claude-parallel` command
+   - Added table of CLI flags (--help, --yes, --dry-run, --force)
+   - Listed what gets installed
+   - Linked to detailed docs/installer.md
+
+2. **Created Comprehensive Installer Documentation** (`docs/installer.md`)
+   - Full usage guide with examples
+   - What gets installed (all 17 files)
+   - CLI flags detailed documentation
+   - Directory structure after installation
+   - Manifest file explanation with hash-based conflict detection
+   - Conflict resolution behavior (4 scenarios)
+   - Common scenarios (first install, update, reset, CI/CD)
+   - Extensive troubleshooting section
+   - Uninstall instructions
+
+3. **Updated package.json for npm Publishing**
+   - Changed description to "Install claude-parallel workflows, scripts, and agents into any repository"
+   - Updated keywords: ["claude", "parallel", "github-actions", "ai", "automation", "installer", "cli"]
+   - Added repository field: https://github.com/mkrueger12/claude-parallel
+   - Verified bin, files, and publishConfig fields are correct
+
+4. **Created Installation Test Script** (`scripts/test-install.sh`)
+   - Comprehensive 9-step test suite
+   - Tests first installation (creates 16 files + manifest)
+   - Tests manifest validity (JSON, version, installedAt, files)
+   - Tests re-run behavior (updates unchanged files)
+   - Tests conflict detection (preserves user modifications)
+   - Tests --force flag (overwrites user modifications)
+   - Tests --dry-run flag (previews without changes)
+   - All tests passing successfully
+
+5. **Verified npm pack Output**
+   - Ran `npm pack --dry-run`
+   - Confirmed dist/ directory included (58 files total in package)
+   - Confirmed templates/ directory included (workflows, scripts, prompts, agents)
+   - Package size: 217.6 kB (unpacked: 1.1 MB)
+
+6. **Ran Test Script Successfully**
+   - All 9 test steps passed
+   - Verified installation creates all 16 expected files
+   - Verified manifest creation with correct structure
+   - Verified re-run behavior preserves user modifications
+   - Verified --force and --dry-run flags work correctly
+
+7. **Updated features.json**
+   - task-5-readme-documentation: passes = true
+   - task-5-npm-pack: passes = true
+   - task-5-test-script: passes = true
+
+### Files Created/Modified
+
+**New Files:**
+- `docs/installer.md` - Comprehensive installer documentation (390+ lines)
+- `scripts/test-install.sh` - Automated installation test script
+
+**Modified Files:**
+- `README.md` - Added "Installation" section with CLI options table
+- `package.json` - Updated description, keywords, added repository field
+- `features.json` - Marked all 3 Task 5 tests as passing
+- `claude-progress.txt` - This file
+
+### Test Results
+
+**Tests Passing:** 16/17 total (up from 13/17)
+
+**Task 5 Tests (ALL PASSING):**
+- ✓ task-5-readme-documentation
+- ✓ task-5-npm-pack
+- ✓ task-5-test-script
+
+**All Previous Tasks:**
+- ✓ task-1-templates-directory
+- ✓ task-1-no-external-refs
+- ✓ task-1-detect-runtime
+- ✓ task-2-no-reusable-workflow
+- ✓ task-2-no-curl-prompts
+- ✓ task-2-yaml-valid
+- ✓ task-3-bundled-scripts-exist
+- ✓ task-3-scripts-self-contained
+- ✓ task-4-cli-entry-point
+- ✓ task-4-installer-creates-files
+- ✓ task-4-manifest-conflict-detection
+- ✓ task-4-dry-run-mode
+- ✓ task-4-help-flag
+
+**Remaining Tests:**
+- e2e-installed-workflows-run (1 test)
+
 ### Repository State
 
-- Working directory has uncommitted changes (CLI implementation)
+- Working directory has uncommitted changes (documentation and test script)
 - Branch: impl-20385608334-3
-- Ready to commit Task 4 changes
-- Tests: 13/17 passing (76% complete)
+- Ready to commit Task 5 changes
+- Tests: 16/17 passing (94% complete)
 
 ### Notes
 

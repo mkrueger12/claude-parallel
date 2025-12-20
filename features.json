@@ -181,7 +181,7 @@
       "Verify it documents npx install-claude-parallel command",
       "Verify it documents available flags"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -193,7 +193,7 @@
       "Verify dist/ directory is included",
       "Verify templates/ directory is included"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -205,7 +205,7 @@
       "Run scripts/test-install.sh",
       "Verify exit code is 0"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "integration",
