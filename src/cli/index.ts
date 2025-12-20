@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { install } from './install.js';
+import { install } from "./install.js";
 
 const HELP_TEXT = `
 install-claude-parallel - Install Claude Parallel workflows into your repository
@@ -78,10 +78,10 @@ interface CLIArgs {
 
 function parseArgs(args: string[]): CLIArgs {
   return {
-    help: args.includes('--help') || args.includes('-h'),
-    yes: args.includes('--yes') || args.includes('-y'),
-    force: args.includes('--force') || args.includes('-f'),
-    dryRun: args.includes('--dry-run'),
+    help: args.includes("--help") || args.includes("-h"),
+    yes: args.includes("--yes") || args.includes("-y"),
+    force: args.includes("--force") || args.includes("-f"),
+    dryRun: args.includes("--dry-run"),
   };
 }
 
@@ -100,7 +100,7 @@ async function main() {
       yes: args.yes,
     });
   } catch (error) {
-    console.error('\n❌ Installation failed:');
+    console.error("\n❌ Installation failed:");
     if (error instanceof Error) {
       console.error(`   ${error.message}`);
     } else {

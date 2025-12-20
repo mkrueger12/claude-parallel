@@ -29,10 +29,10 @@
  *   linear-agent.ts
  */
 
-import { readFile, access } from 'fs/promises';
-import { join } from 'path';
-import { extractTextFromParts, validateEnvVars, getApiKey } from '../lib/utils.js';
-import { createOpencodeServer, setupEventMonitoring } from '../lib/opencode.js';
+import { access, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { createOpencodeServer, setupEventMonitoring } from "../lib/opencode.js";
+import { extractTextFromParts, getApiKey, validateEnvVars } from "../lib/utils.js";
 
 // Note: __filename and __dirname are not needed here anymore
 // Prompts are resolved from process.cwd() in installed locations
@@ -48,7 +48,13 @@ const DEFAULT_MODEL = "claude-opus-4-5";
 async function findPromptFile(): Promise<string> {
   const possiblePaths = [
     // Installed location (via installer)
-    join(process.cwd(), ".github", "claude-parallel", "prompts", "consolidate-and-create-linear.md"),
+    join(
+      process.cwd(),
+      ".github",
+      "claude-parallel",
+      "prompts",
+      "consolidate-and-create-linear.md"
+    ),
     // Source repository location
     join(process.cwd(), "prompts", "consolidate-and-create-linear.md"),
   ];
@@ -62,7 +68,9 @@ async function findPromptFile(): Promise<string> {
     }
   }
 
-  throw new Error(`Could not find consolidate-and-create-linear.md in any of these locations:\n${possiblePaths.map(p => `  - ${p}`).join('\n')}`);
+  throw new Error(
+    `Could not find consolidate-and-create-linear.md in any of these locations:\n${possiblePaths.map((p) => `  - ${p}`).join("\n")}`
+  );
 }
 
 // ============================================================================
@@ -72,27 +80,27 @@ async function findPromptFile(): Promise<string> {
 async function main() {
   // Validate required environment variables
   const requiredEnvVars = [
-    'ANTHROPIC_PLAN',
-    'OPENAI_PLAN',
-    'GOOGLE_PLAN',
-    'GITHUB_ISSUE_URL',
-    'ISSUE_TITLE',
-    'LINEAR_TEAM_ID',
-    'LINEAR_API_KEY',
+    "ANTHROPIC_PLAN",
+    "OPENAI_PLAN",
+    "GOOGLE_PLAN",
+    "GITHUB_ISSUE_URL",
+    "ISSUE_TITLE",
+    "LINEAR_TEAM_ID",
+    "LINEAR_API_KEY",
   ];
 
   try {
     validateEnvVars(requiredEnvVars);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
-    console.error('');
-    console.error('Usage: Set all required environment variables and run:');
-    console.error('  bun run linear-agent.ts');
+    console.error("");
+    console.error("Usage: Set all required environment variables and run:");
+    console.error("  bun run linear-agent.ts");
     process.exit(1);
   }
 
   // Get API key for Anthropic (consolidation provider)
-  const provider = 'anthropic';
+  const provider = "anthropic";
   const apiKey = getApiKey(provider);
 
   // Get configuration from environment
@@ -102,27 +110,27 @@ async function main() {
   const githubIssueUrl = process.env.GITHUB_ISSUE_URL!;
   const issueTitle = process.env.ISSUE_TITLE!;
   const linearTeamId = process.env.LINEAR_TEAM_ID!;
-  const linearProjectId = process.env.LINEAR_PROJECT_ID || '';
+  const linearProjectId = process.env.LINEAR_PROJECT_ID || "";
   const linearApiKey = process.env.LINEAR_API_KEY!;
   const model = process.env.MODEL || DEFAULT_MODEL;
 
-  console.error(`\n${'='.repeat(60)}`);
+  console.error(`\n${"=".repeat(60)}`);
   console.error(`Linear Agent - Plan Consolidation`);
-  console.error(`${'='.repeat(60)}`);
+  console.error(`${"=".repeat(60)}`);
   console.error(`Provider: ${provider}`);
   console.error(`Model: ${model}`);
   console.error(`Issue: ${issueTitle}`);
   console.error(`GitHub URL: ${githubIssueUrl}`);
   console.error(`Linear Team: ${linearTeamId}`);
-  console.error(`Linear Project: ${linearProjectId || '(none)'}`);
-  console.error('');
+  console.error(`Linear Project: ${linearProjectId || "(none)"}`);
+  console.error("");
 
   // Read external prompt template file
   let promptTemplate: string;
   let promptFile: string;
   try {
     promptFile = await findPromptFile();
-    promptTemplate = await readFile(promptFile, 'utf-8');
+    promptTemplate = await readFile(promptFile, "utf-8");
     console.error(`✓ Loaded prompt template from ${promptFile}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -152,21 +160,21 @@ async function main() {
     agentDescription: "Consolidate implementation plans and create Linear issues",
     agentPrompt: prompt,
     agentTools: {
-      write: false,    // No file creation
-      edit: false,     // No file modification
-      bash: true,      // Allow shell commands
-      read: true,      // Allow reading files
-      list: true,      // Allow listing directories
-      glob: true,      // Allow file pattern matching
-      grep: true,      // Allow searching content
-      webfetch: true,  // Allow web research
-      ...(linearApiKey && { 'mcp__linear__*': true }), // Enable Linear MCP tools if available
+      write: false, // No file creation
+      edit: false, // No file modification
+      bash: true, // Allow shell commands
+      read: true, // Allow reading files
+      list: true, // Allow listing directories
+      glob: true, // Allow file pattern matching
+      grep: true, // Allow searching content
+      webfetch: true, // Allow web research
+      ...(linearApiKey && { "mcp__linear__*": true }), // Enable Linear MCP tools if available
     },
     agentPermissions: {
       edit: "deny",
       bash: "allow",
       webfetch: "allow",
-      ...(linearApiKey && { 'mcp__linear__*': 'allow' }), // Allow Linear MCP tools if available
+      ...(linearApiKey && { "mcp__linear__*": "allow" }), // Allow Linear MCP tools if available
     },
     maxSteps: 30,
     linearApiKey,
@@ -183,7 +191,7 @@ async function main() {
     });
 
     if (!sessionResponse.data) {
-      throw new Error('Failed to create session: no data in response');
+      throw new Error("Failed to create session: no data in response");
     }
 
     const session = sessionResponse.data;
@@ -199,13 +207,13 @@ async function main() {
           providerID: provider,
           modelID: model,
         },
-        agent: AGENT_NAME,  // Use the linear agent
-        parts: [{ type: 'text', text: prompt }],
+        agent: AGENT_NAME, // Use the linear agent
+        parts: [{ type: "text", text: prompt }],
       },
     });
 
     if (!promptResponse.data) {
-      throw new Error('Failed to get response: no data in response');
+      throw new Error("Failed to get response: no data in response");
     }
 
     // Check for errors
@@ -213,8 +221,8 @@ async function main() {
     if (responseInfo?.error) {
       const err = responseInfo.error;
       const errorName = err.name;
-      const errorData = 'data' in err ? err.data : {};
-      const errorMessage = 'message' in errorData ? errorData.message : JSON.stringify(errorData);
+      const errorData = "data" in err ? err.data : {};
+      const errorMessage = "message" in errorData ? errorData.message : JSON.stringify(errorData);
 
       throw new Error(`Provider error: ${errorName}: ${errorMessage}`);
     }
@@ -223,16 +231,16 @@ async function main() {
     const resultText = extractTextFromParts(promptResponse.data.parts);
 
     if (resultText.length === 0) {
-      throw new Error('Empty response from linear agent');
+      throw new Error("Empty response from linear agent");
     }
 
-    console.error('');
-    console.error(`${'='.repeat(60)}`);
+    console.error("");
+    console.error(`${"=".repeat(60)}`);
     console.error(`SUCCESS!`);
-    console.error(`${'='.repeat(60)}`);
+    console.error(`${"=".repeat(60)}`);
     console.error(`Consolidated plan and Linear issues: ${resultText.length} characters`);
     console.error(`Session ID: ${session.id}`);
-    console.error('');
+    console.error("");
 
     // Output result to stdout (this will be captured by workflows)
     console.log(resultText);
@@ -240,24 +248,24 @@ async function main() {
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('');
-    console.error(`${'='.repeat(60)}`);
-    console.error('ERROR!');
-    console.error(`${'='.repeat(60)}`);
+    console.error("");
+    console.error(`${"=".repeat(60)}`);
+    console.error("ERROR!");
+    console.error(`${"=".repeat(60)}`);
     console.error(`Error: ${errorMessage}`);
     if (error instanceof Error && error.stack) {
-      console.error('Stack trace:', error.stack);
+      console.error("Stack trace:", error.stack);
     }
-    console.error('');
+    console.error("");
     process.exit(1);
   } finally {
-    console.error('Shutting down OpenCode server...');
+    console.error("Shutting down OpenCode server...");
     server.close();
   }
 }
 
 // Run the main function
-main().catch(error => {
-  console.error('FATAL ERROR:', error);
+main().catch((error) => {
+  console.error("FATAL ERROR:", error);
   process.exit(1);
 });

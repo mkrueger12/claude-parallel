@@ -33,11 +33,11 @@
  *   PROVIDER=google GOOGLE_GENERATIVE_AI_API_KEY=xxx MODEL=gemini-1.5-pro planning-agent.ts "Add user authentication"
  */
 
-import { readFile, access } from 'fs/promises';
-import { join } from 'path';
-import { DEFAULT_MODELS } from '../lib/types.js';
-import { extractTextFromParts, validateProvider, getApiKey } from '../lib/utils.js';
-import { createOpencodeServer, setupEventMonitoring } from '../lib/opencode.js';
+import { access, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { createOpencodeServer, setupEventMonitoring } from "../lib/opencode.js";
+import { DEFAULT_MODELS } from "../lib/types.js";
+import { extractTextFromParts, getApiKey, validateProvider } from "../lib/utils.js";
 
 // Note: __filename and __dirname are not needed here anymore
 // Prompts are resolved from process.cwd() in installed locations
@@ -66,7 +66,9 @@ async function findPromptFile(): Promise<string> {
     }
   }
 
-  throw new Error(`Could not find plan-generation.md in any of these locations:\n${possiblePaths.map(p => `  - ${p}`).join('\n')}`);
+  throw new Error(
+    `Could not find plan-generation.md in any of these locations:\n${possiblePaths.map((p) => `  - ${p}`).join("\n")}`
+  );
 }
 
 // ============================================================================
@@ -78,28 +80,32 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args.length < 1) {
-    console.error('Usage: planning-agent.ts <feature-description>');
-    console.error('');
-    console.error('Examples:');
-    console.error('  # Use default (Anthropic Claude)');
+    console.error("Usage: planning-agent.ts <feature-description>");
+    console.error("");
+    console.error("Examples:");
+    console.error("  # Use default (Anthropic Claude)");
     console.error('  ANTHROPIC_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error('');
-    console.error('  # Use OpenAI GPT-4');
-    console.error('  PROVIDER=openai OPENAI_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error('');
-    console.error('  # Use Google Gemini');
-    console.error('  PROVIDER=google GOOGLE_GENERATIVE_AI_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error('');
-    console.error('Environment variables:');
-    console.error('  PROVIDER - anthropic (default), openai, or google');
-    console.error('  MODEL - Override default model for the provider');
+    console.error("");
+    console.error("  # Use OpenAI GPT-4");
+    console.error(
+      '  PROVIDER=openai OPENAI_API_KEY=xxx planning-agent.ts "Add user authentication"'
+    );
+    console.error("");
+    console.error("  # Use Google Gemini");
+    console.error(
+      '  PROVIDER=google GOOGLE_GENERATIVE_AI_API_KEY=xxx planning-agent.ts "Add user authentication"'
+    );
+    console.error("");
+    console.error("Environment variables:");
+    console.error("  PROVIDER - anthropic (default), openai, or google");
+    console.error("  MODEL - Override default model for the provider");
     process.exit(1);
   }
 
-  const featureDescription = args.join(' ');
+  const featureDescription = args.join(" ");
 
   // Get provider from environment or use default
-  const providerEnv = (process.env.PROVIDER || 'anthropic').toLowerCase();
+  const providerEnv = (process.env.PROVIDER || "anthropic").toLowerCase();
 
   // Validate provider
   validateProvider(providerEnv);
@@ -111,20 +117,20 @@ async function main() {
   // Get model from environment or use provider-specific default
   const model = process.env.MODEL || DEFAULT_MODELS[provider];
 
-  console.error(`\n${'='.repeat(60)}`);
+  console.error(`\n${"=".repeat(60)}`);
   console.error(`Planning Agent`);
-  console.error(`${'='.repeat(60)}`);
+  console.error(`${"=".repeat(60)}`);
   console.error(`Provider: ${provider}`);
   console.error(`Model: ${model}`);
   console.error(`Feature: ${featureDescription}`);
-  console.error('');
+  console.error("");
 
   // Read external prompt file
   let prompt: string;
   let promptFile: string;
   try {
     promptFile = await findPromptFile();
-    prompt = await readFile(promptFile, 'utf-8');
+    prompt = await readFile(promptFile, "utf-8");
     console.error(`✓ Loaded prompt from ${promptFile}`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -142,14 +148,14 @@ async function main() {
     agentDescription: "Generate a comprehensive implementation plan for a given feature",
     agentPrompt: prompt,
     agentTools: {
-      write: false,    // No file creation
-      edit: false,     // No file modification
-      bash: false,     // No shell commands
-      read: true,      // Allow reading files
-      list: true,      // Allow listing directories
-      glob: true,      // Allow file pattern matching
-      grep: true,      // Allow searching content
-      webfetch: true,  // Allow web research
+      write: false, // No file creation
+      edit: false, // No file modification
+      bash: false, // No shell commands
+      read: true, // Allow reading files
+      list: true, // Allow listing directories
+      glob: true, // Allow file pattern matching
+      grep: true, // Allow searching content
+      webfetch: true, // Allow web research
     },
     agentPermissions: {
       edit: "deny",
@@ -170,7 +176,7 @@ async function main() {
     });
 
     if (!sessionResponse.data) {
-      throw new Error('Failed to create session: no data in response');
+      throw new Error("Failed to create session: no data in response");
     }
 
     const session = sessionResponse.data;
@@ -186,13 +192,13 @@ async function main() {
           providerID: provider,
           modelID: model,
         },
-        agent: AGENT_NAME,  // Use the planning agent
-        parts: [{ type: 'text', text: featureDescription }],
+        agent: AGENT_NAME, // Use the planning agent
+        parts: [{ type: "text", text: featureDescription }],
       },
     });
 
     if (!promptResponse.data) {
-      throw new Error('Failed to get response: no data in response');
+      throw new Error("Failed to get response: no data in response");
     }
 
     // Check for errors
@@ -200,8 +206,8 @@ async function main() {
     if (responseInfo?.error) {
       const err = responseInfo.error;
       const errorName = err.name;
-      const errorData = 'data' in err ? err.data : {};
-      const errorMessage = 'message' in errorData ? errorData.message : JSON.stringify(errorData);
+      const errorData = "data" in err ? err.data : {};
+      const errorMessage = "message" in errorData ? errorData.message : JSON.stringify(errorData);
 
       throw new Error(`Provider error: ${errorName}: ${errorMessage}`);
     }
@@ -210,16 +216,16 @@ async function main() {
     const planText = extractTextFromParts(promptResponse.data.parts);
 
     if (planText.length === 0) {
-      throw new Error('Empty response from planning agent');
+      throw new Error("Empty response from planning agent");
     }
 
-    console.error('');
-    console.error(`${'='.repeat(60)}`);
+    console.error("");
+    console.error(`${"=".repeat(60)}`);
     console.error(`SUCCESS!`);
-    console.error(`${'='.repeat(60)}`);
+    console.error(`${"=".repeat(60)}`);
     console.error(`Generated plan: ${planText.length} characters`);
     console.error(`Session ID: ${session.id}`);
-    console.error('');
+    console.error("");
 
     // Output plan to stdout (this will be captured by scripts)
     console.log(planText);
@@ -227,24 +233,24 @@ async function main() {
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('');
-    console.error(`${'='.repeat(60)}`);
-    console.error('ERROR!');
-    console.error(`${'='.repeat(60)}`);
+    console.error("");
+    console.error(`${"=".repeat(60)}`);
+    console.error("ERROR!");
+    console.error(`${"=".repeat(60)}`);
     console.error(`Error: ${errorMessage}`);
     if (error instanceof Error && error.stack) {
-      console.error('Stack trace:', error.stack);
+      console.error("Stack trace:", error.stack);
     }
-    console.error('');
+    console.error("");
     process.exit(1);
   } finally {
-    console.error('Shutting down OpenCode server...');
+    console.error("Shutting down OpenCode server...");
     server.close();
   }
 }
 
 // Run the main function
-main().catch(error => {
-  console.error('FATAL ERROR:', error);
+main().catch((error) => {
+  console.error("FATAL ERROR:", error);
   process.exit(1);
 });

@@ -22,7 +22,7 @@ export interface ProviderConfig {
 /**
  * Supported AI providers
  */
-export type Provider = 'anthropic' | 'openai' | 'google';
+export type Provider = "anthropic" | "openai" | "google";
 
 /**
  * Provider-specific default models
@@ -37,7 +37,7 @@ export const DEFAULT_MODELS: Record<Provider, string> = {
  * Environment variable names for API keys by provider
  */
 export const API_KEY_ENV_VARS: Record<Provider, string[]> = {
-  anthropic: ['ANTHROPIC_API_KEY', 'CLAUDE_CODE_OAUTH_TOKEN'],
-  openai: ['OPENAI_API_KEY'],
-  google: ['GOOGLE_GENERATIVE_AI_API_KEY'],
+  anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+  openai: ["OPENAI_API_KEY"],
+  google: ["GOOGLE_GENERATIVE_AI_API_KEY"],
 };

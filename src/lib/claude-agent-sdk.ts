@@ -5,14 +5,14 @@
  * @anthropic-ai/claude-agent-sdk package, mimicking the behavior of the CLI.
  */
 
-import { query, type Options, type McpServerConfig } from '@anthropic-ai/claude-agent-sdk';
+import { type McpServerConfig, type Options, query } from "@anthropic-ai/claude-agent-sdk";
 
 /**
  * Authentication configuration
  */
 export interface AuthConfig {
   apiKey: string;
-  source: 'oauth' | 'api_key';
+  source: "oauth" | "api_key";
 }
 
 /**
@@ -32,7 +32,7 @@ export interface ClaudeQueryOptions {
   /**
    * Execution mode: implementation or review
    */
-  mode?: 'implementation' | 'review';
+  mode?: "implementation" | "review";
 
   /**
    * JSON schema for structured output (used in review mode)
@@ -63,32 +63,32 @@ export function getAuthentication(): AuthConfig {
   // Check for OAuth token first (preferred)
   const oauthToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
   if (oauthToken) {
-    console.warn('[Auth] Using CLAUDE_CODE_OAUTH_TOKEN for authentication');
+    console.warn("[Auth] Using CLAUDE_CODE_OAUTH_TOKEN for authentication");
 
     // SDK handles CLAUDE_CODE_OAUTH_TOKEN automatically - don't modify env
     return {
       apiKey: oauthToken,
-      source: 'oauth',
+      source: "oauth",
     };
   }
 
   // Fall back to API key
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (apiKey) {
-    console.warn('[Auth] ⚠️  Using ANTHROPIC_API_KEY for authentication');
-    console.warn('[Auth] ⚠️  Consider using CLAUDE_CODE_OAUTH_TOKEN for better integration');
+    console.warn("[Auth] ⚠️  Using ANTHROPIC_API_KEY for authentication");
+    console.warn("[Auth] ⚠️  Consider using CLAUDE_CODE_OAUTH_TOKEN for better integration");
 
     return {
       apiKey,
-      source: 'api_key',
+      source: "api_key",
     };
   }
 
   // No authentication found
   throw new Error(
-    'No authentication found. Please set either:\n' +
-    '  - CLAUDE_CODE_OAUTH_TOKEN (preferred), or\n' +
-    '  - ANTHROPIC_API_KEY (fallback)\n'
+    "No authentication found. Please set either:\n" +
+      "  - CLAUDE_CODE_OAUTH_TOKEN (preferred), or\n" +
+      "  - ANTHROPIC_API_KEY (fallback)\n"
   );
 }
 
@@ -105,10 +105,7 @@ export function getAuthentication(): AuthConfig {
  * @param options - Configuration options for the query
  * @returns AsyncGenerator that yields SDK messages
  */
-export async function* runClaudeQuery(
-  prompt: string,
-  options: ClaudeQueryOptions
-) {
+export async function* runClaudeQuery(prompt: string, options: ClaudeQueryOptions) {
   // Get authentication (also sets ANTHROPIC_API_KEY in process.env)
   getAuthentication();
 
@@ -118,31 +115,29 @@ export async function* runClaudeQuery(
     cwd: options.cwd,
 
     // Model configuration
-    model: options.model || 'claude-opus-4-5-20251101',
+    model: options.model || "claude-opus-4-5-20251101",
 
     // Use Claude Code preset system prompt
     systemPrompt: {
-      type: 'preset',
-      preset: 'claude_code',
+      type: "preset",
+      preset: "claude_code",
     },
 
     // Load project settings (CLAUDE.md files)
-    settingSources: ['project'],
+    settingSources: ["project"],
 
     // Bypass permissions for automation
-    permissionMode: 'bypassPermissions',
+    permissionMode: "bypassPermissions",
     allowDangerouslySkipPermissions: true,
 
     // Configure MCP servers if provided
-    ...(options.mcpServers
-      ? { mcpServers: options.mcpServers }
-      : {}),
+    ...(options.mcpServers ? { mcpServers: options.mcpServers } : {}),
 
     // Configure output format based on mode
-    ...(options.mode === 'review' && options.outputSchema
+    ...(options.mode === "review" && options.outputSchema
       ? {
           outputFormat: {
-            type: 'json_schema' as const,
+            type: "json_schema" as const,
             schema: options.outputSchema,
           },
         }
@@ -153,13 +148,13 @@ export async function* runClaudeQuery(
   };
 
   // Log configuration
-  console.error('[Query] Starting Claude query');
+  console.error("[Query] Starting Claude query");
   console.error(`[Query]   Model: ${sdkOptions.model}`);
   console.error(`[Query]   CWD: ${sdkOptions.cwd}`);
-  console.error(`[Query]   Mode: ${options.mode || 'implementation'}`);
+  console.error(`[Query]   Mode: ${options.mode || "implementation"}`);
   console.error(`[Query]   Permission Mode: ${sdkOptions.permissionMode}`);
   if (options.mcpServers) {
-    console.error(`[Query]   MCP Servers: ${Object.keys(options.mcpServers).join(', ')}`);
+    console.error(`[Query]   MCP Servers: ${Object.keys(options.mcpServers).join(", ")}`);
   }
 
   // Create and yield from the query
