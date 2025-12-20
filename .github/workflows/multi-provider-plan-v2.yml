@@ -103,6 +103,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
       - name: Generate plan
         id: generate
         env:
@@ -155,6 +161,12 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
 
       - name: Generate plan
         id: generate
@@ -209,6 +221,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
       - name: Generate plan
         id: generate
         env:
@@ -262,6 +280,12 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
 
       - name: Consolidate plans and create Linear issues
         id: consolidate

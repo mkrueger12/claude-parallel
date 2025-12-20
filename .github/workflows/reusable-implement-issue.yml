@@ -115,6 +115,13 @@ jobs:
           cd ${{ github.workspace }}
           bun install
 
+      - name: Install ast-grep
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}
         uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
@@ -368,6 +375,13 @@ jobs:
           cd ${{ github.workspace }}
           bun install
 
+      - name: Install ast-grep
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}
         uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
@@ -524,6 +538,13 @@ jobs:
         run: |
           cd ${{ github.workspace }}
           bun install
+
+      - name: Install ast-grep
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
 
       - name: Fetch custom agents
         if: ${{ inputs.dry_run != true }}

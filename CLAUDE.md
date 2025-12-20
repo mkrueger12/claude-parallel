@@ -448,3 +448,4 @@ The implementation workflow automatically configures Linear MCP using this API k
 The multi-provider plan workflow uses the API key with the OpenCode SDK's Linear MCP integration.
 
 - You the available LSP server to check for type errors and warnings. 
+- Prefer ast-grep over grep for code search and understanding

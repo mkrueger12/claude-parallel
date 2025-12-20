@@ -159,6 +159,7 @@ You MUST respond with a structured Markdown implementation plan. Do NOT use JSON
     - Ignore any directories that mention "prompts"
 
     - Unless otherwise noted, backwards compatibility is not required.
+    - Prefer ast-grep over grep for code search and understanding
 
 ## Task Details
 
