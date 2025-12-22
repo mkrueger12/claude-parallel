@@ -72,7 +72,7 @@
       "Verify CREATE TABLE messages statement exists",
       "Verify CREATE TABLE tool_executions statement exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -84,7 +84,7 @@
       "Verify CREATE INDEX on messages(session_id) exists",
       "Verify CREATE INDEX on tool_executions(session_id) exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -96,7 +96,7 @@
       "Verify all CREATE TABLE use IF NOT EXISTS",
       "Verify all CREATE INDEX use IF NOT EXISTS"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -109,7 +109,7 @@
       "Verify schema_version table is created",
       "Read src/lib/turso.ts for initializeSchema function"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

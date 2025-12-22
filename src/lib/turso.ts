@@ -7,6 +7,7 @@
  */
 
 import { type Client, createClient } from "@libsql/client";
+import { SCHEMA_STATEMENTS, SCHEMA_VERSION } from "./turso-schema.js";
 
 export interface TursoConfig {
   url: string;
@@ -67,4 +68,69 @@ export function closeTursoClient(): void {
     _client.close();
     _client = null;
   }
+}
+
+// Schema initialization state
+let _schemaInitialized = false;
+
+/**
+ * Initialize the database schema.
+ * This function is idempotent and can be called multiple times safely.
+ * Returns true if initialization was successful or already done.
+ * Returns false if Turso is not configured.
+ */
+export async function initializeSchema(): Promise<boolean> {
+  if (_schemaInitialized) {
+    return true;
+  }
+
+  const client = await getTursoClient();
+  if (!client) {
+    return false;
+  }
+
+  try {
+    // Check current schema version
+    const versionResult = await client
+      .execute("SELECT version FROM schema_version ORDER BY version DESC LIMIT 1")
+      .catch(() => ({ rows: [] }));
+
+    const currentVersion =
+      versionResult.rows.length > 0 && versionResult.rows[0]?.version
+        ? Number(versionResult.rows[0].version)
+        : 0;
+
+    if (currentVersion >= SCHEMA_VERSION) {
+      _schemaInitialized = true;
+      return true;
+    }
+
+    // Run all schema statements (idempotent due to IF NOT EXISTS)
+    for (const statement of SCHEMA_STATEMENTS) {
+      await client.execute(statement);
+    }
+
+    // Record schema version if not already present
+    if (currentVersion < SCHEMA_VERSION) {
+      await client.execute({
+        sql: "INSERT OR REPLACE INTO schema_version (version) VALUES (?)",
+        args: [SCHEMA_VERSION],
+      });
+    }
+
+    _schemaInitialized = true;
+    console.error(`[Turso] Schema initialized to version ${SCHEMA_VERSION}`);
+    return true;
+  } catch (error) {
+    console.error("[Turso] Failed to initialize schema:", error);
+    return false;
+  }
+}
+
+/**
+ * Reset schema initialization state.
+ * Useful for testing or when reconnecting.
+ */
+export function resetSchemaState(): void {
+  _schemaInitialized = false;
 }
