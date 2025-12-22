@@ -3,7 +3,7 @@
 ## Session: Agent Conversation Logging to Turso Implementation
 
 **Date:** 2025-12-22
-**Status:** Implementation in Progress - Task 4 Complete
+**Status:** Implementation in Progress - Task 5 Complete
 
 ## Planning Phase Complete
 
@@ -19,11 +19,11 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
 2. ✅ Create turso-client.ts module - COMPLETE
 3. ✅ Create conversation-logger.ts module - COMPLETE
 4. ✅ Integrate logging into claude-agent-runner.ts - COMPLETE
-5. Update build-templates.ts for bundling
+5. ✅ Update build-templates.ts for bundling - COMPLETE
 6. Create optional helper scripts (sync-session.ts, query-session.ts)
 7. Add documentation (TURSO_SETUP.md)
 
-### Test Cases (10/16 passing):
+### Test Cases (11/16 passing):
 - ✅ task-1-libsql-dependency - PASSING
 - ✅ task-2-turso-client-module - PASSING
 - ✅ task-2-local-database-creation - PASSING
@@ -33,8 +33,8 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
 - ✅ task-3-error-handling - PASSING
 - ✅ task-4-agent-runner-integration - PASSING
 - ✅ task-4-session-id-logging - PASSING
+- ✅ task-5-bundle-includes-logging - PASSING
 - ✅ type-check-passes - PASSING
-- task-5-bundle-includes-logging
 - task-6-sync-session-script
 - task-6-query-session-script
 - task-7-turso-documentation
@@ -156,6 +156,30 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
   * ✅ TypeScript compiles without errors
   * ✅ Existing functionality preserved
 
+### Task 5: Update build-templates.ts for bundling ✅
+- Analyzed build-templates.ts configuration
+- Found existing configuration already optimal:
+  * `external: []` properly bundles all dependencies
+  * No changes needed to build-templates.ts
+- Ran `bun run build:templates` successfully
+- Verified bundled file increased from 12,887 to 21,782 lines (~69% larger)
+- Verified bundled file size: 719KB (vs smaller pre-logging version)
+- Confirmed all required code bundled:
+  * ✅ ConversationLogger class at line 21332 (13 references total)
+  * ✅ createLocalClient function at line 21205
+  * ✅ createRemoteClient function at line 21222
+  * ✅ @libsql/client library bundled (51 references, no external imports)
+  * ✅ All schema SQL tables included
+  * ✅ logger.startSession() at line 21723
+  * ✅ logger.logMessage() at line 21739
+  * ✅ logger.endSession() at line 21750
+- Bundle is self-contained and executable:
+  * ✅ Shebang present: #!/usr/bin/env node
+  * ✅ File permissions: 0755 (executable)
+  * ✅ No external dependencies except Node.js built-ins
+- All success criteria verified and documented in task-5-verification.md
+- Updated features.json: task-5-bundle-includes-logging now passing
+
 ## Next Steps
 
-Continue with Task 5: Update build-templates.ts to bundle logging modules into the standalone script.
+Continue with Task 6: Create optional helper scripts (sync-session.ts, query-session.ts).
