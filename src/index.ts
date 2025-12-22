@@ -5,28 +5,25 @@
  * as well as shared utilities and types.
  */
 
-// Export all types
-export type { Part, Provider, ProviderConfig } from './lib/types.js';
-export { DEFAULT_MODELS, API_KEY_ENV_VARS } from './lib/types.js';
-
-// Export all utility functions
-export {
-  extractTextFromParts,
-  validateEnvVars,
-  getApiKey,
-  validateProvider,
-} from './lib/utils.js';
-
-// Export OpenCode helpers
-export type { OpencodeServerOptions } from './lib/opencode.js';
-export {
-  createOpencodeServer,
-  setupEventMonitoring,
-} from './lib/opencode.js';
-
 // Export Claude Agent SDK helpers
-export type { AuthConfig, ClaudeQueryOptions } from './lib/claude-agent-sdk.js';
+export type { AuthConfig, ClaudeQueryOptions } from "./lib/claude-agent-sdk.js";
 export {
   getAuthentication,
   runClaudeQuery,
-} from './lib/claude-agent-sdk.js';
+} from "./lib/claude-agent-sdk.js";
+// Export OpenCode helpers
+export type { OpencodeServerOptions } from "./lib/opencode.js";
+export {
+  createOpencodeServer,
+  setupEventMonitoring,
+} from "./lib/opencode.js";
+// Export all types
+export type { Part, Provider, ProviderConfig } from "./lib/types.js";
+export { API_KEY_ENV_VARS, DEFAULT_MODELS } from "./lib/types.js";
+// Export all utility functions
+export {
+  extractTextFromParts,
+  getApiKey,
+  validateEnvVars,
+  validateProvider,
+} from "./lib/utils.js";

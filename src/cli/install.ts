@@ -1,14 +1,22 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, statSync, chmodSync } from 'fs';
-import { join, dirname, relative } from 'path';
-import { fileURLToPath } from 'url';
 import {
-  readManifest,
-  writeManifest,
-  createManifest,
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
   calculateFileHash,
+  createManifest,
   isFileModified,
   type Manifest,
-} from './manifest.js';
+  readManifest,
+  writeManifest,
+} from "./manifest.js";
 
 export interface InstallOptions {
   force?: boolean;
@@ -20,7 +28,7 @@ export interface InstallOptions {
 interface FileAction {
   sourcePath: string;
   destPath: string;
-  action: 'install' | 'skip-modified' | 'skip-exists' | 'overwrite';
+  action: "install" | "skip-modified" | "skip-exists" | "overwrite";
   reason?: string;
 }
 
@@ -30,7 +38,7 @@ function getPackageDir(): string {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   // dist/cli/install.js -> go up two levels to package root
-  return join(__dirname, '..', '..');
+  return join(__dirname, "..", "..");
 }
 
 /**
@@ -61,28 +69,28 @@ function findTemplateFiles(templatesDir: string, baseDir: string = templatesDir)
  */
 function getDestinationPath(templateRelativePath: string): string {
   // workflows/* -> .github/workflows/*
-  if (templateRelativePath.startsWith('workflows/')) {
-    return templateRelativePath.replace('workflows/', '.github/workflows/');
+  if (templateRelativePath.startsWith("workflows/")) {
+    return templateRelativePath.replace("workflows/", ".github/workflows/");
   }
 
   // scripts/* -> .github/claude-parallel/scripts/*
-  if (templateRelativePath.startsWith('scripts/')) {
-    return templateRelativePath.replace('scripts/', '.github/claude-parallel/scripts/');
+  if (templateRelativePath.startsWith("scripts/")) {
+    return templateRelativePath.replace("scripts/", ".github/claude-parallel/scripts/");
   }
 
   // prompts/* -> .github/claude-parallel/prompts/*
-  if (templateRelativePath.startsWith('prompts/')) {
-    return templateRelativePath.replace('prompts/', '.github/claude-parallel/prompts/');
+  if (templateRelativePath.startsWith("prompts/")) {
+    return templateRelativePath.replace("prompts/", ".github/claude-parallel/prompts/");
   }
 
   // agents/* -> .claude/agents/*
-  if (templateRelativePath.startsWith('agents/')) {
-    return templateRelativePath.replace('agents/', '.claude/agents/');
+  if (templateRelativePath.startsWith("agents/")) {
+    return templateRelativePath.replace("agents/", ".claude/agents/");
   }
 
   // .env.example -> .env.example (root)
-  if (templateRelativePath === '.env.example') {
-    return '.env.example';
+  if (templateRelativePath === ".env.example") {
+    return ".env.example";
   }
 
   // Default: keep the same path
@@ -111,36 +119,36 @@ function planFileActions(
       actions.push({
         sourcePath,
         destPath,
-        action: 'install',
+        action: "install",
       });
       continue;
     }
 
     // Destination exists - check if it was modified
-    const destContent = readFileSync(destPath, 'utf-8');
+    const destContent = readFileSync(destPath, "utf-8");
     const wasModified = isFileModified(destRelativePath, destContent, manifest);
 
     if (options.force) {
       actions.push({
         sourcePath,
         destPath,
-        action: 'overwrite',
-        reason: wasModified ? 'user modified, forcing overwrite' : 'forcing overwrite',
+        action: "overwrite",
+        reason: wasModified ? "user modified, forcing overwrite" : "forcing overwrite",
       });
     } else if (wasModified) {
       actions.push({
         sourcePath,
         destPath,
-        action: 'skip-modified',
-        reason: 'file was modified by user',
+        action: "skip-modified",
+        reason: "file was modified by user",
       });
     } else {
       // File exists but wasn't modified (same hash as manifest) - update it
       actions.push({
         sourcePath,
         destPath,
-        action: 'install',
-        reason: 'updating to new version',
+        action: "install",
+        reason: "updating to new version",
       });
     }
   }
@@ -157,15 +165,15 @@ function executeFileActions(actions: FileAction[], dryRun: boolean): void {
   const overwritten: string[] = [];
 
   for (const action of actions) {
-    const destRelative = action.destPath.split('/').slice(-5).join('/'); // Show last 5 path segments
+    const destRelative = action.destPath.split("/").slice(-5).join("/"); // Show last 5 path segments
 
-    if (action.action === 'skip-modified' || action.action === 'skip-exists') {
-      skipped.push(`  ⚠ ${destRelative} (${action.reason || 'user modified'})`);
+    if (action.action === "skip-modified" || action.action === "skip-exists") {
+      skipped.push(`  ⚠ ${destRelative} (${action.reason || "user modified"})`);
       continue;
     }
 
     if (dryRun) {
-      if (action.action === 'overwrite') {
+      if (action.action === "overwrite") {
         overwritten.push(`  ↻ ${destRelative} (would overwrite)`);
       } else {
         installed.push(`  ✓ ${destRelative} (would install)`);
@@ -178,8 +186,8 @@ function executeFileActions(actions: FileAction[], dryRun: boolean): void {
       }
 
       // Copy the file
-      const content = readFileSync(action.sourcePath, 'utf-8');
-      writeFileSync(action.destPath, content, 'utf-8');
+      const content = readFileSync(action.sourcePath, "utf-8");
+      writeFileSync(action.destPath, content, "utf-8");
 
       // Copy executable permissions if source is executable
       const sourceStat = statSync(action.sourcePath);
@@ -188,7 +196,7 @@ function executeFileActions(actions: FileAction[], dryRun: boolean): void {
         chmodSync(action.destPath, 0o755);
       }
 
-      if (action.action === 'overwrite') {
+      if (action.action === "overwrite") {
         overwritten.push(`  ↻ ${destRelative}`);
       } else {
         installed.push(`  ✓ ${destRelative}`);
@@ -198,20 +206,20 @@ function executeFileActions(actions: FileAction[], dryRun: boolean): void {
 
   // Print summary
   if (installed.length > 0) {
-    console.log(dryRun ? '\nWould install:' : '\nInstalled:');
+    console.log(dryRun ? "\nWould install:" : "\nInstalled:");
     installed.forEach((msg) => console.log(msg));
   }
 
   if (overwritten.length > 0) {
-    console.log(dryRun ? '\nWould overwrite:' : '\nOverwritten:');
+    console.log(dryRun ? "\nWould overwrite:" : "\nOverwritten:");
     overwritten.forEach((msg) => console.log(msg));
   }
 
   if (skipped.length > 0) {
-    console.log('\nSkipped (user modified):');
+    console.log("\nSkipped (user modified):");
     skipped.forEach((msg) => console.log(msg));
     if (!dryRun) {
-      console.log('\nUse --force to overwrite user-modified files.');
+      console.log("\nUse --force to overwrite user-modified files.");
     }
   }
 }
@@ -222,14 +230,14 @@ function executeFileActions(actions: FileAction[], dryRun: boolean): void {
 export async function install(options: InstallOptions = {}): Promise<void> {
   const targetDir = options.targetDir || process.cwd();
   const packageDir = getPackageDir();
-  const templatesDir = join(packageDir, 'templates');
+  const templatesDir = join(packageDir, "templates");
 
   console.log(`Installing claude-parallel to ${targetDir}...\n`);
 
   // Check if running in a git repository
-  if (!existsSync(join(targetDir, '.git'))) {
-    console.warn('⚠ Warning: Target directory is not a git repository.');
-    console.warn('  claude-parallel works best in git repositories.\n');
+  if (!existsSync(join(targetDir, ".git"))) {
+    console.warn("⚠ Warning: Target directory is not a git repository.");
+    console.warn("  claude-parallel works best in git repositories.\n");
   }
 
   // Check if templates directory exists
@@ -244,7 +252,7 @@ export async function install(options: InstallOptions = {}): Promise<void> {
   const templateFiles = findTemplateFiles(templatesDir);
 
   if (templateFiles.length === 0) {
-    throw new Error('No template files found');
+    throw new Error("No template files found");
   }
 
   // Plan what to do with each file
@@ -253,9 +261,9 @@ export async function install(options: InstallOptions = {}): Promise<void> {
   // Show what directories will be created
   const dirsToCreate = new Set<string>();
   for (const action of actions) {
-    if (action.action === 'install' || action.action === 'overwrite') {
+    if (action.action === "install" || action.action === "overwrite") {
       let dir = dirname(action.destPath);
-      while (dir !== targetDir && dir !== '.') {
+      while (dir !== targetDir && dir !== ".") {
         dirsToCreate.add(dir);
         dir = dirname(dir);
       }
@@ -263,7 +271,7 @@ export async function install(options: InstallOptions = {}): Promise<void> {
   }
 
   if (dirsToCreate.size > 0) {
-    console.log('Creating directories:');
+    console.log("Creating directories:");
     Array.from(dirsToCreate)
       .sort()
       .forEach((dir) => {
@@ -273,7 +281,7 @@ export async function install(options: InstallOptions = {}): Promise<void> {
           mkdirSync(dir, { recursive: true });
         }
       });
-    console.log('');
+    console.log("");
   }
 
   // Execute the actions
@@ -282,13 +290,13 @@ export async function install(options: InstallOptions = {}): Promise<void> {
   // Write manifest (unless dry-run)
   if (!options.dryRun) {
     const newManifest = createManifest(
-      '1.0.0',
+      "1.0.0",
       Object.fromEntries(
         actions
-          .filter((a) => a.action === 'install' || a.action === 'overwrite')
+          .filter((a) => a.action === "install" || a.action === "overwrite")
           .map((a) => {
             const destRelative = relative(targetDir, a.destPath);
-            const content = readFileSync(a.sourcePath, 'utf-8');
+            const content = readFileSync(a.sourcePath, "utf-8");
             return [destRelative, calculateFileHash(content)];
           })
       )
@@ -297,7 +305,7 @@ export async function install(options: InstallOptions = {}): Promise<void> {
     // Merge with skipped files from old manifest
     if (manifest) {
       for (const action of actions) {
-        if (action.action === 'skip-modified') {
+        if (action.action === "skip-modified") {
           const destRelative = relative(targetDir, action.destPath);
           if (manifest.files[destRelative]) {
             // Keep the old hash for skipped files
@@ -308,17 +316,21 @@ export async function install(options: InstallOptions = {}): Promise<void> {
     }
 
     writeManifest(targetDir, newManifest);
-    console.log('\n✓ Manifest saved to .github/claude-parallel/.install-manifest.json');
+    console.log("\n✓ Manifest saved to .github/claude-parallel/.install-manifest.json");
   }
 
   // Print summary
-  const installedCount = actions.filter((a) => a.action === 'install' || a.action === 'overwrite').length;
-  const skippedCount = actions.filter((a) => a.action === 'skip-modified').length;
+  const installedCount = actions.filter(
+    (a) => a.action === "install" || a.action === "overwrite"
+  ).length;
+  const skippedCount = actions.filter((a) => a.action === "skip-modified").length;
 
-  console.log('\nSummary:');
-  console.log(`  - ${installedCount} file${installedCount !== 1 ? 's' : ''} ${options.dryRun ? 'would be installed' : 'installed'}`);
+  console.log("\nSummary:");
+  console.log(
+    `  - ${installedCount} file${installedCount !== 1 ? "s" : ""} ${options.dryRun ? "would be installed" : "installed"}`
+  );
   if (skippedCount > 0) {
-    console.log(`  - ${skippedCount} file${skippedCount !== 1 ? 's' : ''} skipped (user modified)`);
+    console.log(`  - ${skippedCount} file${skippedCount !== 1 ? "s" : ""} skipped (user modified)`);
   }
 
   if (!options.dryRun) {
