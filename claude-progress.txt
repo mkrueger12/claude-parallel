@@ -23,11 +23,11 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
 6. Create optional helper scripts (sync-session.ts, query-session.ts)
 7. Add documentation (TURSO_SETUP.md)
 
-### Test Cases (1/16 passing):
+### Test Cases (4/16 passing):
 - ✅ task-1-libsql-dependency - PASSING
-- task-2-turso-client-module
-- task-2-local-database-creation
-- task-2-remote-client-graceful
+- ✅ task-2-turso-client-module - PASSING
+- ✅ task-2-local-database-creation - PASSING
+- ✅ task-2-remote-client-graceful - PASSING
 - task-3-conversation-logger-module
 - task-3-session-logging
 - task-3-error-handling
@@ -51,6 +51,31 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
 - All type checks pass
 - Committed changes with descriptive message
 
+### Task 2: Create turso-client.ts module ✅
+- Created src/lib/turso-client.ts with all required functionality
+- Implemented createLocalClient(sessionId) function:
+  * Creates .turso/sessions/ directory if not exists
+  * Returns client connected to .turso/sessions/<sessionId>.db
+  * Initializes schema (sessions, messages, tool_calls tables)
+  * Creates all indexes for common queries
+- Implemented createRemoteClient() function:
+  * Checks for TURSO_DATABASE_URL and TURSO_AUTH_TOKEN env vars
+  * Returns null gracefully when credentials missing
+  * Logs warning to stderr when credentials not found
+  * Returns connected client when credentials available
+- Implemented syncToCloud(localClient, remoteClient, sessionId) function:
+  * Reads all rows from local database
+  * Inserts into remote using batch operations
+  * Uses INSERT OR REPLACE for idempotency
+  * Handles errors gracefully, logs and continues
+- Exported schema constants (SESSIONS_TABLE_SQL, MESSAGES_TABLE_SQL, TOOL_CALLS_TABLE_SQL, INDEXES_SQL)
+- All TypeScript type checks pass
+- Verified with manual tests:
+  * Local client creates directory and database file
+  * All tables and indexes created correctly
+  * Remote client returns null without credentials
+  * Warning logged to stderr as expected
+
 ## Next Steps
 
-Continue with Task 2: Create turso-client.ts module with database initialization and schema setup.
+Continue with Task 3: Create conversation-logger.ts module with ConversationLogger class for high-level logging.

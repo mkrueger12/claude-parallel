@@ -24,7 +24,7 @@
       "Verify syncToCloud function is exported",
       "Verify schema constants are exported"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -39,7 +39,7 @@
       "Verify messages table exists in database",
       "Verify tool_calls table exists in database"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -53,7 +53,7 @@
       "Verify it returns null (not throws)",
       "Verify warning is logged to stderr"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
