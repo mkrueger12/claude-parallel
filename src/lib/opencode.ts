@@ -7,6 +7,20 @@ import type { ConversationLogger } from "./conversation-logger.js";
 import type { Provider } from "./types.js";
 
 /**
+ * OpenCode client interface for event monitoring
+ */
+export interface OpencodeClient {
+  event: {
+    subscribe(): Promise<{
+      stream: AsyncIterable<{
+        type: string;
+        properties: Record<string, unknown>;
+      }>;
+    }>;
+  };
+}
+
+/**
  * Options for creating an OpenCode server
  */
 export interface OpencodeServerOptions {
@@ -43,7 +57,9 @@ export interface OpencodeServerOptions {
  * @param options - Configuration options for the OpenCode server
  * @returns OpenCode client and server instances
  */
-export async function createOpencodeServer(options: OpencodeServerOptions) {
+export async function createOpencodeServer(
+  options: OpencodeServerOptions
+): Promise<{ client: OpencodeClient; server: { url: string } }> {
   const {
     provider,
     apiKey,
@@ -58,7 +74,7 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
   } = options;
 
   // Build OpenCode configuration
-  const opcodeConfig: any = {
+  const opcodeConfig: Record<string, unknown> = {
     provider: {
       [provider]: {
         options: {
@@ -100,7 +116,7 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
 
   console.error(`✓ OpenCode server started at ${server.url}`);
 
-  return { client, server };
+  return { client: client as OpencodeClient, server };
 }
 
 /**
@@ -109,7 +125,10 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
  * @param client - OpenCode client instance
  * @param logger - Optional conversation logger for storing tool executions
  */
-export function setupEventMonitoring(client: any, logger?: ConversationLogger | null): void {
+export function setupEventMonitoring(
+  client: OpencodeClient,
+  logger?: ConversationLogger | null
+): void {
   console.error("Setting up event monitoring...");
 
   (async () => {
