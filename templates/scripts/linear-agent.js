@@ -1,52 +1,8 @@
 #!/usr/bin/env node
 
 // src/agents/linear-agent.ts
-import { readFile } from "fs/promises";
-import { join } from "path";
-
-// src/lib/types.ts
-var API_KEY_ENV_VARS = {
-  anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
-  openai: ["OPENAI_API_KEY"],
-  google: ["GOOGLE_GENERATIVE_AI_API_KEY"]
-};
-
-// src/lib/utils.ts
-function extractTextFromParts(parts) {
-  if (!Array.isArray(parts))
-    return "";
-  return parts.filter((part) => part.type === "text").map((part) => part.text || "").join(`
-`);
-}
-function validateEnvVars(requiredVars) {
-  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
-  if (missingVars.length > 0) {
-    const errorMsg = [
-      "Error: Missing required environment variables:",
-      ...missingVars.map((varName) => `  - ${varName}`),
-      "",
-      "Please set all required environment variables and try again."
-    ].join(`
-`);
-    throw new Error(errorMsg);
-  }
-}
-function getApiKey(provider) {
-  const envVars = API_KEY_ENV_VARS[provider];
-  for (const envVar of envVars) {
-    const apiKey = process.env[envVar];
-    if (apiKey) {
-      return apiKey;
-    }
-  }
-  const errorMsg = [
-    `Error: No API key found for provider "${provider}"`,
-    `Required environment variables (at least one):`,
-    ...envVars.map((envVar) => `  - ${envVar}`)
-  ].join(`
-`);
-  throw new Error(errorMsg);
-}
+import { access, readFile } from "node:fs/promises";
+import { join } from "node:path";
 // node_modules/@opencode-ai/sdk/dist/gen/core/serverSentEvents.gen.js
 var createSseClient = ({ onSseError, onSseEvent, responseTransformer, responseValidator, sseDefaultRetryDelay, sseMaxRetryAttempts, sseMaxRetryDelay, sseSleepFn, url, ...options }) => {
   let lastEventId;
@@ -1076,7 +1032,7 @@ class Oauth extends _HeyApiClient {
   }
 }
 
-class Provider2 extends _HeyApiClient {
+class Provider extends _HeyApiClient {
   list(options) {
     return (options?.client ?? this._client).get({
       url: "/provider",
@@ -1373,7 +1329,7 @@ class OpencodeClient extends _HeyApiClient {
   vcs = new Vcs({ client: this._client });
   session = new Session({ client: this._client });
   command = new Command({ client: this._client });
-  provider = new Provider2({ client: this._client });
+  provider = new Provider({ client: this._client });
   find = new Find({ client: this._client });
   file = new File({ client: this._client });
   app = new App({ client: this._client });
@@ -1599,10 +1555,68 @@ function setupEventMonitoring(client3) {
   })();
 }
 
+// src/lib/types.ts
+var API_KEY_ENV_VARS = {
+  anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+  openai: ["OPENAI_API_KEY"],
+  google: ["GOOGLE_GENERATIVE_AI_API_KEY"]
+};
+
+// src/lib/utils.ts
+function extractTextFromParts(parts) {
+  if (!Array.isArray(parts))
+    return "";
+  return parts.filter((part) => part.type === "text").map((part) => part.text || "").join(`
+`);
+}
+function validateEnvVars(requiredVars) {
+  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
+  if (missingVars.length > 0) {
+    const errorMsg = [
+      "Error: Missing required environment variables:",
+      ...missingVars.map((varName) => `  - ${varName}`),
+      "",
+      "Please set all required environment variables and try again."
+    ].join(`
+`);
+    throw new Error(errorMsg);
+  }
+}
+function getApiKey(provider) {
+  const envVars = API_KEY_ENV_VARS[provider];
+  for (const envVar of envVars) {
+    const apiKey = process.env[envVar];
+    if (apiKey) {
+      return apiKey;
+    }
+  }
+  const errorMsg = [
+    `Error: No API key found for provider "${provider}"`,
+    `Required environment variables (at least one):`,
+    ...envVars.map((envVar) => `  - ${envVar}`)
+  ].join(`
+`);
+  throw new Error(errorMsg);
+}
+
 // src/agents/linear-agent.ts
 var AGENT_NAME = "linear-agent";
 var DEFAULT_MODEL = "claude-opus-4-5";
-var PROMPT_FILE = join(process.cwd(), ".github", "claude-parallel", "prompts", "consolidate-and-create-linear.md");
+async function findPromptFile() {
+  const possiblePaths = [
+    join(process.cwd(), ".github", "claude-parallel", "prompts", "consolidate-and-create-linear.md"),
+    join(process.cwd(), "prompts", "consolidate-and-create-linear.md")
+  ];
+  for (const path of possiblePaths) {
+    try {
+      await access(path);
+      return path;
+    } catch {}
+  }
+  throw new Error(`Could not find consolidate-and-create-linear.md in any of these locations:
+${possiblePaths.map((p) => `  - ${p}`).join(`
+`)}`);
+}
 async function main() {
   const requiredEnvVars = [
     "ANTHROPIC_PLAN",
@@ -1645,11 +1659,14 @@ ${"=".repeat(60)}`);
   console.error(`Linear Project: ${linearProjectId || "(none)"}`);
   console.error("");
   let promptTemplate;
+  let promptFile;
   try {
-    promptTemplate = await readFile(PROMPT_FILE, "utf-8");
-    console.error(`✓ Loaded prompt template from ${PROMPT_FILE}`);
+    promptFile = await findPromptFile();
+    promptTemplate = await readFile(promptFile, "utf-8");
+    console.error(`✓ Loaded prompt template from ${promptFile}`);
   } catch (error) {
-    console.error(`✗ Failed to read prompt file: ${PROMPT_FILE}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to read prompt file: ${errorMessage}`);
     console.error("Please create consolidate-and-create-linear.md file in the prompts directory");
     process.exit(1);
   }
