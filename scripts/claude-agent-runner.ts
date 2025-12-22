@@ -29,6 +29,7 @@
 import { stdin } from "node:process";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { runClaudeQuery } from "../src/lib/claude-agent-sdk.js";
+import { createConversationLogger } from "../src/lib/conversation-logger.js";
 
 // ============================================================================
 // Review Decision Schema
@@ -192,6 +193,12 @@ async function main() {
   console.error(`✓ Received prompt: ${prompt.length} characters`);
   console.error("");
 
+  // Initialize conversation logger (optional)
+  const logger = await createConversationLogger();
+  if (logger) {
+    console.error(`✓ Conversation logging enabled`);
+  }
+
   // Build MCP servers configuration
   const mcpServers: Record<string, any> = {
     deepwiki: {
@@ -223,10 +230,21 @@ async function main() {
     model: args.model,
     mode: args.mode,
     mcpServers,
+    logger,
     ...(args.mode === "review" ? { outputSchema: REVIEW_DECISION_SCHEMA } : {}),
   };
 
   try {
+    // Start logging session if logger is available
+    if (logger) {
+      await logger.startSession({
+        id: crypto.randomUUID(),
+        agentType: args.mode === "review" ? "review" : "implementation",
+        model: args.model,
+        provider: "anthropic",
+      });
+    }
+
     // Run the query
     console.error("Starting Claude query...");
     console.error("");
@@ -270,6 +288,11 @@ async function main() {
     console.error("=".repeat(60));
     console.error("");
 
+    // End logging session successfully
+    if (logger) {
+      await logger.endSession("completed");
+    }
+
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -284,6 +307,12 @@ async function main() {
       console.error(error.stack);
     }
     console.error("");
+
+    // End logging session with error
+    if (logger) {
+      await logger.endSession("error", errorMessage);
+    }
+
     process.exit(1);
   }
 }

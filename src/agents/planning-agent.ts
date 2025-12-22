@@ -35,6 +35,7 @@
 
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createConversationLogger } from "../lib/conversation-logger.js";
 import { createOpencodeServer, setupEventMonitoring } from "../lib/opencode.js";
 import { DEFAULT_MODELS } from "../lib/types.js";
 import { extractTextFromParts, getApiKey, validateProvider } from "../lib/utils.js";
@@ -125,6 +126,12 @@ async function main() {
   console.error(`Feature: ${featureDescription}`);
   console.error("");
 
+  // Initialize conversation logger (optional)
+  const logger = await createConversationLogger();
+  if (logger) {
+    console.error(`✓ Conversation logging enabled`);
+  }
+
   // Read external prompt file
   let prompt: string;
   let promptFile: string;
@@ -166,9 +173,19 @@ async function main() {
   });
 
   // Setup event monitoring
-  setupEventMonitoring(client);
+  setupEventMonitoring(client, logger);
 
   try {
+    // Start logging session if logger is available
+    if (logger) {
+      await logger.startSession({
+        id: crypto.randomUUID(),
+        agentType: "planning",
+        model,
+        provider,
+      });
+    }
+
     // Create session
     console.error(`Creating session...`);
     const sessionResponse = await client.session.create({
@@ -230,6 +247,11 @@ async function main() {
     // Output plan to stdout (this will be captured by scripts)
     console.log(planText);
 
+    // End logging session successfully
+    if (logger) {
+      await logger.endSession("completed");
+    }
+
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -242,6 +264,12 @@ async function main() {
       console.error("Stack trace:", error.stack);
     }
     console.error("");
+
+    // End logging session with error
+    if (logger) {
+      await logger.endSession("error", errorMessage);
+    }
+
     process.exit(1);
   } finally {
     console.error("Shutting down OpenCode server...");
