@@ -195,7 +195,7 @@
       "Verify messages were logged",
       "Verify no errors in stderr output related to logging"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "integration",
@@ -210,7 +210,7 @@
       "Verify local database was created",
       "Verify warning about missing cloud credentials in stderr"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
