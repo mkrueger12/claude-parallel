@@ -180,6 +180,35 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
 - All success criteria verified and documented in task-5-verification.md
 - Updated features.json: task-5-bundle-includes-logging now passing
 
+### Task 6: Create optional helper scripts ✅
+- Created scripts/sync-session.ts with full sync functionality:
+  * Accepts session ID or --all flag to sync all sessions
+  * Shows --help message with usage examples
+  * Checks for remote client and fails gracefully if credentials missing
+  * Uses createRemoteClient() which automatically initializes schema
+  * Syncs local database to cloud using syncToCloud() function
+  * Provides clear success/failure feedback for each session
+  * Executable with chmod +x
+- Created scripts/query-session.ts with full query functionality:
+  * Accepts session ID as positional argument
+  * Supports --help flag for usage information
+  * Supports --json flag for raw JSON output
+  * Supports --messages flag to include message details
+  * Supports --tools flag to include tool call details
+  * Shows comprehensive session summary by default
+  * Displays GitHub context when available
+  * Handles missing session gracefully with error message
+  * Executable with chmod +x
+- Verified both scripts work correctly:
+  * ✅ sync-session.ts --help shows usage
+  * ✅ sync-session.ts fails gracefully without credentials
+  * ✅ query-session.ts --help shows usage
+  * ✅ query-session.ts displays session summary
+  * ✅ query-session.ts --messages includes message list
+  * ✅ query-session.ts --json outputs valid JSON
+- All TypeScript type checks pass
+- Updated features.json: both task-6 tests now passing
+
 ## Next Steps
 
-Continue with Task 6: Create optional helper scripts (sync-session.ts, query-session.ts).
+Continue with Task 7: Add documentation (TURSO_SETUP.md).

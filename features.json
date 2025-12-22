@@ -151,7 +151,7 @@
       "Verify script accepts --all flag",
       "Verify script handles missing credentials gracefully"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -165,7 +165,7 @@
       "Verify script supports --messages flag",
       "Verify script supports --tools flag"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
