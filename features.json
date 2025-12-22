@@ -68,7 +68,7 @@
       "Verify logMessage method exists",
       "Verify endSession method exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -84,7 +84,7 @@
       "Call endSession with mock result",
       "Verify session record updated with end time and duration"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -98,7 +98,7 @@
       "Call endSession and verify no exception thrown",
       "Verify errors are logged to stderr"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
