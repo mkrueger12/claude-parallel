@@ -223,7 +223,7 @@
       "Verify TURSO_DATABASE_URL is documented with description",
       "Verify TURSO_AUTH_TOKEN is documented with description"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -236,7 +236,7 @@
       "Verify Turso setup instructions are included",
       "Verify query examples are provided"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -248,7 +248,7 @@
       "Verify conversation logging section exists",
       "Verify Turso integration is documented"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "integration",
