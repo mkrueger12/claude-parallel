@@ -124,7 +124,7 @@
       "Verify logToolExecution() method exists",
       "Verify endSession() method exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -137,7 +137,7 @@
       "Verify setupEventMonitoring accepts logger parameter",
       "Verify tool execution events are logged"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -149,7 +149,7 @@
       "Verify ConversationLogger is imported or can be passed",
       "Verify messages are logged as they stream"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -161,7 +161,7 @@
       "Run an agent (e.g., planning-agent)",
       "Verify agent runs successfully without logging errors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

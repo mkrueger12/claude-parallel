@@ -3,6 +3,7 @@
  */
 
 import { createOpencode } from "@opencode-ai/sdk";
+import type { ConversationLogger } from "./conversation-logger.js";
 import type { Provider } from "./types.js";
 
 /**
@@ -106,8 +107,9 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
  * Setup event monitoring for an OpenCode session
  *
  * @param client - OpenCode client instance
+ * @param logger - Optional conversation logger for storing tool executions
  */
-export function setupEventMonitoring(client: any): void {
+export function setupEventMonitoring(client: any, logger?: ConversationLogger | null): void {
   console.error("Setting up event monitoring...");
 
   (async () => {
@@ -125,6 +127,16 @@ export function setupEventMonitoring(client: any): void {
               const input = JSON.stringify(part.state.input || {}, null, 2);
               console.error(`\n[TOOL] ${toolName} - RUNNING`);
               console.error(`  Input: ${input}`);
+
+              // Log to database if logger is available
+              if (logger) {
+                logger.logToolExecution({
+                  toolName,
+                  status: "running",
+                  input: part.state.input,
+                  startedAt: new Date(),
+                });
+              }
             } else if (status === "completed") {
               const output = part.state.output?.slice(0, 200) || "(no output)";
               const duration =
@@ -135,9 +147,31 @@ export function setupEventMonitoring(client: any): void {
               console.error(
                 `  Output preview: ${output}${part.state.output && part.state.output.length > 200 ? "..." : ""}`
               );
+
+              // Log to database if logger is available
+              if (logger) {
+                logger.logToolExecution({
+                  toolName,
+                  status: "completed",
+                  input: part.state.input,
+                  output: part.state.output,
+                  startedAt: part.state.time?.start ? new Date(part.state.time.start) : undefined,
+                  endedAt: part.state.time?.end ? new Date(part.state.time.end) : undefined,
+                });
+              }
             } else if (status === "error") {
               console.error(`\n[TOOL] ${toolName} - ERROR`);
               console.error(`  Error: ${part.state.error}`);
+
+              // Log to database if logger is available
+              if (logger) {
+                logger.logToolExecution({
+                  toolName,
+                  status: "error",
+                  input: part.state.input,
+                  error: part.state.error,
+                });
+              }
             }
           }
         }
