@@ -1,219 +1,489 @@
-# Implementation Plan: Rebuild as Installer CLI for Better Portability
+# Implementation Plan: Agent Conversation Logging to Turso
 
 ## Linear Issue Reference
-**Parent Issue:** DEL-1307 - Implementation Plan: Rebuild as installer CLI for better portability and developer experience
-**URL:** https://linear.app/casper-studios/issue/DEL-1307
+**Parent Issue:** DEL-1332 - Implementation Plan: Agent Conversation Logging to Turso
+**URL:** https://linear.app/casper-studios/issue/DEL-1332
 
 ---
 
 ## Overview
 
-Transform `claude-parallel` from a workflow-based system into a self-contained installer CLI (`npx install-claude-parallel`) that copies standalone workflows, scripts, prompts, and agents into user repositories. Backwards compatibility is not needed.
+Add conversation logging capabilities to claude-parallel agents, storing agent interactions in a Turso database for analytics, debugging, and audit purposes. This enables:
+
+1. **Debugging** - Trace agent decisions and tool usage across sessions
+2. **Analytics** - Analyze agent performance, token usage, and success rates
+3. **Audit Trail** - Complete history of agent actions for compliance
+4. **Session Replay** - Review past conversations for training and optimization
 
 ---
 
 ## Current State Analysis
 
 ### What Exists Today:
-- Multi-provider planning workflow (`multi-provider-plan-v2.yml`) runs TS agents via Bun and OpenCode SDK
-- Parallel implementation workflow (`reusable-implement-issue.yml`) is a reusable workflow meant to be invoked via `uses:`
-- Implementation workflow references this repo and fetches prompts from raw GitHub URLs
-- Agents exist in `.claude/agents/*.md`
-- Prompts exist in `prompts/*.md`
-- Runtime detection is a composite action: `.github/actions/detect-runtime/action.yml`
+- `planning-agent.ts` - Uses OpenCode SDK for multi-provider plan generation
+- `linear-agent.ts` - Uses OpenCode SDK for plan consolidation and Linear issue creation
+- `claude-agent-runner.ts` - Uses Claude Agent SDK for implementation/review queries
+- `src/lib/opencode.ts` - OpenCode SDK helpers with event monitoring
+- `src/lib/claude-agent-sdk.ts` - Claude Agent SDK helpers for authentication and queries
+
+### Event Data Currently Available:
+- **OpenCode SDK**: Tool execution events (running, completed, error), session status, errors
+- **Claude Agent SDK**: SDKMessage stream with message types (text, tool calls, results)
 
 ### What's Missing:
-- No installer CLI exists
-- No `templates/` directory exists
-- Workflows are not standalone
-- Scripts are not bundled for standalone execution
-
-### Constraints:
-- Planning/linear scripts depend on `@opencode-ai/sdk` which requires the `opencode-ai` CLI binary
-- Implementation workflow uses `scripts/claude-agent-runner.ts` which uses `@anthropic-ai/claude-agent-sdk`
-- Both SDKs must be bundled or their dependencies handled in workflows
+- No persistent storage for conversation data
+- No Turso client integration
+- No database schema for conversations
+- No logging middleware
 
 ---
 
 ## Desired End State
 
-After `npx install-claude-parallel` in any repo:
+After implementation, the system will:
 
-```
-user-repo/
-├── .github/
-│   ├── workflows/
-│   │   ├── claude-plan.yml
-│   │   └── claude-implement.yml
-│   └── claude-parallel/
-│       ├── scripts/
-│       │   ├── planning-agent.js
-│       │   ├── linear-agent.js
-│       │   ├── claude-agent-runner.js
-│       │   └── detect-runtime.sh
-│       ├── prompts/
-│       │   ├── plan-generation.md
-│       │   ├── consolidate-and-create-linear.md
-│       │   ├── implementation.md
-│       │   ├── review.md
-│       │   └── verify.md
-│       └── .install-manifest.json
-├── .claude/
-│   └── agents/
-│       ├── coding-agent.md
-│       ├── codebase-locator.md
-│       ├── codebase-analyzer.md
-│       └── debug-agent.md
-└── .env.example
+1. **Automatically log all agent conversations** to a Turso database
+2. **Capture complete conversation context** including:
+   - Session metadata (ID, start time, agent type, model)
+   - User prompts and AI responses
+   - Tool calls with inputs/outputs
+   - Token usage and timing
+   - Success/failure status
+3. **Provide query capabilities** for retrieving logged conversations
+4. **Support both SDKs** (OpenCode and Claude Agent SDK)
+
+### Database Schema (Conceptual):
+
+```sql
+-- Sessions table
+CREATE TABLE sessions (
+  id TEXT PRIMARY KEY,
+  agent_type TEXT NOT NULL,  -- 'planning', 'linear', 'implementation', 'review'
+  model TEXT NOT NULL,
+  provider TEXT,
+  started_at TEXT NOT NULL,
+  ended_at TEXT,
+  status TEXT NOT NULL,  -- 'running', 'completed', 'error'
+  error_message TEXT,
+  metadata TEXT  -- JSON for additional context
+);
+
+-- Messages table
+CREATE TABLE messages (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  sequence INTEGER NOT NULL,
+  role TEXT NOT NULL,  -- 'user', 'assistant', 'tool'
+  content TEXT,
+  tool_name TEXT,
+  tool_input TEXT,  -- JSON
+  tool_output TEXT,  -- JSON
+  created_at TEXT NOT NULL,
+  token_count INTEGER,
+  FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+
+-- Tool executions table
+CREATE TABLE tool_executions (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  message_id TEXT,
+  tool_name TEXT NOT NULL,
+  status TEXT NOT NULL,  -- 'running', 'completed', 'error'
+  input TEXT,  -- JSON
+  output TEXT,
+  error TEXT,
+  started_at TEXT NOT NULL,
+  ended_at TEXT,
+  duration_ms INTEGER,
+  FOREIGN KEY (session_id) REFERENCES sessions(id),
+  FOREIGN KEY (message_id) REFERENCES messages(id)
+);
 ```
 
 ---
 
-## Task 1: Define templates & installed layout (DEL-1308)
-**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1308
+## Task 1: Turso Client Library Setup (DEL-1333)
+**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1333
 
 ### Description
-Create the `templates/` directory structure with all required files that will be copied to user repositories.
+Add the Turso/libSQL client library and create configuration utilities for database connection.
 
 ### Files to Create/Edit:
-- `templates/workflows/claude-plan.yml` (NEW)
-- `templates/workflows/claude-implement.yml` (NEW)
-- Copy all prompts to `templates/prompts/`
-- Copy all agents to `templates/agents/`
-- Extract runtime detection into `templates/scripts/detect-runtime.sh`
-- Create `templates/.env.example`
+- `package.json` - Add `@libsql/client` dependency
+- `src/lib/turso.ts` (NEW) - Turso client creation and configuration
+- `templates/.env.example` - Add Turso environment variables
 
-### Success Criteria:
-- [ ] Templates directory contains workflows, scripts, prompts, agents, and `.env.example`
-- [ ] Templates do not reference `mkrueger12/claude-parallel` or `raw.githubusercontent.com`
-- [ ] `detect-runtime.sh` outputs in GitHub Actions-compatible way
+### Implementation Details:
 
----
+**src/lib/turso.ts:**
+```typescript
+import { createClient, type Client } from "@libsql/client";
 
-## Task 2: Create standalone workflow templates (DEL-1309)
-**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1309
+export interface TursoConfig {
+  url: string;
+  authToken: string;
+}
 
-### Description
-Rewrite the workflows to be completely standalone - no references to external repos or curl downloads.
+export function getTursoConfig(): TursoConfig | null {
+  const url = process.env.TURSO_DATABASE_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
 
-### Files to Edit/Create:
-- `templates/workflows/claude-plan.yml`
-- `templates/workflows/claude-implement.yml`
-
-### Key Changes:
-- Remove ALL references to `uses: mkrueger12/claude-parallel/...`
-- Remove ALL `curl raw.githubusercontent.com` for prompts/agents
-- Read prompts from `.github/claude-parallel/prompts/*.md`
-- Reference agents from `.claude/agents/*.md`
-
-### Success Criteria:
-- [ ] No `uses: mkrueger12/claude-parallel` exists in workflows
-- [ ] No `curl raw.githubusercontent.com` for prompts/agents
-- [ ] YAML syntax is valid
-- [ ] Workflow can be validated with `actionlint`
-
----
-
-## Task 3: Bundle scripts for workflows (DEL-1310)
-**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1310
-
-### Description
-Compile TypeScript agents into self-contained JavaScript files that can run without the source repo.
-
-### Files to Edit/Create:
-- `src/agents/planning-agent.ts` (line 51) - refactor prompt path resolution
-- `src/agents/linear-agent.ts` (line 47) - refactor prompt path resolution
-- `scripts/claude-agent-runner.ts` (line 30) - refactor for bundling
-- `scripts/build-templates.ts` (NEW) - bundling script
-- `package.json` - add build scripts
-
-### Output Files:
-- `templates/scripts/planning-agent.js`
-- `templates/scripts/linear-agent.js`
-- `templates/scripts/claude-agent-runner.js`
-
-### Success Criteria:
-- [ ] Bundled scripts locate prompts relative to installed location
-- [ ] Scripts are self-contained with shebang (`#!/usr/bin/env node`)
-- [ ] Build script produces templates successfully
-- [ ] Bundled scripts can run standalone
-
----
-
-## Task 4: Implement installer CLI (DEL-1311)
-**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1311
-
-### Description
-Create the CLI that users will run with `npx install-claude-parallel` to install the workflows into their repos.
-
-### Files to Create:
-- `src/cli/index.ts` (NEW) - CLI entry point
-- `src/cli/install.ts` (NEW) - main install logic
-- `src/cli/manifest.ts` (NEW) - manifest read/write, hashing
-- `package.json` - add `bin`, `files`, rename package
-
-### CLI Behavior:
-- Interactive prompts (unless `--yes` flag)
-- Conflict handling with manifest checksums
-- Flags: `--yes`, `--force`, `--dry-run`, `--help`
-
-### Manifest Structure:
-```json
-{
-  "version": "1.0.0",
-  "installedAt": "2024-01-01T00:00:00Z",
-  "files": {
-    ".github/workflows/claude-plan.yml": "sha256:abc123...",
-    ".github/claude-parallel/scripts/planning-agent.js": "sha256:def456...",
-    ...
+  if (!url || !authToken) {
+    return null;  // Logging disabled
   }
+
+  return { url, authToken };
+}
+
+export function createTursoClient(config: TursoConfig): Client {
+  return createClient({
+    url: config.url,
+    authToken: config.authToken,
+  });
+}
+
+let _client: Client | null = null;
+
+export async function getTursoClient(): Promise<Client | null> {
+  const config = getTursoConfig();
+  if (!config) return null;
+
+  if (!_client) {
+    _client = createTursoClient(config);
+  }
+  return _client;
 }
 ```
 
 ### Success Criteria:
-- [ ] CLI can be invoked with `npx install-claude-parallel`
-- [ ] Installer creates all required files in target repo
-- [ ] Re-running installer respects user modifications (unless `--force`)
-- [ ] Dry-run mode shows what would be changed without making changes
-- [ ] `--help` shows usage information
+- [x] `@libsql/client` is added to package.json dependencies
+- [x] `src/lib/turso.ts` exports `getTursoClient()` and `getTursoConfig()`
+- [x] Client creation handles missing environment variables gracefully (returns null)
+- [x] `templates/.env.example` documents `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`
+- [x] TypeScript type checking passes
 
 ---
 
-## Task 5: Documentation & release preparation (DEL-1312)
-**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1312
+## Task 2: Database Schema and Migration (DEL-1334)
+**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1334
 
 ### Description
-Update documentation and prepare the package for npm publishing.
+Create the database schema for storing conversation logs with automatic migration on first use.
 
-### Files to Edit/Create:
-- `README.md` - add "Installer usage" section
-- `docs/installer.md` (NEW) - detailed installer documentation
-- `package.json` - finalize publishing fields
-- `scripts/test-install.sh` (NEW) - installation test script
+### Files to Create/Edit:
+- `src/lib/turso-schema.ts` (NEW) - Schema definitions and migration logic
+- `src/lib/turso.ts` - Add `initializeSchema()` function
 
-### Package.json Updates:
-```json
-{
-  "name": "install-claude-parallel",
-  "version": "1.0.0",
-  "bin": {
-    "install-claude-parallel": "./dist/cli/index.js"
-  },
-  "files": [
-    "dist/",
-    "templates/"
-  ],
-  "publishConfig": {
-    "access": "public"
+### Implementation Details:
+
+**src/lib/turso-schema.ts:**
+```typescript
+export const SCHEMA_VERSION = 1;
+
+export const MIGRATIONS = [
+  // Version 1: Initial schema
+  `CREATE TABLE IF NOT EXISTS schema_version (
+    version INTEGER PRIMARY KEY
+  )`,
+  `CREATE TABLE IF NOT EXISTS sessions (
+    id TEXT PRIMARY KEY,
+    agent_type TEXT NOT NULL,
+    model TEXT NOT NULL,
+    provider TEXT,
+    started_at TEXT NOT NULL DEFAULT (datetime('now')),
+    ended_at TEXT,
+    status TEXT NOT NULL DEFAULT 'running',
+    error_message TEXT,
+    metadata TEXT
+  )`,
+  `CREATE TABLE IF NOT EXISTS messages (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    sequence INTEGER NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT,
+    tool_name TEXT,
+    tool_input TEXT,
+    tool_output TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    token_count INTEGER,
+    FOREIGN KEY (session_id) REFERENCES sessions(id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS tool_executions (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    message_id TEXT,
+    tool_name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    input TEXT,
+    output TEXT,
+    error TEXT,
+    started_at TEXT NOT NULL DEFAULT (datetime('now')),
+    ended_at TEXT,
+    duration_ms INTEGER,
+    FOREIGN KEY (session_id) REFERENCES sessions(id),
+    FOREIGN KEY (message_id) REFERENCES messages(id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_tool_executions_session ON tool_executions(session_id)`,
+];
+```
+
+### Success Criteria:
+- [x] Schema creates three tables: sessions, messages, tool_executions
+- [x] Schema includes appropriate indexes for query performance
+- [x] Migration runs idempotently (can be run multiple times safely)
+- [x] Schema version tracking prevents duplicate migrations
+- [x] TypeScript type checking passes
+
+---
+
+## Task 3: Logging Middleware Integration (DEL-1335)
+**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1335
+
+### Description
+Create logging middleware that intercepts agent events and stores them in Turso.
+
+### Files to Create/Edit:
+- `src/lib/conversation-logger.ts` (NEW) - Main logging class
+- `src/lib/opencode.ts` - Integrate logger with event monitoring
+- `src/lib/claude-agent-sdk.ts` - Integrate logger with query streaming
+
+### Implementation Details:
+
+**src/lib/conversation-logger.ts:**
+```typescript
+import type { Client } from "@libsql/client";
+
+export interface SessionInfo {
+  id: string;
+  agentType: string;
+  model: string;
+  provider?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export class ConversationLogger {
+  private client: Client;
+  private sessionId: string | null = null;
+  private messageSequence = 0;
+
+  constructor(client: Client) {
+    this.client = client;
+  }
+
+  async startSession(info: SessionInfo): Promise<void> {
+    this.sessionId = info.id;
+    this.messageSequence = 0;
+
+    await this.client.execute({
+      sql: `INSERT INTO sessions (id, agent_type, model, provider, metadata)
+            VALUES (?, ?, ?, ?, ?)`,
+      args: [info.id, info.agentType, info.model, info.provider || null,
+             info.metadata ? JSON.stringify(info.metadata) : null],
+    });
+  }
+
+  async logMessage(role: string, content: string, tokenCount?: number): Promise<string> {
+    const id = crypto.randomUUID();
+    await this.client.execute({
+      sql: `INSERT INTO messages (id, session_id, sequence, role, content, token_count)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      args: [id, this.sessionId, ++this.messageSequence, role, content, tokenCount || null],
+    });
+    return id;
+  }
+
+  async logToolExecution(toolName: string, status: string, input?: unknown, output?: unknown, error?: string): Promise<string> {
+    const id = crypto.randomUUID();
+    await this.client.execute({
+      sql: `INSERT INTO tool_executions (id, session_id, tool_name, status, input, output, error)
+            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      args: [id, this.sessionId, toolName, status,
+             input ? JSON.stringify(input) : null,
+             output ? JSON.stringify(output) : null,
+             error || null],
+    });
+    return id;
+  }
+
+  async endSession(status: 'completed' | 'error', errorMessage?: string): Promise<void> {
+    await this.client.execute({
+      sql: `UPDATE sessions SET status = ?, error_message = ?, ended_at = datetime('now')
+            WHERE id = ?`,
+      args: [status, errorMessage || null, this.sessionId],
+    });
   }
 }
 ```
 
+### Integration Points:
+
+**OpenCode SDK (src/lib/opencode.ts):**
+- Wrap `createOpencodeServer()` to create logger instance
+- Modify `setupEventMonitoring()` to log tool executions
+- Log session start/end
+
+**Claude Agent SDK (src/lib/claude-agent-sdk.ts):**
+- Modify `runClaudeQuery()` to accept optional logger
+- Log messages as they stream
+- Log final result
+
 ### Success Criteria:
-- [ ] README has clear installer documentation
-- [ ] `npm pack` includes `dist/` and `templates/`
-- [ ] Test script passes
-- [ ] Real-world dry run successful in a test repository
+- [x] ConversationLogger class with methods: startSession, logMessage, logToolExecution, endSession
+- [x] OpenCode event monitoring logs tool executions to database
+- [x] Claude Agent SDK streams log messages to database
+- [x] Logging is optional (gracefully disabled when Turso config missing)
+- [x] No impact on agent functionality when logging is disabled
+- [x] TypeScript type checking passes
+
+---
+
+## Task 4: Query and Retrieval API (DEL-1336)
+**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1336
+
+### Description
+Create utilities for querying and retrieving logged conversations.
+
+### Files to Create/Edit:
+- `src/lib/conversation-queries.ts` (NEW) - Query utilities
+- `src/index.ts` - Export query utilities
+
+### Implementation Details:
+
+**src/lib/conversation-queries.ts:**
+```typescript
+export interface SessionSummary {
+  id: string;
+  agentType: string;
+  model: string;
+  provider: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  status: string;
+  messageCount: number;
+  toolCount: number;
+}
+
+export interface SessionDetail extends SessionSummary {
+  messages: Array<{
+    id: string;
+    sequence: number;
+    role: string;
+    content: string | null;
+    toolName: string | null;
+    createdAt: string;
+  }>;
+  toolExecutions: Array<{
+    id: string;
+    toolName: string;
+    status: string;
+    startedAt: string;
+    durationMs: number | null;
+  }>;
+}
+
+export async function listSessions(
+  client: Client,
+  options?: { limit?: number; agentType?: string; status?: string }
+): Promise<SessionSummary[]> {
+  // Implementation
+}
+
+export async function getSession(
+  client: Client,
+  sessionId: string
+): Promise<SessionDetail | null> {
+  // Implementation
+}
+
+export async function searchSessions(
+  client: Client,
+  query: string
+): Promise<SessionSummary[]> {
+  // Full-text search on message content
+}
+```
+
+### Success Criteria:
+- [x] `listSessions()` returns paginated session list with filters
+- [x] `getSession()` returns full session details with messages and tool executions
+- [x] `searchSessions()` enables full-text search across conversation content
+- [x] Query functions handle empty results gracefully
+- [x] TypeScript type checking passes
+
+---
+
+## Task 5: Template Updates and Documentation (DEL-1337)
+**Linear Issue:** https://linear.app/casper-studios/issue/DEL-1337
+
+### Description
+Update templates and documentation to include Turso logging configuration.
+
+### Files to Edit:
+- `templates/.env.example` - Add Turso environment variables
+- `README.md` - Document conversation logging feature
+- `spec.txt` - Update specification with logging details
+- `scripts/build-templates.ts` - Include new lib files in bundle
+
+### Documentation Updates:
+
+**README.md additions:**
+```markdown
+## Conversation Logging (Optional)
+
+Claude Parallel can optionally log all agent conversations to a Turso database
+for debugging, analytics, and audit purposes.
+
+### Setup
+
+1. Create a Turso database:
+   ```bash
+   turso db create claude-parallel-logs
+   ```
+
+2. Get your credentials:
+   ```bash
+   turso db show --url claude-parallel-logs
+   turso db tokens create claude-parallel-logs
+   ```
+
+3. Add to your environment:
+   ```bash
+   export TURSO_DATABASE_URL="libsql://..."
+   export TURSO_AUTH_TOKEN="..."
+   ```
+
+The database schema is automatically initialized on first use.
+
+### What Gets Logged
+
+- Session metadata (agent type, model, timestamps)
+- User prompts and AI responses
+- Tool executions with inputs/outputs
+- Success/failure status
+
+### Querying Logs
+
+Use the provided query utilities to access logged conversations:
+
+```typescript
+import { getTursoClient, listSessions, getSession } from 'install-claude-parallel';
+
+const client = await getTursoClient();
+const sessions = await listSessions(client, { limit: 10 });
+const details = await getSession(client, sessions[0].id);
+```
+```
+
+### Success Criteria:
+- [x] `.env.example` includes `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`
+- [x] README documents how to set up Turso logging
+- [x] README explains what data is logged
+- [x] README provides query examples
+- [x] spec.txt updated with logging architecture
+- [x] Build script includes new files
 
 ---
 
@@ -221,62 +491,47 @@ Update documentation and prepare the package for npm publishing.
 
 Tasks should be implemented in order as they build upon each other:
 
-1. **Task 1** - Creates the template directory structure (foundation)
-2. **Task 2** - Converts workflows to standalone (builds on Task 1 templates)
-3. **Task 3** - Bundles scripts for the templates (builds on Tasks 1-2)
-4. **Task 4** - Creates the CLI installer (uses completed templates from Tasks 1-3)
-5. **Task 5** - Documentation and release (final polish after all features complete)
+1. **Task 1** - Turso client setup (foundation)
+2. **Task 2** - Database schema (builds on Task 1)
+3. **Task 3** - Logging middleware (builds on Tasks 1-2)
+4. **Task 4** - Query API (builds on Tasks 1-3)
+5. **Task 5** - Documentation (final polish)
 
 ---
 
 ## Key Design Decisions
 
-### 1. Template-Based Installation
-The installer copies templates rather than dynamically generating files. This ensures:
-- Predictable output
-- Easy customization of templates
-- Version-controlled source of truth
+### 1. Optional Logging
+Logging is opt-in via environment variables. When Turso credentials are not configured, all logging functions gracefully return without error, ensuring zero impact on existing functionality.
 
-### 2. Manifest-Based Updates
-The manifest tracks installed files with checksums to:
-- Detect user modifications
-- Allow safe re-runs without overwriting customizations
-- Support `--force` for complete overwrite when needed
+### 2. Singleton Client Pattern
+A single Turso client instance is reused across all logging operations to minimize connection overhead.
 
-### 3. Self-Contained Bundles
-Scripts are bundled as single files because:
-- No need for users to install dependencies
-- Reduces complexity in target repos
-- Works across different Node.js setups
+### 3. Async Non-Blocking Logging
+All logging operations are fire-and-forget to avoid impacting agent response times. Errors in logging do not propagate to the main agent flow.
 
-### 4. Prompt Path Resolution
-Bundled scripts will resolve prompts relative to the installed location:
-- `process.cwd()/.github/claude-parallel/prompts/`
-- No hardcoded absolute paths
-- No reliance on `__dirname` from source repo
+### 4. Schema Migration
+The database schema is automatically initialized on first use, with version tracking to support future migrations.
+
+### 5. Structured Data Storage
+Tool inputs/outputs and metadata are stored as JSON strings for flexibility while maintaining queryability via SQLite JSON functions.
 
 ---
 
-## Verification Strategy
+## Environment Variables
 
-### For Each Task:
-1. Run automated tests where applicable
-2. Verify success criteria manually
-3. Update features.json with pass/fail status
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TURSO_DATABASE_URL` | No | Turso database URL (libsql://...) |
+| `TURSO_AUTH_TOKEN` | No | Turso authentication token |
 
-### End-to-End Test:
-1. Create a fresh test repository
-2. Run `npx install-claude-parallel`
-3. Verify all files are installed correctly
-4. Trigger workflows and verify they run successfully
-5. Re-run installer and verify manifest conflict detection
+Both variables must be set to enable logging. If either is missing, logging is silently disabled.
 
 ---
 
 ## References
 
-- **Linear Parent Issue:** DEL-1307
-- **Sub-Issues:** DEL-1308, DEL-1309, DEL-1310, DEL-1311, DEL-1312
-- **Current Workflows:** `.github/workflows/multi-provider-plan-v2.yml`, `.github/workflows/reusable-implement-issue.yml`
-- **Current Prompts:** `prompts/*.md`
-- **Current Agents:** `.claude/agents/*.md`
+- **Turso Documentation:** https://docs.turso.tech/sdk/ts/quickstart
+- **libSQL Client:** https://github.com/tursodatabase/libsql-client-ts
+- **Existing Agents:** `src/agents/planning-agent.ts`, `src/agents/linear-agent.ts`
+- **SDK Helpers:** `src/lib/opencode.ts`, `src/lib/claude-agent-sdk.ts`
