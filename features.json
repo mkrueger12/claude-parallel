@@ -112,7 +112,7 @@
       "Verify logger.logMessage called in message loop",
       "Verify logger.endSession called after loop completes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -124,7 +124,7 @@
       "Verify session ID is logged to stderr",
       "Verify session ID format is UUID"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -224,6 +224,6 @@
       "Verify no type errors in src/lib/conversation-logger.ts",
       "Verify no type errors in scripts/claude-agent-runner.ts"
     ],
-    "passes": false
+    "passes": true
   }
 ]

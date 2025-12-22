@@ -3,7 +3,7 @@
 ## Session: Agent Conversation Logging to Turso Implementation
 
 **Date:** 2025-12-22
-**Status:** Implementation in Progress - Task 3 Complete
+**Status:** Implementation in Progress - Task 4 Complete
 
 ## Planning Phase Complete
 
@@ -18,12 +18,12 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
 1. ✅ Add @libsql/client dependency - COMPLETE
 2. ✅ Create turso-client.ts module - COMPLETE
 3. ✅ Create conversation-logger.ts module - COMPLETE
-4. Integrate logging into claude-agent-runner.ts
+4. ✅ Integrate logging into claude-agent-runner.ts - COMPLETE
 5. Update build-templates.ts for bundling
 6. Create optional helper scripts (sync-session.ts, query-session.ts)
 7. Add documentation (TURSO_SETUP.md)
 
-### Test Cases (7/16 passing):
+### Test Cases (10/16 passing):
 - ✅ task-1-libsql-dependency - PASSING
 - ✅ task-2-turso-client-module - PASSING
 - ✅ task-2-local-database-creation - PASSING
@@ -31,15 +31,15 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
 - ✅ task-3-conversation-logger-module - PASSING
 - ✅ task-3-session-logging - PASSING
 - ✅ task-3-error-handling - PASSING
-- task-4-agent-runner-integration
-- task-4-session-id-logging
+- ✅ task-4-agent-runner-integration - PASSING
+- ✅ task-4-session-id-logging - PASSING
+- ✅ type-check-passes - PASSING
 - task-5-bundle-includes-logging
 - task-6-sync-session-script
 - task-6-query-session-script
 - task-7-turso-documentation
 - e2e-local-logging-works
 - e2e-no-credentials-graceful
-- type-check-passes
 
 ## Completed This Session
 
@@ -126,6 +126,36 @@ Created comprehensive plan.md and features.json for implementing Agent Conversat
   * If client initialization fails, methods return false (no-op)
   * Remote client gracefully returns null without credentials
 
+### Task 4: Integrate logging into claude-agent-runner.ts ✅
+- Modified scripts/claude-agent-runner.ts to use ConversationLogger
+- Added imports:
+  * randomUUID from node:crypto for session ID generation
+  * ConversationLogger from ../src/lib/conversation-logger.js
+- Generated unique session ID using randomUUID() at start of main()
+- Added Session ID to stderr banner output for tracking
+- Initialized ConversationLogger after reading prompt from stdin
+- Called logger.startSession() with all metadata:
+  * model, mode, prompt length, cwd
+  * GitHub context (run ID, repository, ref) from environment
+- Added logger.logMessage() call in the message loop:
+  * Logs each SDK message after it's received
+  * Passes message and sequence number (messageCount)
+- Added logger.endSession() call after loop completes:
+  * Passes finalResult to capture result type/subtype
+  * Triggers cloud sync if remote client available
+- All changes are additive - preserved existing logic flow
+- Error handling is internal to ConversationLogger (no throws)
+- TypeScript type checking passes without errors
+- Verified all success criteria met:
+  * ✅ ConversationLogger import present
+  * ✅ Session ID generated with randomUUID()
+  * ✅ Session ID logged to stderr
+  * ✅ logger.startSession() called after reading prompt
+  * ✅ logger.logMessage() called in message loop
+  * ✅ logger.endSession() called after loop completes
+  * ✅ TypeScript compiles without errors
+  * ✅ Existing functionality preserved
+
 ## Next Steps
 
-Continue with Task 4: Integrate logging into claude-agent-runner.ts to use ConversationLogger in the main agent loop.
+Continue with Task 5: Update build-templates.ts to bundle logging modules into the standalone script.

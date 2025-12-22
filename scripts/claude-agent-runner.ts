@@ -26,9 +26,11 @@
  *   1: Error (authentication, SDK error, no result, etc.)
  */
 
+import { randomUUID } from "node:crypto";
 import { stdin } from "node:process";
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { runClaudeQuery } from "../src/lib/claude-agent-sdk.js";
+import { ConversationLogger } from "../src/lib/conversation-logger.js";
 
 // ============================================================================
 // Review Decision Schema
@@ -171,10 +173,14 @@ async function main() {
   // Parse command line arguments
   const args = parseArgs();
 
+  // Generate session ID for logging
+  const sessionId = randomUUID();
+
   console.error("");
   console.error("=".repeat(60));
   console.error("Claude Agent Runner");
   console.error("=".repeat(60));
+  console.error(`Session ID: ${sessionId}`);
   console.error(`CWD: ${args.cwd}`);
   console.error(`Model: ${args.model}`);
   console.error(`Mode: ${args.mode}`);
@@ -191,6 +197,9 @@ async function main() {
 
   console.error(`✓ Received prompt: ${prompt.length} characters`);
   console.error("");
+
+  // Initialize conversation logger
+  const logger = new ConversationLogger(sessionId);
 
   // Build MCP servers configuration
   const mcpServers: Record<string, any> = {
@@ -227,6 +236,17 @@ async function main() {
   };
 
   try {
+    // Start conversation logging session
+    await logger.startSession({
+      model: args.model,
+      mode: args.mode,
+      promptLength: prompt.length,
+      cwd: args.cwd,
+      githubRunId: process.env.GITHUB_RUN_ID,
+      githubRepository: process.env.GITHUB_REPOSITORY,
+      githubRef: process.env.GITHUB_REF,
+    });
+
     // Run the query
     console.error("Starting Claude query...");
     console.error("");
@@ -240,6 +260,9 @@ async function main() {
       // Log message type to stderr for debugging
       console.error(`[Message ${messageCount}] Type: ${message.type}`);
 
+      // Log message to database
+      await logger.logMessage(message, messageCount);
+
       // Check if this is the final result
       if (message.type === "result") {
         finalResult = message;
@@ -252,6 +275,9 @@ async function main() {
         }
       }
     }
+
+    // End conversation logging session
+    await logger.endSession(finalResult);
 
     console.error("");
     console.error("=".repeat(60));
