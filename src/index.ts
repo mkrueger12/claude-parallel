@@ -13,8 +13,6 @@ export {
 } from "./lib/claude-agent-sdk.js";
 // Export conversation logging utilities
 export * from "./lib/conversation-logger.js";
-// Export conversation query utilities
-export * from "./lib/conversation-queries.js";
 // Export OpenCode helpers
 export type { OpencodeServerOptions } from "./lib/opencode.js";
 export {

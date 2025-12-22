@@ -696,36 +696,6 @@ When enabled, the system captures:
 
 The database schema is automatically initialized on first use.
 
-### Querying Logs
-
-Use the provided query utilities to access logged conversations:
-
-```typescript
-import { getTursoClient, listSessions, getSession, searchSessions } from 'install-claude-parallel';
-
-// Get client
-const client = await getTursoClient();
-if (!client) {
-  console.log('Turso not configured');
-  return;
-}
-
-// List recent sessions
-const sessions = await listSessions(client, {
-  limit: 10,
-  agentType: 'planning',
-  status: 'completed'
-});
-
-// Get session details
-const details = await getSession(client, sessions[0].id);
-console.log(details.messages);
-console.log(details.toolExecutions);
-
-// Search by content
-const matches = await searchSessions(client, 'authentication');
-```
-
 ### Disabling Logging
 
 Logging is automatically disabled when `TURSO_DATABASE_URL` or `TURSO_AUTH_TOKEN` are not set. There's no performance impact when logging is disabled.
