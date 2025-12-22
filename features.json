@@ -180,7 +180,7 @@
       "Verify documentation includes environment variables section",
       "Verify documentation includes example analytics queries"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "integration",
