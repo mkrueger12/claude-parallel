@@ -11,12 +11,19 @@ export {
   getAuthentication,
   runClaudeQuery,
 } from "./lib/claude-agent-sdk.js";
+// Export conversation logging utilities
+export * from "./lib/conversation-logger.js";
+// Export conversation query utilities
+export * from "./lib/conversation-queries.js";
 // Export OpenCode helpers
 export type { OpencodeServerOptions } from "./lib/opencode.js";
 export {
   createOpencodeServer,
   setupEventMonitoring,
 } from "./lib/opencode.js";
+// Export Turso client and schema utilities
+export * from "./lib/turso.js";
+export * from "./lib/turso-schema.js";
 // Export all types
 export type { Part, Provider, ProviderConfig } from "./lib/types.js";
 export { API_KEY_ENV_VARS, DEFAULT_MODELS } from "./lib/types.js";

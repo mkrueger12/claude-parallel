@@ -175,7 +175,7 @@
       "Verify it accepts agentType filter",
       "Verify it accepts status filter"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -188,7 +188,7 @@
       "Verify it returns SessionDetail type with messages array",
       "Verify it returns SessionDetail type with toolExecutions array"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -200,7 +200,7 @@
       "Verify searchSessions() function exists",
       "Verify it accepts a query string parameter"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -211,7 +211,7 @@
       "Read src/index.ts",
       "Verify conversation-queries exports are re-exported"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
