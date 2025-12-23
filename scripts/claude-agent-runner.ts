@@ -27,7 +27,7 @@
  */
 
 import { stdin } from "node:process";
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { McpServerConfig, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { runClaudeQuery } from "../src/lib/claude-agent-sdk.js";
 import { createConversationLogger } from "../src/lib/conversation-logger.js";
 
@@ -150,7 +150,7 @@ async function readStdin(): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
 
-    stdin.on("data", (chunk) => {
+    stdin.on("data", (chunk: Buffer) => {
       chunks.push(chunk);
     });
 
@@ -158,7 +158,7 @@ async function readStdin(): Promise<string> {
       resolve(Buffer.concat(chunks).toString("utf-8"));
     });
 
-    stdin.on("error", (error) => {
+    stdin.on("error", (error: Error) => {
       reject(error);
     });
   });
@@ -200,7 +200,7 @@ async function main() {
   }
 
   // Build MCP servers configuration
-  const mcpServers: Record<string, any> = {
+  const mcpServers: Record<string, McpServerConfig> = {
     deepwiki: {
       type: "sse" as const,
       url: "https://mcp.deepwiki.com/sse",
@@ -288,9 +288,10 @@ async function main() {
     console.error("=".repeat(60));
     console.error("");
 
-    // End logging session successfully
+    // End logging session successfully and sync to cloud
     if (logger) {
       await logger.endSession("completed");
+      await logger.syncToCloud();
     }
 
     process.exit(0);
@@ -308,9 +309,10 @@ async function main() {
     }
     console.error("");
 
-    // End logging session with error
+    // End logging session with error and sync to cloud
     if (logger) {
       await logger.endSession("error", errorMessage);
+      await logger.syncToCloud();
     }
 
     process.exit(1);

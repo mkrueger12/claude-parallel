@@ -105,15 +105,38 @@ async function main() {
   const apiKey = getApiKey(provider);
 
   // Get configuration from environment
-  const anthropicPlan = process.env.ANTHROPIC_PLAN!;
-  const openaiPlan = process.env.OPENAI_PLAN!;
-  const googlePlan = process.env.GOOGLE_PLAN!;
-  const githubIssueUrl = process.env.GITHUB_ISSUE_URL!;
-  const issueTitle = process.env.ISSUE_TITLE!;
-  const linearTeamId = process.env.LINEAR_TEAM_ID!;
+  const anthropicPlan = process.env.ANTHROPIC_PLAN;
+  const openaiPlan = process.env.OPENAI_PLAN;
+  const googlePlan = process.env.GOOGLE_PLAN;
+  const githubIssueUrl = process.env.GITHUB_ISSUE_URL;
+  const issueTitle = process.env.ISSUE_TITLE;
+  const linearTeamId = process.env.LINEAR_TEAM_ID;
   const linearProjectId = process.env.LINEAR_PROJECT_ID || "";
-  const linearApiKey = process.env.LINEAR_API_KEY!;
+  const linearApiKey = process.env.LINEAR_API_KEY;
   const model = process.env.MODEL || DEFAULT_MODEL;
+
+  // Validate required environment variables
+  if (!anthropicPlan) {
+    throw new Error("ANTHROPIC_PLAN environment variable is required");
+  }
+  if (!openaiPlan) {
+    throw new Error("OPENAI_PLAN environment variable is required");
+  }
+  if (!googlePlan) {
+    throw new Error("GOOGLE_PLAN environment variable is required");
+  }
+  if (!githubIssueUrl) {
+    throw new Error("GITHUB_ISSUE_URL environment variable is required");
+  }
+  if (!issueTitle) {
+    throw new Error("ISSUE_TITLE environment variable is required");
+  }
+  if (!linearTeamId) {
+    throw new Error("LINEAR_TEAM_ID environment variable is required");
+  }
+  if (!linearApiKey) {
+    throw new Error("LINEAR_API_KEY environment variable is required");
+  }
 
   console.error(`\n${"=".repeat(60)}`);
   console.error(`Linear Agent - Plan Consolidation`);
@@ -262,9 +285,10 @@ async function main() {
     // Output result to stdout (this will be captured by workflows)
     console.log(resultText);
 
-    // End logging session successfully
+    // End logging session successfully and sync to cloud
     if (logger) {
       await logger.endSession("completed");
+      await logger.syncToCloud();
     }
 
     process.exit(0);
@@ -280,9 +304,10 @@ async function main() {
     }
     console.error("");
 
-    // End logging session with error
+    // End logging session with error and sync to cloud
     if (logger) {
       await logger.endSession("error", errorMessage);
+      await logger.syncToCloud();
     }
 
     process.exit(1);
