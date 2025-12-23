@@ -27,8 +27,9 @@
  */
 
 import { stdin } from "node:process";
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { McpServerConfig, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { runClaudeQuery } from "../src/lib/claude-agent-sdk.js";
+import { createConversationLogger } from "../src/lib/conversation-logger.js";
 
 // ============================================================================
 // Review Decision Schema
@@ -149,7 +150,7 @@ async function readStdin(): Promise<string> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
 
-    stdin.on("data", (chunk) => {
+    stdin.on("data", (chunk: Buffer) => {
       chunks.push(chunk);
     });
 
@@ -157,7 +158,7 @@ async function readStdin(): Promise<string> {
       resolve(Buffer.concat(chunks).toString("utf-8"));
     });
 
-    stdin.on("error", (error) => {
+    stdin.on("error", (error: Error) => {
       reject(error);
     });
   });
@@ -192,8 +193,14 @@ async function main() {
   console.error(`✓ Received prompt: ${prompt.length} characters`);
   console.error("");
 
+  // Initialize conversation logger (optional)
+  const logger = await createConversationLogger();
+  if (logger) {
+    console.error(`✓ Conversation logging enabled`);
+  }
+
   // Build MCP servers configuration
-  const mcpServers: Record<string, any> = {
+  const mcpServers: Record<string, McpServerConfig> = {
     deepwiki: {
       type: "sse" as const,
       url: "https://mcp.deepwiki.com/sse",
@@ -223,10 +230,21 @@ async function main() {
     model: args.model,
     mode: args.mode,
     mcpServers,
+    logger,
     ...(args.mode === "review" ? { outputSchema: REVIEW_DECISION_SCHEMA } : {}),
   };
 
   try {
+    // Start logging session if logger is available
+    if (logger) {
+      await logger.startSession({
+        id: crypto.randomUUID(),
+        agentType: args.mode === "review" ? "review" : "implementation",
+        model: args.model,
+        provider: "anthropic",
+      });
+    }
+
     // Run the query
     console.error("Starting Claude query...");
     console.error("");
@@ -270,6 +288,12 @@ async function main() {
     console.error("=".repeat(60));
     console.error("");
 
+    // End logging session successfully and sync to cloud
+    if (logger) {
+      await logger.endSession("completed");
+      await logger.syncToCloud();
+    }
+
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -284,6 +308,13 @@ async function main() {
       console.error(error.stack);
     }
     console.error("");
+
+    // End logging session with error and sync to cloud
+    if (logger) {
+      await logger.endSession("error", errorMessage);
+      await logger.syncToCloud();
+    }
+
     process.exit(1);
   }
 }

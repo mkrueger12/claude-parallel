@@ -659,6 +659,47 @@ Monitor your usage and adjust `NUM_IMPLEMENTATIONS` accordingly.
 - **Customizable prompts**: Tailor implementation and review criteria to your needs
 - **Reusable workflow**: Use in any repository with minimal setup
 
+## Conversation Logging (Optional)
+
+Claude Parallel can optionally log all agent conversations to a [Turso](https://turso.tech/) database for debugging, analytics, and audit purposes.
+
+### What Gets Logged
+
+When enabled, the system captures:
+- **Session metadata**: Agent type, model, provider, timestamps, status
+- **Messages**: User prompts and AI responses with sequence ordering
+- **Tool executions**: Tool names, inputs, outputs, timing, and errors
+
+### Setup
+
+1. **Install Turso CLI**:
+   ```bash
+   curl -sSfL https://get.tur.so/install.sh | bash
+   ```
+
+2. **Create a database**:
+   ```bash
+   turso db create claude-parallel-logs
+   ```
+
+3. **Get your credentials**:
+   ```bash
+   turso db show --url claude-parallel-logs
+   turso db tokens create claude-parallel-logs
+   ```
+
+4. **Configure environment variables**:
+   ```bash
+   export TURSO_DATABASE_URL="libsql://your-db-name.turso.io"
+   export TURSO_AUTH_TOKEN="your-auth-token"
+   ```
+
+The database schema is automatically initialized on first use.
+
+### Disabling Logging
+
+Logging is automatically disabled when `TURSO_DATABASE_URL` or `TURSO_AUTH_TOKEN` are not set. There's no performance impact when logging is disabled.
+
 ## Credits
 
 Inspired by production workflows from:

@@ -205,6 +205,8 @@ jobs:
         if: ${{ inputs.dry_run != true }}
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
@@ -399,6 +401,8 @@ jobs:
         if: ${{ inputs.dry_run != true }}
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 
@@ -808,6 +812,8 @@ jobs:
         if: ${{ inputs.dry_run != true }}
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
 

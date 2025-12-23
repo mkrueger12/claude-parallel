@@ -6,6 +6,7 @@
  */
 
 import { type McpServerConfig, type Options, query } from "@anthropic-ai/claude-agent-sdk";
+import type { ConversationLogger } from "./conversation-logger.js";
 
 /**
  * Authentication configuration
@@ -48,6 +49,11 @@ export interface ClaudeQueryOptions {
    * Additional SDK options to override defaults
    */
   additionalOptions?: Partial<Options>;
+
+  /**
+   * Optional conversation logger for storing interactions
+   */
+  logger?: ConversationLogger | null;
 }
 
 /**
@@ -165,6 +171,14 @@ export async function* runClaudeQuery(prompt: string, options: ClaudeQueryOption
 
   // Stream all messages
   for await (const message of queryGenerator) {
+    // Log the message if logger is provided
+    if (options.logger && message.type === "assistant") {
+      // Log assistant messages
+      const content =
+        typeof message.message === "string" ? message.message : JSON.stringify(message.message);
+      options.logger.logMessage("assistant", content);
+    }
+
     yield message;
   }
 }

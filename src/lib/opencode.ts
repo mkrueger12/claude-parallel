@@ -3,7 +3,91 @@
  */
 
 import { createOpencode } from "@opencode-ai/sdk";
+import type { ConversationLogger } from "./conversation-logger.js";
 import type { Provider } from "./types.js";
+
+/**
+ * Tool part state for event monitoring
+ */
+interface ToolPartState {
+  status: string;
+  input?: Record<string, unknown>;
+  output?: string;
+  error?: string;
+  time?: {
+    start?: number;
+    end?: number;
+  };
+}
+
+/**
+ * Tool part for event monitoring
+ */
+interface ToolPart {
+  type: string;
+  tool?: string;
+  state?: ToolPartState;
+}
+
+/**
+ * Session status for event monitoring
+ */
+type SessionStatus = string | { attempt: number; message?: string; next?: number };
+
+/**
+ * Event properties for different event types
+ */
+interface EventProperties {
+  part?: ToolPart;
+  status?: SessionStatus;
+  error?: unknown;
+}
+
+/**
+ * OpenCode client interface for event monitoring and session management
+ */
+export interface OpencodeClient {
+  event: {
+    subscribe(): Promise<{
+      stream: AsyncIterable<{
+        type: string;
+        properties: EventProperties;
+      }>;
+    }>;
+  };
+  session: {
+    create(options: { body: { title: string } }): Promise<{ data: { id: string } }>;
+    prompt(options: {
+      path: { id: string };
+      body: {
+        model?: {
+          providerID: string;
+          modelID: string;
+        };
+        agent?: string;
+        parts: Array<{
+          type: string;
+          text?: string;
+        }>;
+      };
+    }): Promise<{
+      data: {
+        info?: {
+          error?: {
+            name: string;
+            data?: {
+              message?: string;
+            };
+          };
+        };
+        parts: Array<{
+          type: string;
+          text?: string;
+        }>;
+      };
+    }>;
+  };
+}
 
 /**
  * Options for creating an OpenCode server
@@ -37,12 +121,22 @@ export interface OpencodeServerOptions {
 }
 
 /**
+ * OpenCode server interface
+ */
+export interface OpencodeServer {
+  url: string;
+  close(): void;
+}
+
+/**
  * Create and configure an OpenCode server instance
  *
  * @param options - Configuration options for the OpenCode server
  * @returns OpenCode client and server instances
  */
-export async function createOpencodeServer(options: OpencodeServerOptions) {
+export async function createOpencodeServer(
+  options: OpencodeServerOptions
+): Promise<{ client: OpencodeClient; server: OpencodeServer }> {
   const {
     provider,
     apiKey,
@@ -57,7 +151,7 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
   } = options;
 
   // Build OpenCode configuration
-  const opcodeConfig: any = {
+  const opcodeConfig: Record<string, unknown> = {
     provider: {
       [provider]: {
         options: {
@@ -99,15 +193,19 @@ export async function createOpencodeServer(options: OpencodeServerOptions) {
 
   console.error(`✓ OpenCode server started at ${server.url}`);
 
-  return { client, server };
+  return { client: client as OpencodeClient, server: server as OpencodeServer };
 }
 
 /**
  * Setup event monitoring for an OpenCode session
  *
  * @param client - OpenCode client instance
+ * @param logger - Optional conversation logger for storing tool executions
  */
-export function setupEventMonitoring(client: any): void {
+export function setupEventMonitoring(
+  client: OpencodeClient,
+  logger?: ConversationLogger | null
+): void {
   console.error("Setting up event monitoring...");
 
   (async () => {
@@ -117,7 +215,7 @@ export function setupEventMonitoring(client: any): void {
         // Monitor tool execution
         if (event.type === "message.part.updated") {
           const part = event.properties.part;
-          if (part.type === "tool") {
+          if (part && part.type === "tool" && part.state && part.tool) {
             const status = part.state.status;
             const toolName = part.tool;
 
@@ -125,6 +223,16 @@ export function setupEventMonitoring(client: any): void {
               const input = JSON.stringify(part.state.input || {}, null, 2);
               console.error(`\n[TOOL] ${toolName} - RUNNING`);
               console.error(`  Input: ${input}`);
+
+              // Log to database if logger is available
+              if (logger) {
+                logger.logToolExecution({
+                  toolName,
+                  status: "running",
+                  input: part.state.input,
+                  startedAt: new Date(),
+                });
+              }
             } else if (status === "completed") {
               const output = part.state.output?.slice(0, 200) || "(no output)";
               const duration =
@@ -135,9 +243,31 @@ export function setupEventMonitoring(client: any): void {
               console.error(
                 `  Output preview: ${output}${part.state.output && part.state.output.length > 200 ? "..." : ""}`
               );
+
+              // Log to database if logger is available
+              if (logger) {
+                logger.logToolExecution({
+                  toolName,
+                  status: "completed",
+                  input: part.state.input,
+                  output: part.state.output,
+                  startedAt: part.state.time?.start ? new Date(part.state.time.start) : undefined,
+                  endedAt: part.state.time?.end ? new Date(part.state.time.end) : undefined,
+                });
+              }
             } else if (status === "error") {
               console.error(`\n[TOOL] ${toolName} - ERROR`);
               console.error(`  Error: ${part.state.error}`);
+
+              // Log to database if logger is available
+              if (logger) {
+                logger.logToolExecution({
+                  toolName,
+                  status: "error",
+                  input: part.state.input,
+                  error: part.state.error,
+                });
+              }
             }
           }
         }
@@ -146,15 +276,17 @@ export function setupEventMonitoring(client: any): void {
         if (event.type === "session.status") {
           const status = event.properties.status;
 
-          if (String(status) === "idle") {
-            console.error(`\n[STATUS] Session idle`);
-          } else if (String(status) === "busy") {
-            console.error(`\n[STATUS] Session busy (processing)`);
-          } else if (typeof status === "object" && "attempt" in status) {
-            // Retry status
-            console.error(`\n[STATUS] Session retrying (attempt ${status.attempt})`);
-            if ("message" in status) console.error(`  Reason: ${status.message}`);
-            if ("next" in status) console.error(`  Next retry in: ${status.next}ms`);
+          if (status) {
+            if (String(status) === "idle") {
+              console.error(`\n[STATUS] Session idle`);
+            } else if (String(status) === "busy") {
+              console.error(`\n[STATUS] Session busy (processing)`);
+            } else if (typeof status === "object" && status !== null && "attempt" in status) {
+              // Retry status
+              console.error(`\n[STATUS] Session retrying (attempt ${status.attempt})`);
+              if ("message" in status) console.error(`  Reason: ${status.message}`);
+              if ("next" in status) console.error(`  Next retry in: ${status.next}ms`);
+            }
           }
         }
 

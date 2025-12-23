@@ -8,7 +8,7 @@
 export interface Part {
   type: string;
   text?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

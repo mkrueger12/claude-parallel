@@ -31,6 +31,7 @@
 
 import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { createConversationLogger } from "../lib/conversation-logger.js";
 import { createOpencodeServer, setupEventMonitoring } from "../lib/opencode.js";
 import { extractTextFromParts, getApiKey, validateEnvVars } from "../lib/utils.js";
 
@@ -104,15 +105,38 @@ async function main() {
   const apiKey = getApiKey(provider);
 
   // Get configuration from environment
-  const anthropicPlan = process.env.ANTHROPIC_PLAN!;
-  const openaiPlan = process.env.OPENAI_PLAN!;
-  const googlePlan = process.env.GOOGLE_PLAN!;
-  const githubIssueUrl = process.env.GITHUB_ISSUE_URL!;
-  const issueTitle = process.env.ISSUE_TITLE!;
-  const linearTeamId = process.env.LINEAR_TEAM_ID!;
+  const anthropicPlan = process.env.ANTHROPIC_PLAN;
+  const openaiPlan = process.env.OPENAI_PLAN;
+  const googlePlan = process.env.GOOGLE_PLAN;
+  const githubIssueUrl = process.env.GITHUB_ISSUE_URL;
+  const issueTitle = process.env.ISSUE_TITLE;
+  const linearTeamId = process.env.LINEAR_TEAM_ID;
   const linearProjectId = process.env.LINEAR_PROJECT_ID || "";
-  const linearApiKey = process.env.LINEAR_API_KEY!;
+  const linearApiKey = process.env.LINEAR_API_KEY;
   const model = process.env.MODEL || DEFAULT_MODEL;
+
+  // Validate required environment variables
+  if (!anthropicPlan) {
+    throw new Error("ANTHROPIC_PLAN environment variable is required");
+  }
+  if (!openaiPlan) {
+    throw new Error("OPENAI_PLAN environment variable is required");
+  }
+  if (!googlePlan) {
+    throw new Error("GOOGLE_PLAN environment variable is required");
+  }
+  if (!githubIssueUrl) {
+    throw new Error("GITHUB_ISSUE_URL environment variable is required");
+  }
+  if (!issueTitle) {
+    throw new Error("ISSUE_TITLE environment variable is required");
+  }
+  if (!linearTeamId) {
+    throw new Error("LINEAR_TEAM_ID environment variable is required");
+  }
+  if (!linearApiKey) {
+    throw new Error("LINEAR_API_KEY environment variable is required");
+  }
 
   console.error(`\n${"=".repeat(60)}`);
   console.error(`Linear Agent - Plan Consolidation`);
@@ -124,6 +148,12 @@ async function main() {
   console.error(`Linear Team: ${linearTeamId}`);
   console.error(`Linear Project: ${linearProjectId || "(none)"}`);
   console.error("");
+
+  // Initialize conversation logger (optional)
+  const logger = await createConversationLogger();
+  if (logger) {
+    console.error(`✓ Conversation logging enabled`);
+  }
 
   // Read external prompt template file
   let promptTemplate: string;
@@ -181,9 +211,19 @@ async function main() {
   });
 
   // Setup event monitoring
-  setupEventMonitoring(client);
+  setupEventMonitoring(client, logger);
 
   try {
+    // Start logging session if logger is available
+    if (logger) {
+      await logger.startSession({
+        id: crypto.randomUUID(),
+        agentType: "linear",
+        model,
+        provider,
+      });
+    }
+
     // Create session
     console.error(`Creating session...`);
     const sessionResponse = await client.session.create({
@@ -221,8 +261,9 @@ async function main() {
     if (responseInfo?.error) {
       const err = responseInfo.error;
       const errorName = err.name;
-      const errorData = "data" in err ? err.data : {};
-      const errorMessage = "message" in errorData ? errorData.message : JSON.stringify(errorData);
+      const errorData = "data" in err ? err.data : undefined;
+      const errorMessage =
+        errorData && "message" in errorData ? errorData.message : JSON.stringify(errorData);
 
       throw new Error(`Provider error: ${errorName}: ${errorMessage}`);
     }
@@ -245,6 +286,12 @@ async function main() {
     // Output result to stdout (this will be captured by workflows)
     console.log(resultText);
 
+    // End logging session successfully and sync to cloud
+    if (logger) {
+      await logger.endSession("completed");
+      await logger.syncToCloud();
+    }
+
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -257,6 +304,13 @@ async function main() {
       console.error("Stack trace:", error.stack);
     }
     console.error("");
+
+    // End logging session with error and sync to cloud
+    if (logger) {
+      await logger.endSession("error", errorMessage);
+      await logger.syncToCloud();
+    }
+
     process.exit(1);
   } finally {
     console.error("Shutting down OpenCode server...");

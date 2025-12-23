@@ -17,6 +17,7 @@ An npm-installable CLI tool that installs standalone GitHub Actions workflows fo
   - Claude Code CLI (GitHub Actions workflows)
   - Anthropic API, OpenAI API, Google Gemini API
 - **Issue Tracking**: Linear SDK (`@linear/sdk`)
+- **Conversation Logging**: Turso (libSQL) for optional session storage
 - **Package Manager**: Bun (primary), npm, pnpm, yarn support
 - **TypeScript**: Strict mode with ES2022 target, NodeNext modules
 
@@ -219,6 +220,25 @@ An npm-installable CLI tool that installs standalone GitHub Actions workflows fo
   - Custom worktree location
   - Adjustable review criteria
   - Keep-all-implementations mode
+
+### Conversation Logging
+- **Storage Backend**: Turso (libSQL) for edge-compatible SQLite
+- **Optional Feature**: Enabled via environment variables, zero impact when disabled
+- **Data Captured**:
+  - Sessions: Agent type, model, provider, start/end times, status
+  - Messages: Role, content, sequence, token counts
+  - Tool executions: Name, input/output, duration, errors
+- **Query API**:
+  - `listSessions()`: Paginated listing with filters
+  - `getSession()`: Full session details
+  - `searchSessions()`: Full-text search on message content
+  - `getSessionStats()`: Aggregate statistics
+- **Environment Variables**:
+  - `TURSO_DATABASE_URL`: Database connection URL
+  - `TURSO_AUTH_TOKEN`: Authentication token
+- **Automatic Initialization**: Database schema created on first use
+- **Fire-and-Forget**: Logging operations don't block agent execution
+- **Error Handling**: Gracefully handles missing config or database errors
 
 ### Draft PR Creation
 - **Automatic PR Generation**:
