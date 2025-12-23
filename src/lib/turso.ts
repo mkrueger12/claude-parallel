@@ -4,8 +4,13 @@
  * This module provides utilities for connecting to a Turso database
  * for conversation logging. Logging is optional - when credentials
  * are not configured, functions return null gracefully.
+ *
+ * In CI/CD environments (GitHub Actions), uses ephemeral embedded replicas
+ * that sync to cloud at the end of each session.
  */
 
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { type Client, createClient } from "@libsql/client";
 import { SCHEMA_STATEMENTS, SCHEMA_VERSION } from "./turso-schema.js";
 
@@ -31,11 +36,18 @@ export function getTursoConfig(): TursoConfig | null {
 
 /**
  * Create a new Turso client with the provided configuration.
+ * Uses embedded replica (local SQLite + sync) for better performance.
  */
 export function createTursoClient(config: TursoConfig): Client {
+  // Generate unique local database path for this session
+  const sessionId = crypto.randomUUID();
+  const localDbPath = join(tmpdir(), `turso-session-${sessionId}.db`);
+
   return createClient({
-    url: config.url,
+    url: `file:${localDbPath}`, // Local SQLite file
+    syncUrl: config.url, // Sync to Turso cloud
     authToken: config.authToken,
+    syncInterval: 0, // Disable automatic sync - we'll sync manually
   });
 }
 
@@ -60,8 +72,29 @@ export async function getTursoClient(): Promise<Client | null> {
 }
 
 /**
+ * Sync the local embedded replica with Turso cloud.
+ * This pushes all local data to the cloud database.
+ * Returns true if sync was successful, false otherwise.
+ */
+export async function syncToCloud(): Promise<boolean> {
+  if (!_client) {
+    return false;
+  }
+
+  try {
+    await _client.sync();
+    console.error("[Turso] Successfully synced local data to cloud");
+    return true;
+  } catch (error) {
+    console.error("[Turso] Failed to sync to cloud:", error);
+    return false;
+  }
+}
+
+/**
  * Close the Turso client connection.
  * Safe to call even if client was never created.
+ * Does NOT sync before closing - call syncToCloud() explicitly if needed.
  */
 export function closeTursoClient(): void {
   if (_client) {

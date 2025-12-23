@@ -7,15 +7,84 @@ import type { ConversationLogger } from "./conversation-logger.js";
 import type { Provider } from "./types.js";
 
 /**
- * OpenCode client interface for event monitoring
+ * Tool part state for event monitoring
+ */
+interface ToolPartState {
+  status: string;
+  input?: Record<string, unknown>;
+  output?: string;
+  error?: string;
+  time?: {
+    start?: number;
+    end?: number;
+  };
+}
+
+/**
+ * Tool part for event monitoring
+ */
+interface ToolPart {
+  type: string;
+  tool?: string;
+  state?: ToolPartState;
+}
+
+/**
+ * Session status for event monitoring
+ */
+type SessionStatus = string | { attempt: number; message?: string; next?: number };
+
+/**
+ * Event properties for different event types
+ */
+interface EventProperties {
+  part?: ToolPart;
+  status?: SessionStatus;
+  error?: unknown;
+}
+
+/**
+ * OpenCode client interface for event monitoring and session management
  */
 export interface OpencodeClient {
   event: {
     subscribe(): Promise<{
       stream: AsyncIterable<{
         type: string;
-        properties: Record<string, unknown>;
+        properties: EventProperties;
       }>;
+    }>;
+  };
+  session: {
+    create(options: { body: { title: string } }): Promise<{ data: { id: string } }>;
+    prompt(options: {
+      path: { id: string };
+      body: {
+        model?: {
+          providerID: string;
+          modelID: string;
+        };
+        agent?: string;
+        parts: Array<{
+          type: string;
+          text?: string;
+        }>;
+      };
+    }): Promise<{
+      data: {
+        info?: {
+          error?: {
+            name: string;
+            data?: {
+              message?: string;
+            };
+          };
+        };
+        parts: Array<{
+          type: string;
+          text?: string;
+        }>;
+      };
     }>;
   };
 }
@@ -52,6 +121,14 @@ export interface OpencodeServerOptions {
 }
 
 /**
+ * OpenCode server interface
+ */
+export interface OpencodeServer {
+  url: string;
+  close(): void;
+}
+
+/**
  * Create and configure an OpenCode server instance
  *
  * @param options - Configuration options for the OpenCode server
@@ -59,7 +136,7 @@ export interface OpencodeServerOptions {
  */
 export async function createOpencodeServer(
   options: OpencodeServerOptions
-): Promise<{ client: OpencodeClient; server: { url: string } }> {
+): Promise<{ client: OpencodeClient; server: OpencodeServer }> {
   const {
     provider,
     apiKey,
@@ -116,7 +193,7 @@ export async function createOpencodeServer(
 
   console.error(`✓ OpenCode server started at ${server.url}`);
 
-  return { client: client as OpencodeClient, server };
+  return { client: client as OpencodeClient, server: server as OpencodeServer };
 }
 
 /**
@@ -138,7 +215,7 @@ export function setupEventMonitoring(
         // Monitor tool execution
         if (event.type === "message.part.updated") {
           const part = event.properties.part;
-          if (part.type === "tool") {
+          if (part && part.type === "tool" && part.state && part.tool) {
             const status = part.state.status;
             const toolName = part.tool;
 
@@ -199,15 +276,17 @@ export function setupEventMonitoring(
         if (event.type === "session.status") {
           const status = event.properties.status;
 
-          if (String(status) === "idle") {
-            console.error(`\n[STATUS] Session idle`);
-          } else if (String(status) === "busy") {
-            console.error(`\n[STATUS] Session busy (processing)`);
-          } else if (typeof status === "object" && "attempt" in status) {
-            // Retry status
-            console.error(`\n[STATUS] Session retrying (attempt ${status.attempt})`);
-            if ("message" in status) console.error(`  Reason: ${status.message}`);
-            if ("next" in status) console.error(`  Next retry in: ${status.next}ms`);
+          if (status) {
+            if (String(status) === "idle") {
+              console.error(`\n[STATUS] Session idle`);
+            } else if (String(status) === "busy") {
+              console.error(`\n[STATUS] Session busy (processing)`);
+            } else if (typeof status === "object" && status !== null && "attempt" in status) {
+              // Retry status
+              console.error(`\n[STATUS] Session retrying (attempt ${status.attempt})`);
+              if ("message" in status) console.error(`  Reason: ${status.message}`);
+              if ("next" in status) console.error(`  Next retry in: ${status.next}ms`);
+            }
           }
         }
 

@@ -38,7 +38,7 @@
 
     /* Skip Lib Check */
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node", "bun-types"]
   },
   "include": ["src/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]

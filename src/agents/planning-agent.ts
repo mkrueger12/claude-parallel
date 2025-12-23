@@ -223,8 +223,9 @@ async function main() {
     if (responseInfo?.error) {
       const err = responseInfo.error;
       const errorName = err.name;
-      const errorData = "data" in err ? err.data : {};
-      const errorMessage = "message" in errorData ? errorData.message : JSON.stringify(errorData);
+      const errorData = "data" in err ? err.data : undefined;
+      const errorMessage =
+        errorData && "message" in errorData ? errorData.message : JSON.stringify(errorData);
 
       throw new Error(`Provider error: ${errorName}: ${errorMessage}`);
     }
@@ -247,9 +248,10 @@ async function main() {
     // Output plan to stdout (this will be captured by scripts)
     console.log(planText);
 
-    // End logging session successfully
+    // End logging session successfully and sync to cloud
     if (logger) {
       await logger.endSession("completed");
+      await logger.syncToCloud();
     }
 
     process.exit(0);
@@ -265,9 +267,10 @@ async function main() {
     }
     console.error("");
 
-    // End logging session with error
+    // End logging session with error and sync to cloud
     if (logger) {
       await logger.endSession("error", errorMessage);
+      await logger.syncToCloud();
     }
 
     process.exit(1);

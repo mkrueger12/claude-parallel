@@ -153,6 +153,21 @@ export class ConversationLogger {
   }
 
   /**
+   * Sync local embedded replica to cloud.
+   * Should be called at the end of each session to persist data.
+   */
+  async syncToCloud(): Promise<boolean> {
+    try {
+      await this.client.sync();
+      console.error("[ConversationLogger] Synced session data to cloud");
+      return true;
+    } catch (error) {
+      console.error("[ConversationLogger] Failed to sync to cloud:", error);
+      return false;
+    }
+  }
+
+  /**
    * Get the current session ID.
    */
   getSessionId(): string | null {
