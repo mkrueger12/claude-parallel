@@ -1,6 +1,6 @@
 # Installer Documentation
 
-The `install-claude-parallel` installer is a CLI tool that copies Claude Parallel workflows, scripts, prompts, and agents into your repository. This guide covers installation, usage, and troubleshooting.
+The `swellai` installer is a CLI tool that copies Claude Parallel workflows, scripts, prompts, and agents into your repository. This guide covers installation, usage, and troubleshooting.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Install claude-parallel into your repository:
 
 ```bash
 cd your-repo
-npx install-claude-parallel
+npx swellai
 ```
 
 The installer will:
@@ -70,7 +70,7 @@ The installer adds the following to your repository:
 Shows usage information and available flags.
 
 ```bash
-npx install-claude-parallel --help
+npx swellai --help
 ```
 
 ### `--yes`
@@ -78,7 +78,7 @@ npx install-claude-parallel --help
 Skips confirmation prompts and installs immediately.
 
 ```bash
-npx install-claude-parallel --yes
+npx swellai --yes
 ```
 
 **Use case:** Automated scripts, CI/CD pipelines, when you're confident about the installation.
@@ -88,7 +88,7 @@ npx install-claude-parallel --yes
 Previews what would be installed without making any changes.
 
 ```bash
-npx install-claude-parallel --dry-run
+npx swellai --dry-run
 ```
 
 **Output:**
@@ -104,7 +104,7 @@ npx install-claude-parallel --dry-run
 Overwrites all files, including user-modified ones.
 
 ```bash
-npx install-claude-parallel --force
+npx swellai --force
 ```
 
 **Warning:** This will overwrite your customizations. Use with caution.
@@ -185,7 +185,7 @@ The installer uses smart conflict resolution to protect your customizations.
 **Action:** All files are installed, manifest is created.
 
 ```bash
-npx install-claude-parallel --yes
+npx swellai --yes
 ```
 
 **Result:**
@@ -197,7 +197,7 @@ npx install-claude-parallel --yes
 **Action:** All files are updated to latest version.
 
 ```bash
-npx install-claude-parallel --yes
+npx swellai --yes
 ```
 
 **Result:**
@@ -211,7 +211,7 @@ You customized `.github/claude-parallel/prompts/implementation.md` to match your
 **Action:** Installer detects modification and skips that file.
 
 ```bash
-npx install-claude-parallel --yes
+npx swellai --yes
 ```
 
 **Output:**
@@ -237,7 +237,7 @@ Installing claude-parallel...
 **Action:** Overwrite everything, including customizations.
 
 ```bash
-npx install-claude-parallel --force
+npx swellai --force
 ```
 
 **Warning:** This will erase your customizations.
@@ -252,7 +252,7 @@ npx install-claude-parallel --force
 
 ```bash
 cd your-repo
-npx install-claude-parallel
+npx swellai
 ```
 
 Follow the prompts to confirm installation.
@@ -260,7 +260,7 @@ Follow the prompts to confirm installation.
 ### Previewing Changes Before Installing
 
 ```bash
-npx install-claude-parallel --dry-run
+npx swellai --dry-run
 ```
 
 Review the output, then run without `--dry-run` to install.
@@ -268,7 +268,7 @@ Review the output, then run without `--dry-run` to install.
 ### Updating to Latest Version
 
 ```bash
-npx install-claude-parallel --yes
+npx swellai --yes
 ```
 
 Your customizations will be preserved automatically.
@@ -276,7 +276,7 @@ Your customizations will be preserved automatically.
 ### Resetting to Defaults
 
 ```bash
-npx install-claude-parallel --force --yes
+npx swellai --force --yes
 ```
 
 This will overwrite all files, including your customizations.
@@ -284,7 +284,7 @@ This will overwrite all files, including your customizations.
 ### Automated Installation (CI/CD)
 
 ```bash
-npx install-claude-parallel --yes
+npx swellai --yes
 ```
 
 Use `--yes` to skip prompts in automated environments.
@@ -299,7 +299,7 @@ Use `--yes` to skip prompts in automated environments.
 ```bash
 cd your-repo
 git status  # Verify you're in a git repo
-npx install-claude-parallel
+npx swellai
 ```
 
 ### "Permission denied"
@@ -328,7 +328,7 @@ npx install-claude-parallel
 
 1. **Check what's being skipped:**
    ```bash
-   npx install-claude-parallel --dry-run
+   npx swellai --dry-run
    ```
 
 2. **Force update specific files:**
@@ -337,7 +337,7 @@ npx install-claude-parallel
 
 3. **Force update everything:**
    ```bash
-   npx install-claude-parallel --force
+   npx swellai --force
    ```
 
 ### Manifest Corruption
@@ -355,20 +355,20 @@ npx install-claude-parallel
 
 1. Install first:
    ```bash
-   npx install-claude-parallel --yes
+   npx swellai --yes
    ```
 
 2. Customize files (e.g., edit prompts, modify workflows)
 
 3. Future updates will preserve your customizations:
    ```bash
-   npx install-claude-parallel --yes
+   npx swellai --yes
    ```
 
 4. To reset a specific file to default:
    ```bash
    rm .github/claude-parallel/prompts/implementation.md
-   npx install-claude-parallel --yes
+   npx swellai --yes
    ```
 
 ### Uninstalling

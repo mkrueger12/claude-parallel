@@ -1,31 +1,33 @@
 # Session Context: claude-parallel
 
-**Date**: December 23, 2025
-**Status**: Documentation complete - Turso database architecture documented ✅
+**Date**: December 29, 2025
+**Status**: Package published to npm as "swellai" 🚀
 
 ---
 
 ## Current State
 
-**Latest Work**: Created comprehensive Turso database documentation (Session 16)
-**Repository**: Working on branch `impl-20443563393-1` - clean working tree
+**Latest Work**: Published package to npm (Session 17)
+**Repository**: Working on branch `main` - modified files
 **Latest Commits**:
+- `f7e01ce` - update docs
+- `29a0bc1` - Merge pull request #46 from mkrueger12/impl-20443563393-1
+- `8ecac9e` - cleanup
+- `fdb581c` - Session 15: TypeScript compilation fixes and database sync improvements
 - `d7b9628` - Fix TypeScript compilation errors and improve database sync
-- `fc1754c` - Session 14: Code quality improvements - fix linting and type errors
-- `23ac1dc` - Fix biome linting errors: replace 'any' types with proper types
-- `c75ff9a` - Remove query API from conversation logging
-- `f1b001a` - Wire conversation logging into agents
 
 **Recent Accomplishments**:
-- Documented Turso database architecture, schema, and integration
-- TypeScript compilation fully working (0 errors)
-- Turso database sync optimized with embedded replica mode
-- All code quality checks passing (linting, type safety)
+- Successfully published package to npm as "install-claude-parallel@1.0.0"
+- Rebranded package to "swellai" (available name on npm)
+- Updated all documentation and CLI help text
+- Built and tested package for npm distribution
+- Package ready for users: `npx swellai` or `bunx swellai`
 
 ---
 
 ## Recent Sessions
 
+*Session 17 (Dec 29, 2025) - npm Package Publishing & Rebranding*
 *Session 16 (Dec 23, 2025) - Turso Database Documentation*
 *Session 15 (Dec 23, 2025) - TypeScript Compilation Fixes*
 *Session 14 (Dec 23, 2025) - Code Quality Improvements*
@@ -57,13 +59,16 @@ Sessions 1-13 have been archived. Key milestones:
 4. ✅ ~~Simplify Linear integration using MCP~~ - **COMPLETED**
 5. ✅ ~~Rebuild as installer CLI (DEL-1307)~~ - **COMPLETED**
 6. ✅ ~~Run manual tests to verify installer functionality~~ - **COMPLETED**
-7. Merge DEL-1307 implementation to main branch
-8. Create release and publish to npm
-9. Test the Linear implementation workflow with a real Linear issue
-10. Verify Linear MCP tools work correctly in GitHub Actions environment
-11. Test the refactored multi-provider plan v2 workflow with a real issue
-12. Consider adding unit tests for the new utility functions in `src/lib/`
-13. Consider adding Linear issue commenting to workflows for status updates
+7. ✅ ~~Publish to npm~~ - **COMPLETED** (published as "install-claude-parallel" and "swellai")
+8. **BLOCKER**: Complete npm publish with 2FA for "swellai" package (requires user's OTP code)
+9. Verify published "swellai" package works: `npx swellai --help`
+10. Create GitHub release v1.0.0 and tag
+11. Update README.md with npm package badge
+12. Test the Linear implementation workflow with a real Linear issue
+13. Verify Linear MCP tools work correctly in GitHub Actions environment
+14. Test the refactored multi-provider plan v2 workflow with a real issue
+15. Consider adding unit tests for the new utility functions in `src/lib/`
+16. Consider adding Linear issue commenting to workflows for status updates
 
 ---
 
@@ -75,6 +80,39 @@ Sessions 1-13 have been archived. Key milestones:
 ---
 
 ## Notes
+
+### Session 17 Accomplishments (Dec 29, 2025)
+
+**npm Package Publishing & Rebranding**
+
+Successfully prepared and published the package to npm:
+
+**Completed:**
+- ✅ Published initial package as "install-claude-parallel@1.0.0"
+- ✅ Discovered "swell" package name was taken
+- ✅ Rebranded to "swellai" (verified available on npm)
+- ✅ Updated package.json (name, bin command)
+- ✅ Updated src/cli/index.ts (help text, usage examples)
+- ✅ Updated README.md installation instructions
+- ✅ Updated docs/installer.md (all references)
+- ✅ Built TypeScript package successfully
+- ✅ Verified package tarball contents (172 KB, 130 files)
+
+**Blocker:**
+- ⚠️ npm publish requires 2FA OTP code for "swellai" package
+- User needs to run: `npm publish --otp=YOUR_CODE` from terminal
+
+**Installation Command (once published):**
+```bash
+npx swellai
+bunx swellai
+```
+
+**Files Changed:**
+- `package.json` - Updated name and bin to "swellai"
+- `src/cli/index.ts` - Updated help text and examples
+- `README.md` - Updated installation command
+- `docs/installer.md` - Updated all CLI references
 
 ### Session 16 Accomplishments (Dec 23, 2025) - [Archived](archive/2025-12-23-turso-documentation.md)
 

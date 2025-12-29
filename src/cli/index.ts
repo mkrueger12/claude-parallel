@@ -3,10 +3,10 @@
 import { install } from "./install.js";
 
 const HELP_TEXT = `
-install-claude-parallel - Install Claude Parallel workflows into your repository
+swellai - Install Claude Parallel workflows into your repository
 
 USAGE:
-  npx install-claude-parallel [OPTIONS]
+  npx swellai [OPTIONS]
 
 OPTIONS:
   --help          Show this help message
@@ -47,16 +47,16 @@ INSTALLED FILES:
 
 EXAMPLES:
   # Install with confirmation prompts
-  npx install-claude-parallel
+  npx swellai
 
   # Install without prompts
-  npx install-claude-parallel --yes
+  npx swellai --yes
 
   # Preview what would be installed
-  npx install-claude-parallel --dry-run
+  npx swellai --dry-run
 
   # Force overwrite all files
-  npx install-claude-parallel --force
+  npx swellai --force
 
 ENVIRONMENT VARIABLES:
   See .env.example after installation for required GitHub Actions secrets.

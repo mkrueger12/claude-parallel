@@ -9,7 +9,7 @@ A reusable GitHub Actions workflow that runs parallel Claude Code implementation
 Install claude-parallel into your repository:
 
 ```bash
-bunx install-claude-parallel
+bunx swellai
 ```
 
 This will add:
