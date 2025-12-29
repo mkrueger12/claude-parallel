@@ -81,38 +81,17 @@ Sessions 1-13 have been archived. Key milestones:
 
 ## Notes
 
-### Session 17 Accomplishments (Dec 29, 2025)
+### Session 17 Accomplishments (Dec 29, 2025) - [Archived](archive/2025-12-29-npm-publishing-swellai.md)
 
 **npm Package Publishing & Rebranding**
 
-Successfully prepared and published the package to npm:
+Published package to npm and rebranded to "swellai":
+- Published "install-claude-parallel@1.0.0" successfully
+- Rebranded to "swellai" (verified available)
+- Updated all documentation and CLI references
+- Built and verified package (172 KB, 130 files)
 
-**Completed:**
-- ✅ Published initial package as "install-claude-parallel@1.0.0"
-- ✅ Discovered "swell" package name was taken
-- ✅ Rebranded to "swellai" (verified available on npm)
-- ✅ Updated package.json (name, bin command)
-- ✅ Updated src/cli/index.ts (help text, usage examples)
-- ✅ Updated README.md installation instructions
-- ✅ Updated docs/installer.md (all references)
-- ✅ Built TypeScript package successfully
-- ✅ Verified package tarball contents (172 KB, 130 files)
-
-**Blocker:**
-- ⚠️ npm publish requires 2FA OTP code for "swellai" package
-- User needs to run: `npm publish --otp=YOUR_CODE` from terminal
-
-**Installation Command (once published):**
-```bash
-npx swellai
-bunx swellai
-```
-
-**Files Changed:**
-- `package.json` - Updated name and bin to "swellai"
-- `src/cli/index.ts` - Updated help text and examples
-- `README.md` - Updated installation command
-- `docs/installer.md` - Updated all CLI references
+**Blocker**: Requires 2FA OTP code to complete "swellai" publish
 
 ### Session 16 Accomplishments (Dec 23, 2025) - [Archived](archive/2025-12-23-turso-documentation.md)
 
