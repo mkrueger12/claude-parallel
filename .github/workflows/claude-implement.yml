@@ -227,7 +227,7 @@ jobs:
 
           # Run agent runner and capture exit code
           set +e
-          echo "$IMPL_PROMPT" | node node_modules/swellai/templates/scripts/claude-agent-runner.js \
+          echo "$IMPL_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
             --cwd "$(pwd)" \
             --model ${{ inputs.claude_model || 'claude-opus-4-5-20251101' }} \
             --mode implementation \
@@ -400,7 +400,7 @@ jobs:
           echo "Linear issue: ${{ needs.generate-matrix.outputs.linear_issue }}"
 
           # Run agent runner in review mode (schema automatically applied)
-          echo "$REVIEW_PROMPT" | node node_modules/swellai/templates/scripts/claude-agent-runner.js \
+          echo "$REVIEW_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
             --cwd "$(pwd)" \
             --model ${{ inputs.claude_model || 'claude-opus-4-5-20251101' }} \
             --mode review \
@@ -830,7 +830,7 @@ jobs:
           echo "Linear issue: ${{ needs.generate-matrix.outputs.linear_issue }}"
 
           # Run agent runner in implementation mode
-          echo "$VERIFY_PROMPT" | node node_modules/swellai/templates/scripts/claude-agent-runner.js \
+          echo "$VERIFY_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
             --cwd "$(pwd)" \
             --model ${{ inputs.claude_model || 'claude-opus-4-5-20251101' }} \
             --mode implementation \

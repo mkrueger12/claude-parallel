@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "installedAt": "2025-12-30T01:11:26.263Z",
+  "files": {
+    ".env.example": "d35be9359eb47c68f21bd8f0bf36c80a000b58151064927e40d20a3c6ff10903",
+    ".github/actions/detect-runtime/action.yml": "bd5325d37aa5db3d7914bb8c48573a89315cb1cbbf651424b2e937cebadf90f8",
+    ".github/actions/fetch-agents/action.yml": "0ce0c7b3f2051f4afd12ca59ef60d1db4e318ef32c51bfecfec70f1eca41a3ee",
+    ".github/actions/get-issue-details/action.yml": "089778f5f4f0a8bf7ca519e1231c184bbbe6d5302e7f7b19a941c0fcf14d65e0",
+    ".github/actions/setup-claude/action.yml": "068bf057831b4d670995f66e0ede89dff542f65f210696b0d58a701b776c736f",
+    ".github/actions/setup-opencode/action.yml": "a902cae34ba31c1e01a31d461174a28ab9cc61d8561ee6dcc22648f6310dcda6",
+    ".claude/agents/codebase-analyzer.md": "fa47d70bf01604ffa6c78fe59ef8d019c43e72dff2f20a78e7e379aeecc2aebd",
+    ".claude/agents/codebase-locator.md": "5e4711dd0e419d92f8d928e08a7522e0b93d95a200c5936d8fb9c997d677ca33",
+    ".claude/agents/coding-agent.md": "002ecb7c367e5d39b32878410ef42f7e500de97cf877a277267d9c1fa429bd6d",
+    ".claude/agents/debug-agent.md": "2d965ac6b304850454cbef202ca66a422a4b911885b91e025514a9a739c61f5c",
+    ".github/claude-parallel/prompts/consolidate-and-create-linear.md": "ef9e9972831e53dad32a688be91fdfc9ee4304a2443f4f2c50f6e87fa28c31ea",
+    ".github/claude-parallel/prompts/implementation.md": "0a6b647d577dc96d81c45f22feaddf4a6a1f40d7057c7fb94a617cdacf51156e",
+    ".github/claude-parallel/prompts/plan-generation.md": "cdd6d726693a3942a381de2e9ae835a297a39e2a82ec7eaf53c63a50a7b69749",
+    ".github/claude-parallel/prompts/review.md": "c98d3e6f175c8f6267457a235b62f3376bd157fa50a74f0bc15a282c00f0230c",
+    ".github/claude-parallel/prompts/verify.md": "50e1898d1816fb48354d9f6cfbcc642672429f0550b2e61076e86cad9138c123",
+    ".github/claude-parallel/scripts/claude-agent-runner.js": "ca7334d9ab632f681dade0bdee63d4a810dd4c8c1539f4813ad4bb140a842d38",
+    ".github/claude-parallel/scripts/detect-runtime.sh": "20f9c026975ca6e049148a953d78492604c0cd020aaefb32ed53a328a486de0f",
+    ".github/claude-parallel/scripts/linear-agent.js": "101ba3fc882ddc89f7a6df079e0ad8bc6b42bbc82543fb4bf9c026268855dd05",
+    ".github/claude-parallel/scripts/planning-agent.js": "dea004568911ce252d948ba125b503bbc65c9ef5f119aa8d61822476350c8773",
+    ".github/workflows/claude-implement.yml": "4bd01544609234814a94c262f04065db2e81b9d2636d60f19620c5ff56a6c0e6",
+    ".github/workflows/claude-plan.yml": "aa41150f4121c4b27a1662d0ab2133c5e4e7d657aa12c8647295074f272aed02"
+  }
+}

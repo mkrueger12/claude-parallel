@@ -46,6 +46,12 @@ export interface ClaudeQueryOptions {
   mcpServers?: Record<string, McpServerConfig>;
 
   /**
+   * Path to Claude Code CLI executable
+   * Defaults to SDK's auto-detection if not provided
+   */
+  pathToClaudeCodeExecutable?: string;
+
+  /**
    * Additional SDK options to override defaults
    */
   additionalOptions?: Partial<Options>;
@@ -135,6 +141,11 @@ export async function* runClaudeQuery(prompt: string, options: ClaudeQueryOption
     // Bypass permissions for automation
     permissionMode: "bypassPermissions",
     allowDangerouslySkipPermissions: true,
+
+    // Path to Claude Code executable (if provided)
+    ...(options.pathToClaudeCodeExecutable
+      ? { pathToClaudeCodeExecutable: options.pathToClaudeCodeExecutable }
+      : {}),
 
     // Configure MCP servers if provided
     ...(options.mcpServers ? { mcpServers: options.mcpServers } : {}),

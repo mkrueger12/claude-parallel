@@ -21486,7 +21486,6 @@ async function* runClaudeQuery(prompt, options) {
     settingSources: ["project"],
     permissionMode: "bypassPermissions",
     allowDangerouslySkipPermissions: true,
-    ...options.pathToClaudeCodeExecutable ? { pathToClaudeCodeExecutable: options.pathToClaudeCodeExecutable } : {},
     ...options.mcpServers ? { mcpServers: options.mcpServers } : {},
     ...options.mode === "review" && options.outputSchema ? {
       outputFormat: {
@@ -21681,9 +21680,6 @@ function parseArgs() {
         parsedArgs.mode = mode;
         break;
       }
-      case "--claude-cli-path":
-        parsedArgs.claudeCliPath = args[++i];
-        break;
       case "--help":
       case "-h":
         printUsage();
@@ -21706,11 +21702,10 @@ function printUsage() {
 Usage: claude-agent-runner.ts --cwd <path> [options]
 
 Arguments:
-  --cwd <path>              Working directory for the agent (required)
-  --model <modelName>       Model to use (default: claude-opus-4-5-20251101)
-  --mode <mode>             Execution mode: implementation or review (default: implementation)
-  --claude-cli-path <path>  Path to Claude Code CLI executable (optional)
-  -h, --help                Show this help message
+  --cwd <path>          Working directory for the agent (required)
+  --model <modelName>   Model to use (default: claude-opus-4-5-20251101)
+  --mode <mode>         Execution mode: implementation or review (default: implementation)
+  -h, --help            Show this help message
 
 Input:
   Reads prompt from stdin (supports multiline prompts)
@@ -21728,9 +21723,6 @@ Examples:
 
   # Custom model
   echo "Analyze this code" | claude-agent-runner.ts --cwd /tmp --model claude-sonnet-4-5
-
-  # Specify Claude CLI path
-  echo "Implement feature" | claude-agent-runner.ts --cwd /tmp --claude-cli-path ~/.local/bin/claude
 
 Environment Variables:
   CLAUDE_CODE_OAUTH_TOKEN   OAuth token (preferred)
@@ -21800,7 +21792,6 @@ async function main() {
     mode: args.mode,
     mcpServers,
     logger,
-    ...args.claudeCliPath ? { pathToClaudeCodeExecutable: args.claudeCliPath } : {},
     ...args.mode === "review" ? { outputSchema: REVIEW_DECISION_SCHEMA } : {}
   };
   try {
