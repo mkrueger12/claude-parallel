@@ -34,11 +34,11 @@ interface FileAction {
 
 // Get the directory where the installed package is located
 function getPackageDir(): string {
-  // When running from dist/cli/install.js, we need to go up to the package root
+  // When running from dist/src/cli/install.js, we need to go up to the package root
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
-  // dist/cli/install.js -> go up two levels to package root
-  return join(__dirname, "..", "..");
+  // dist/src/cli/install.js -> go up three levels to package root
+  return join(__dirname, "..", "..", "..");
 }
 
 /**
@@ -81,6 +81,11 @@ function getDestinationPath(templateRelativePath: string): string {
   // prompts/* -> .github/claude-parallel/prompts/*
   if (templateRelativePath.startsWith("prompts/")) {
     return templateRelativePath.replace("prompts/", ".github/claude-parallel/prompts/");
+  }
+
+  // actions/* -> .github/actions/*
+  if (templateRelativePath.startsWith("actions/")) {
+    return templateRelativePath.replace("actions/", ".github/actions/");
   }
 
   // agents/* -> .claude/agents/*

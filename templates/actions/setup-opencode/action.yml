@@ -1,0 +1,128 @@
+name: 'Setup OpenCode SDK'
+description: 'Install and configure OpenCode SDK with multi-provider authentication and Linear MCP'
+inputs:
+  anthropic_api_key:
+    description: 'Anthropic API key for Claude provider'
+    required: true
+  claude_code_oauth_token:
+    description: 'Claude Code OAuth token (deprecated - use anthropic_api_key)'
+    required: false
+  openai_api_key:
+    description: 'OpenAI API key for GPT-4 provider'
+    required: true
+  google_api_key:
+    description: 'Google API key for Gemini provider'
+    required: true
+  linear_api_key:
+    description: 'Linear API key for MCP access'
+    required: true
+  linear_team_id:
+    description: 'Linear team ID for issue creation'
+    required: true
+  linear_project_id:
+    description: 'Linear project ID to add issues to (optional)'
+    required: false
+    default: ''
+  anthropic_model:
+    description: 'Anthropic model to use'
+    required: false
+    default: 'claude-sonnet-4-20250514'
+  openai_model:
+    description: 'OpenAI model to use'
+    required: false
+    default: 'gpt-4-turbo-preview'
+  google_model:
+    description: 'Google model to use'
+    required: false
+    default: 'gemini-2.5-flash'
+outputs:
+  status:
+    description: 'Setup status indicating successful configuration'
+    value: ${{ steps.validate.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate authentication
+      id: validate
+      shell: bash
+      run: |
+        echo "Validating required API keys..."
+
+        # Check all required keys are provided
+        if [[ -z "${{ inputs.anthropic_api_key }}" ]]; then
+          echo "Error: anthropic_api_key is required"
+          exit 1
+        fi
+
+        if [[ -z "${{ inputs.openai_api_key }}" ]]; then
+          echo "Error: openai_api_key is required"
+          exit 1
+        fi
+
+        if [[ -z "${{ inputs.google_api_key }}" ]]; then
+          echo "Error: google_api_key is required"
+          exit 1
+        fi
+
+        if [[ -z "${{ inputs.linear_api_key }}" ]]; then
+          echo "Error: linear_api_key is required"
+          exit 1
+        fi
+
+        if [[ -z "${{ inputs.linear_team_id }}" ]]; then
+          echo "Error: linear_team_id is required"
+          exit 1
+        fi
+
+        echo "All required API keys validated successfully"
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install OpenCode CLI
+      shell: bash
+      run: |
+        echo "Installing OpenCode CLI..."
+        bun install -g opencode-ai@latest
+        echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        echo "Installing dependencies in .github/scripts/"
+        cd ${{ github.workspace }}/.github/scripts
+        bun install
+        echo "Dependencies installed successfully"
+
+    - name: Set environment variables
+      shell: bash
+      run: |
+        echo "Configuring environment variables..."
+
+        # Provider API keys
+        echo "ANTHROPIC_API_KEY=${{ inputs.anthropic_api_key }}" >> $GITHUB_ENV
+        echo "OPENAI_API_KEY=${{ inputs.openai_api_key }}" >> $GITHUB_ENV
+        echo "GOOGLE_GENERATIVE_AI_API_KEY=${{ inputs.google_api_key }}" >> $GITHUB_ENV
+
+        # Model configuration
+        echo "ANTHROPIC_MODEL=${{ inputs.anthropic_model }}" >> $GITHUB_ENV
+        echo "OPENAI_MODEL=${{ inputs.openai_model }}" >> $GITHUB_ENV
+        echo "GOOGLE_MODEL=${{ inputs.google_model }}" >> $GITHUB_ENV
+
+        # Linear MCP configuration
+        echo "LINEAR_API_KEY=${{ inputs.linear_api_key }}" >> $GITHUB_ENV
+        echo "LINEAR_TEAM_ID=${{ inputs.linear_team_id }}" >> $GITHUB_ENV
+        echo "LINEAR_PROJECT_ID=${{ inputs.linear_project_id }}" >> $GITHUB_ENV
+
+        echo "Environment variables configured successfully"
+        echo "- Anthropic API key configured"
+        echo "- OpenAI model: ${{ inputs.openai_model }}"
+        echo "- Google model: ${{ inputs.google_model }}"
+        echo "- Linear team: ${{ inputs.linear_team_id }}"
+        if [[ -n "${{ inputs.linear_project_id }}" ]]; then
+          echo "- Linear project: ${{ inputs.linear_project_id }}"
+        fi

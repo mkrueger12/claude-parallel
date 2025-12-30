@@ -1,0 +1,60 @@
+name: Get Issue Details
+description: Fetches issue details from GitHub and handles both issues event and workflow_dispatch triggers
+
+inputs:
+  issue_number:
+    description: 'Issue number (used for workflow_dispatch)'
+    required: false
+  github_token:
+    description: 'Token for GitHub CLI authentication'
+    required: true
+  event_name:
+    description: 'The github.event_name value'
+    required: true
+  event_issue_number:
+    description: 'The github.event.issue.number value (for issues event)'
+    required: false
+
+outputs:
+  number:
+    description: 'The issue number'
+    value: ${{ steps.get-details.outputs.number }}
+  title:
+    description: 'The issue title'
+    value: ${{ steps.get-details.outputs.title }}
+  body_file:
+    description: 'Path to file containing issue body'
+    value: ${{ steps.get-details.outputs.body_file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get issue details
+      id: get-details
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        # Determine issue number based on event type
+        if [ "${{ inputs.event_name }}" = "workflow_dispatch" ]; then
+          ISSUE_NUMBER="${{ inputs.issue_number }}"
+        else
+          ISSUE_NUMBER="${{ inputs.event_issue_number }}"
+        fi
+
+        # Validate issue number is provided
+        if [ -z "$ISSUE_NUMBER" ]; then
+          echo "Error: Issue number is required"
+          exit 1
+        fi
+
+        # Fetch issue details from GitHub
+        ISSUE_JSON=$(gh issue view "$ISSUE_NUMBER" --json title,body)
+
+        # Output issue number and title
+        echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+        echo "title=$(echo "$ISSUE_JSON" | jq -r '.title')" >> $GITHUB_OUTPUT
+
+        # Write body to file to handle multiline content
+        echo "$ISSUE_JSON" | jq -r '.body // ""' > /tmp/issue_body.txt
+        echo "body_file=/tmp/issue_body.txt" >> $GITHUB_OUTPUT
