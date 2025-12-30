@@ -1,6 +1,6 @@
 {
   "name": "swellai",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Install claude-parallel workflows, scripts, and agents into any repository",
   "type": "module",
   "bin": {

@@ -1,4 +1,4 @@
-name: Claude Plan - Multi-Provider Implementation Planning
+name: Multi-Provider Plan Generation (v2 - Parallel Jobs)
 
 on:
   issues:
@@ -49,7 +49,7 @@ jobs:
   get-issue:
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude-plan'))
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude-plan-v2'))
     runs-on: ubuntu-latest
     outputs:
       number: ${{ steps.issue.outputs.number }}
@@ -61,32 +61,12 @@ jobs:
 
       - name: Get issue details
         id: issue
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-        run: |
-          # Determine issue number based on event type
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            ISSUE_NUMBER="${{ inputs.issue_number }}"
-          else
-            ISSUE_NUMBER="${{ github.event.issue.number }}"
-          fi
-
-          # Validate issue number is provided
-          if [ -z "$ISSUE_NUMBER" ]; then
-            echo "Error: Issue number is required"
-            exit 1
-          fi
-
-          # Fetch issue details from GitHub
-          ISSUE_JSON=$(gh issue view "$ISSUE_NUMBER" --json title,body)
-
-          # Output issue number and title
-          echo "number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
-          echo "title=$(echo "$ISSUE_JSON" | jq -r '.title')" >> $GITHUB_OUTPUT
-
-          # Write body to file to handle multiline content
-          echo "$ISSUE_JSON" | jq -r '.body // ""' > /tmp/issue_body.txt
-          echo "body_file=/tmp/issue_body.txt" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/get-issue-details
+        with:
+          issue_number: ${{ github.event_name == 'workflow_dispatch' && inputs.issue_number || github.event.issue.number }}
+          github_token: ${{ secrets.GH_PAT }}
+          event_name: ${{ github.event_name }}
+          event_issue_number: ${{ github.event.issue.number || '' }}
 
       - name: Read issue body
         id: body
@@ -123,6 +103,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
       - name: Generate plan
         id: generate
         env:
@@ -131,10 +117,12 @@ jobs:
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-opus-4-5' }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
-          # Generate plan using the bundled script from installed location
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(node .github/claude-parallel/scripts/planning-agent.js "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -176,6 +164,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
       - name: Generate plan
         id: generate
         env:
@@ -184,10 +178,12 @@ jobs:
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.2-pro' }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
-          # Generate plan using the bundled script from installed location
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(node .github/claude-parallel/scripts/planning-agent.js "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -229,6 +225,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
       - name: Generate plan
         id: generate
         env:
@@ -237,10 +239,12 @@ jobs:
           MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-2.5-pro' }}
           ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
           ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
-          # Generate plan using the bundled script from installed location
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(node .github/claude-parallel/scripts/planning-agent.js "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -283,6 +287,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
       - name: Consolidate plans and create Linear issues
         id: consolidate
         env:
@@ -296,6 +306,8 @@ jobs:
           ANTHROPIC_PLAN: ${{ needs.generate-plan-anthropic.result == 'success' && needs.generate-plan-anthropic.outputs.plan || '' }}
           OPENAI_PLAN: ${{ needs.generate-plan-openai.result == 'success' && needs.generate-plan-openai.outputs.plan || '' }}
           GOOGLE_PLAN: ${{ needs.generate-plan-google.result == 'success' && needs.generate-plan-google.outputs.plan || '' }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
-          # Run linear agent using the bundled script from installed location
-          node .github/claude-parallel/scripts/linear-agent.js
+          # Run linear agent for consolidation and Linear issue creation
+          bun run src/agents/linear-agent.ts
