@@ -227,3 +227,34 @@ Next steps:
 - Task 9: Update installer to include new composite actions
 
 Current status: 6/10 tests passing
+
+---
+
+Session 25: Task 8 - Refactor templates/workflows/claude-plan.yml
+
+Completed:
+- Refactored templates/workflows/claude-plan.yml to use bundled composite actions
+- Template workflow uses path ./.github/claude-parallel/actions/ (installed location)
+- Replaced 4-step OpenCode setup block with single action call in all 4 jobs:
+  * generate-plan-anthropic (lines 92-110 -> 92-93)
+  * generate-plan-openai (lines 153-171 -> 136-137)
+  * generate-plan-google (lines 214-232 -> 180-181)
+  * consolidate-and-create-linear (lines 276-294 -> 225-226)
+- Each job now uses: ./.github/claude-parallel/actions/setup-opencode-environment
+- Reduced workflow from 314 to 245 lines (22% reduction)
+- Eliminated 69 lines of duplicate setup code
+- Updated features.json: marked test #7 as passing
+
+Verification performed:
+- ✓ Template references local composite actions at ./.github/claude-parallel/actions/
+- ✓ All 4 jobs updated (generate-plan-anthropic, generate-plan-openai, generate-plan-google, consolidate-and-create-linear)
+- ✓ Old "Setup Bun" steps completely removed (0 matches found)
+- ✓ Workflow is valid YAML (validated with Node.js yaml parser)
+- ✓ All other steps remain unchanged (generate plan, consolidate)
+
+Next steps:
+- Task 9: Update installer to include new composite actions
+- Task 10: Add comprehensive tests for composite actions
+
+Current status: 7/10 tests passing
+
