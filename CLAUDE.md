@@ -36,7 +36,21 @@ bun run type-check  # Run TypeScript type checking
 # Run agents directly
 bun run src/agents/planning-agent.ts "Your feature request"
 bun run src/agents/linear-agent.ts  # Requires environment variables
+
+# Sync composite actions (templates/actions/ is source of truth)
+bun run scripts/sync-github-actions.ts          # Sync files
+bun run scripts/sync-github-actions.ts --check  # Check if in sync (used by CI)
+bun run scripts/sync-github-actions.ts --dry-run # Preview changes
 ```
+
+### Composite Actions Pattern
+
+The project uses `templates/actions/` as the source of truth for composite actions:
+
+1. Edit files in `templates/actions/`
+2. Run `bun run scripts/sync-github-actions.ts` to copy to `.github/actions/`
+3. Commit both directories together
+4. CI's `sync-check` job will fail if actions are out of sync
 
 ### Local Testing of Scripts
 

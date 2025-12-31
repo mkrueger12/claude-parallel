@@ -333,6 +333,50 @@ An npm-installable CLI tool that installs standalone GitHub Actions workflows fo
 - Returns runtime configuration
 - Used for environment setup
 
+#### Setup Planning Env (`setup-planning-env`)
+- **Purpose**: Consolidates planning job setup (reduces ~23 lines to 1 step per job)
+- **Installs**: Bun runtime, OpenCode CLI, ast-grep
+- **Inputs**:
+  - `skip_bun_install`: Skip `bun install` for repos without package.json (default: false)
+- **Used by**: `multi-provider-plan-v2.yml`, `templates/workflows/claude-plan.yml`
+
+#### Setup Agent Runner (`setup-agent-runner`)
+- **Purpose**: Consolidates implementation job setup (reduces ~33 lines to 1 step per job)
+- **Installs**: Claude CLI, Bun, workspace dependencies, ast-grep, custom agents
+- **Inputs**:
+  - `dry_run`: Skip setup when true for testing (default: false)
+  - `prompts_repo`: Repository for agents (default: mkrueger12/claude-parallel)
+  - `prompts_ref`: Git ref for repository (default: main)
+  - `claude_code_oauth_token`: OAuth token for Claude CLI
+  - `anthropic_api_key`: API key for Claude CLI (alternative to OAuth)
+- **Outputs**:
+  - `auth_method`: Authentication method used (oauth or api_key)
+- **Used by**: `reusable-implement-issue.yml`, `templates/workflows/claude-implement.yml`
+
+### CI Workflows
+
+#### CI (`ci.yml`)
+- **Jobs**:
+  - `lint`: Runs Biome linter and TypeScript type checking
+  - `build`: Compiles TypeScript to JavaScript
+  - `sync-check`: Verifies `.github/actions/` matches `templates/actions/`
+- **Sync Check Purpose**: Prevents direct edits to `.github/actions/` and ensures changes to `templates/actions/` are properly synced
+
+### Action Sync Pattern
+
+The project uses `templates/actions/` as the source of truth for all composite actions:
+
+1. **Edit**: Modify files in `templates/actions/`
+2. **Sync**: Run `bun run scripts/sync-github-actions.ts` to copy to `.github/actions/`
+3. **Commit**: Both directories must be committed together
+4. **CI Check**: `sync-check` job fails if actions are out of sync
+
+This pattern:
+- Centralizes action definitions in `templates/`
+- Enables bundling for npm package distribution
+- Prevents accidental direct edits to `.github/actions/`
+- Reminds contributors of the correct workflow
+
 ### Workflow Triggers
 
 #### Via Label
@@ -503,6 +547,8 @@ claude-parallel/
 │       ├── get-issue-details/              # Fetch issue metadata
 │       ├── setup-claude/                   # Install Claude CLI
 │       ├── setup-opencode/                 # Setup OpenCode SDK server
+│       ├── setup-planning-env/             # Composite action for planning workflow setup
+│       ├── setup-agent-runner/             # Composite action for implementation workflow setup
 │       ├── fetch-agents/                   # Download custom agents
 │       └── detect-runtime/                 # Detect language/package manager
 ├── .claude/
@@ -513,6 +559,7 @@ claude-parallel/
 │       └── debug-agent.md                  # Debugging agent
 ├── scripts/                                # Utility scripts
 │   ├── claude-agent-runner.ts              # CLI wrapper for Claude Agent SDK
+│   ├── sync-github-actions.ts              # Sync templates/actions to .github/actions
 │   ├── build-templates.ts                  # Build script for bundling templates
 │   └── test-install.sh                     # Installation test script
 ├── src/                                    # TypeScript source code
@@ -538,6 +585,14 @@ claude-parallel/
 │   ├── workflows/
 │   │   ├── claude-plan.yml                 # Standalone planning workflow template
 │   │   └── claude-implement.yml            # Standalone implementation workflow template
+│   ├── actions/                            # Source of truth for composite actions
+│   │   ├── setup-planning-env/             # Planning environment setup (Bun, OpenCode, ast-grep)
+│   │   ├── setup-agent-runner/             # Implementation environment setup (Claude, agents)
+│   │   ├── setup-claude/                   # Claude CLI installation
+│   │   ├── setup-opencode/                 # OpenCode SDK setup
+│   │   ├── fetch-agents/                   # Download custom agents
+│   │   ├── detect-runtime/                 # Language/package manager detection
+│   │   └── get-issue-details/              # GitHub issue fetcher
 │   ├── scripts/
 │   │   ├── planning-agent.js               # Bundled planning agent (46KB)
 │   │   ├── linear-agent.js                 # Bundled linear agent (47KB)
@@ -708,12 +763,18 @@ bun run linear-agent
 
 # Test claude-agent-runner (used by parallel-impl.sh)
 echo "Your prompt here" | bun run claude-agent-runner --cwd $(pwd) --mode implementation
+
+# Sync actions from templates to .github (source of truth pattern)
+bun run scripts/sync-github-actions.ts          # Sync files
+bun run scripts/sync-github-actions.ts --check  # Check if files differ (exit 1 if different)
+bun run scripts/sync-github-actions.ts --dry-run # Preview changes without modifying
 ```
 
 ### TypeScript Structure
 
 - **scripts/**: Utility scripts
   - `claude-agent-runner.ts`: CLI wrapper for running Claude Agent SDK queries (used by `parallel-impl.sh`)
+  - `sync-github-actions.ts`: Syncs composite actions from `templates/actions/` to `.github/actions/`
 - **src/agents/**: Agent implementations using OpenCode SDK
   - `planning-agent.ts`: Generates plans from a single AI provider (supports Anthropic, OpenAI, Google)
   - `linear-agent.ts`: Consolidates plans and creates Linear issues
