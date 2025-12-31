@@ -75,3 +75,46 @@ Next steps:
 - Task 5: Refactor reusable-implement-issue.yml to use new composite actions
 
 Current status: 2/10 tests passing
+
+---
+
+Session 21: Task 3 - Create run-build-checks composite action
+
+Completed:
+- Created .github/actions/run-build-checks/action.yml
+- Composite action extracts ~180-line build checks script
+- Consolidates duplicate code from:
+  * reusable-implement-issue.yml (lines 626-803)
+  * templates/workflows/claude-implement.yml (lines 624-801)
+- Accepts 3 inputs:
+  - runtime (required) - js, python, go, rust
+  - package_manager (required) - for running commands
+  - working-directory (optional, default: '.')
+- Outputs 5 values:
+  - BUILD_STATUS (pass, fail, or skip)
+  - TESTS_STATUS (pass, fail, or skip)
+  - LINT_STATUS (pass, fail, or skip)
+  - TYPECHECK_STATUS (pass, fail, or skip)
+  - results_file (path to combined results)
+- Handles all runtime types correctly:
+  * JS: npm/bun run build, test, lint; npx tsc --noEmit
+  * Python: python -m build, pytest, ruff check, mypy
+  * Go: go build/test ./..., golint ./...
+  * Rust: cargo build, test, clippy
+- Uses composite action structure (using: 'composite')
+- Follows existing composite action patterns
+- Updated features.json: marked test #3 as passing
+
+Verification performed:
+- File exists at .github/actions/run-build-checks/action.yml
+- Is valid YAML (validated with Node.js)
+- Action structure verified: name, description, inputs, outputs, runs
+- All 5 outputs present: BUILD_STATUS, TESTS_STATUS, LINT_STATUS, TYPECHECK_STATUS, results_file
+- Logic matches original workflow implementation exactly
+
+Next steps:
+- Task 4: Refactor multi-provider-plan-v2.yml to use setup-opencode-environment action
+- Task 5: Refactor reusable-implement-issue.yml to use all 3 new composite actions
+- Task 7: Refactor templates/workflows/claude-implement.yml
+
+Current status: 3/10 tests passing
