@@ -215,7 +215,7 @@
         "Sync check passes on main branch (after all tasks complete)",
         "Sync check fails when actions differ"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }

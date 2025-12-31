@@ -2,6 +2,35 @@
 
 ## Session Progress
 
+### Session 4 (Task 6 - DEL-1352: CI Sync Verification)
+
+**Date:** 2025-12-31
+
+**Completed:**
+1. Added `sync-check` job to `.github/workflows/ci.yml`
+   - Job runs after lint and build jobs
+   - Checks out repository
+   - Sets up Bun with latest version
+   - Installs dependencies
+   - Runs `bun run scripts/sync-github-actions.ts --check`
+
+2. Verified implementation:
+   - CI workflow YAML is valid (validated with Python yaml parser)
+   - Sync check passes when files are in sync
+   - Sync check fails with exit code 1 when actions drift
+   - Type checking passes
+
+3. Updated features.json to mark task-6-automated as passing
+
+**Tests Marked Passing:**
+- task-6-automated (DEL-1352): CI sync verification automated checks
+
+**Status:** 6/18 tests passing (was 5/18)
+
+**Note:** The functional tests (task-6-ci-fails-on-drift, task-6-ci-passes) require actual CI runs in GitHub Actions to fully verify.
+
+---
+
 ### Session 3 (Task 1 Functional Tests - DEL-1347)
 
 **Date:** 2025-12-31
@@ -77,9 +106,9 @@
 ## Next Steps
 - Task 4 (DEL-1350): Refactor planning workflows to use setup-planning-env
 - Task 5 (DEL-1351): Refactor implementation workflows to use setup-agent-runner
-- Task 6 (DEL-1352): Add CI sync verification
+- Functional tests for Task 6 require actual CI runs to verify
 
 ## Files Created/Modified This Session
-- Modified: `package.json` (added sync-actions and sync-actions:check scripts)
-- Updated: `features.json` (marked task-1-sync-modify and task-1-sync-check as passing)
+- Modified: `.github/workflows/ci.yml` (added sync-check job)
+- Updated: `features.json` (marked task-6-automated as passing)
 - Updated: `claude-progress.txt` (this file)
