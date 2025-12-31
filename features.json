@@ -76,7 +76,7 @@
       "Step 1: Verify template references local composite actions",
       "Step 2: Verify setup blocks are not duplicated across jobs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
