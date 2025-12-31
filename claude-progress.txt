@@ -183,3 +183,47 @@ Next steps:
 - Task 9: Update installer to include new composite actions
 
 Current status: 5/10 tests passing
+
+---
+
+Session 24: Task 7 - Refactor templates/workflows/claude-implement.yml
+
+Completed:
+- Copied 3 new composite actions to templates/actions/:
+  * setup-opencode-environment/action.yml
+  * setup-runtime-and-deps/action.yml
+  * run-build-checks/action.yml
+- Refactored templates/workflows/claude-implement.yml to use bundled composite actions
+- Template workflow now uses path ./.github/claude-parallel/actions/ (installed location)
+- Replaced setup blocks in 3 jobs:
+  * implement job: Claude CLI + Agent Runner setup (lines 96-141 -> 96-107)
+  * review job: Claude CLI + Agent Runner setup (lines 335-380 -> 245-256)
+  * verify job: Claude CLI + Agent Runner setup (lines 509-554 -> 385-396)
+- Replaced runtime setup + dependencies in 2 jobs:
+  * implement job (lines 143-209 -> 109-119)
+  * verify job (lines 556-622 -> 398-408)
+- Replaced build checks script in verify job:
+  * Lines 624-802 -> 410-415 (~178-line script replaced with 6 lines)
+- Reduced workflow from 931 to 545 lines (41.5% reduction, -386 lines)
+- Template uses 9 action references:
+  * setup-claude: 3 times (implement, review, verify)
+  * setup-opencode-environment: 3 times (implement, review, verify)
+  * setup-runtime-and-deps: 2 times (implement, verify)
+  * run-build-checks: 1 time (verify)
+- All action references use correct template path: ./.github/claude-parallel/actions/
+- Workflow is valid YAML
+- Updated features.json: marked test #6 as passing
+
+Verification performed:
+- ✓ Template references local composite actions at ./.github/claude-parallel/actions/
+- ✓ Inline Claude CLI setup replaced with setup-claude action
+- ✓ Runtime setup and deps replaced with setup-runtime-and-deps action
+- ✓ Build checks script replaced with run-build-checks action
+- ✓ All duplicate setup blocks removed (0 occurrences of "Setup Bun for Agent Runner")
+- ✓ YAML is valid (validated with Node.js yaml parser)
+
+Next steps:
+- Task 8: Refactor templates/workflows/claude-plan.yml
+- Task 9: Update installer to include new composite actions
+
+Current status: 6/10 tests passing
