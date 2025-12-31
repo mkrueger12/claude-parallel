@@ -96,38 +96,15 @@ jobs:
           git checkout -b "$BRANCH"
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: Setup Claude CLI
+      - name: Setup agent runner environment
         if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
+        uses: mkrueger12/claude-parallel/.github/actions/setup-agent-runner@main
         with:
+          dry_run: ${{ inputs.dry_run }}
+          prompts_repo: ${{ inputs.prompts_repo }}
+          prompts_ref: ${{ inputs.prompts_ref }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Setup Bun for Agent Runner
-        if: ${{ inputs.dry_run != true }}
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install agent runner dependencies
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          cd ${{ github.workspace }}
-          bun install
-
-      - name: Install ast-grep
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          bun install -g @ast-grep/cli
-          bun pm -g trust @ast-grep/cli
-          ast-grep --version
-
-      - name: Fetch custom agents
-        if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
-        with:
-          repo: ${{ inputs.prompts_repo }}
-          ref: ${{ inputs.prompts_ref }}
 
       - name: Detect runtime
         id: runtime
@@ -358,38 +335,15 @@ jobs:
             fi
           done
 
-      - name: Setup Claude CLI
+      - name: Setup agent runner environment
         if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
+        uses: mkrueger12/claude-parallel/.github/actions/setup-agent-runner@main
         with:
+          dry_run: ${{ inputs.dry_run }}
+          prompts_repo: ${{ inputs.prompts_repo }}
+          prompts_ref: ${{ inputs.prompts_ref }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Setup Bun for Agent Runner
-        if: ${{ inputs.dry_run != true }}
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install agent runner dependencies
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          cd ${{ github.workspace }}
-          bun install
-
-      - name: Install ast-grep
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          bun install -g @ast-grep/cli
-          bun pm -g trust @ast-grep/cli
-          ast-grep --version
-
-      - name: Fetch custom agents
-        if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
-        with:
-          repo: ${{ inputs.prompts_repo }}
-          ref: ${{ inputs.prompts_ref }}
 
       - name: Fetch review prompt
         if: ${{ inputs.dry_run != true }}
@@ -524,38 +478,15 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
 
-      - name: Setup Claude CLI
+      - name: Setup agent runner environment
         if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
+        uses: mkrueger12/claude-parallel/.github/actions/setup-agent-runner@main
         with:
+          dry_run: ${{ inputs.dry_run }}
+          prompts_repo: ${{ inputs.prompts_repo }}
+          prompts_ref: ${{ inputs.prompts_ref }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Setup Bun for Agent Runner
-        if: ${{ inputs.dry_run != true }}
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install agent runner dependencies
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          cd ${{ github.workspace }}
-          bun install
-
-      - name: Install ast-grep
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          bun install -g @ast-grep/cli
-          bun pm -g trust @ast-grep/cli
-          ast-grep --version
-
-      - name: Fetch custom agents
-        if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/fetch-agents@main
-        with:
-          repo: ${{ inputs.prompts_repo }}
-          ref: ${{ inputs.prompts_ref }}
 
       - name: Detect runtime
         id: runtime

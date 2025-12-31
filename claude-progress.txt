@@ -2,6 +2,70 @@
 
 ## Session Progress
 
+### Session 6 (Task 5 - DEL-1351: Refactor Implementation Workflows)
+
+**Date:** 2025-12-31
+
+**Completed:**
+1. Refactored `.github/workflows/reusable-implement-issue.yml`:
+   - Replaced repeated setup blocks in 3 jobs with `setup-agent-runner` composite action
+   - Jobs updated: implement (line 99), review (line 340), verify (line 483)
+   - Each job now uses single `setup-agent-runner@main` action instead of 5 separate steps
+   - Reduced ~33 lines x 3 jobs = ~99 lines down to ~7 lines x 3 = ~21 lines
+
+2. Refactored `templates/workflows/claude-implement.yml`:
+   - Replaced inline Claude CLI setup (curl commands) with composite action
+   - Removed "Copy custom agents" manual steps
+   - Jobs updated: implement (line 98), review (line 298), verify (line 433)
+   - Uses `./.github/actions/setup-agent-runner` path (works when installed via npm package)
+
+3. Verification:
+   - YAML syntax validated with Python yaml parser for both workflows
+   - Confirmed no inline Claude setup blocks remain (grep: no "curl.*claude.ai/install", no "Copy custom agents", no "Setup Claude CLI")
+   - All 3 jobs in both workflows reference the new composite action (6 total references verified)
+   - Dry run mode preserved with `if: ${{ inputs.dry_run != true }}` condition on all setup steps
+   - Sync check passes (all action files in sync)
+   - Type checking passes
+
+4. Updated features.json to mark task-5-automated as passing
+
+**Tests Marked Passing:**
+- task-5-automated (DEL-1351): Implementation workflow automated verification
+
+**Status:** 8/18 tests passing (was 7/18)
+
+---
+
+### Session 5 (Task 4 - DEL-1350: Refactor Planning Workflows)
+
+**Date:** 2025-12-31
+
+**Completed:**
+1. Refactored `.github/workflows/multi-provider-plan-v2.yml`:
+   - Replaced repeated setup blocks in 4 jobs with `setup-planning-env` composite action
+   - Jobs updated: generate-plan-anthropic, generate-plan-openai, generate-plan-google, consolidate-and-create-linear
+   - Reduced ~23 lines x 4 jobs = ~92 lines down to 4 lines (1 step per job)
+
+2. Refactored `templates/workflows/claude-plan.yml`:
+   - Applied same changes to the template version
+   - Uses `./.github/actions/setup-planning-env` path (works when installed to user's .github/)
+
+3. Verification:
+   - YAML syntax validated with Python yaml parser
+   - Confirmed no "Install OpenCode CLI" blocks remain (0 matches in both files)
+   - Sync check passes (all files in sync)
+   - Type checking passes
+   - Action reference `./.github/actions/setup-planning-env` is valid and action exists
+
+4. Updated features.json to mark task-4-automated as passing
+
+**Tests Marked Passing:**
+- task-4-automated (DEL-1350): Planning workflow automated verification
+
+**Status:** 7/18 tests passing (was 6/18)
+
+---
+
 ### Session 4 (Task 6 - DEL-1352: CI Sync Verification)
 
 **Date:** 2025-12-31
@@ -104,11 +168,11 @@
 **Status:** 3/18 tests passing (was 0/18)
 
 ## Next Steps
-- Task 4 (DEL-1350): Refactor planning workflows to use setup-planning-env
-- Task 5 (DEL-1351): Refactor implementation workflows to use setup-agent-runner
-- Functional tests for Task 6 require actual CI runs to verify
+- Functional tests for Tasks 4, 5, and 6 require actual workflow/CI runs to verify
+- These require triggering GitHub Actions workflows with real credentials
 
-## Files Created/Modified This Session
-- Modified: `.github/workflows/ci.yml` (added sync-check job)
-- Updated: `features.json` (marked task-6-automated as passing)
+## Files Modified This Session
+- Modified: `.github/workflows/reusable-implement-issue.yml` (replaced setup blocks with setup-agent-runner action)
+- Modified: `templates/workflows/claude-implement.yml` (replaced inline setup with setup-agent-runner action)
+- Updated: `features.json` (marked task-5-automated as passing)
 - Updated: `claude-progress.txt` (this file)

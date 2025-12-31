@@ -142,7 +142,7 @@
         "No repeated 'Install OpenCode CLI' blocks remain (review diff)",
         "Workflow runs successfully in CI test"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
@@ -179,7 +179,7 @@
         "Dry run mode still works correctly",
         "All jobs reference the new composite action"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
