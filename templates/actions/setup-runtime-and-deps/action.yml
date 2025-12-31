@@ -1,0 +1,92 @@
+name: 'Setup Runtime and Dependencies'
+description: 'Install runtime environment and project dependencies for multi-language projects'
+inputs:
+  runtime:
+    description: 'Runtime type (js, python, go, rust)'
+    required: true
+  package_manager:
+    description: 'Package manager (bun, npm, yarn, pnpm, pip, poetry, go, cargo)'
+    required: true
+  node-version:
+    description: 'Node.js version to install'
+    required: false
+    default: '20'
+  python-version:
+    description: 'Python version to install'
+    required: false
+    default: '3.11'
+  go-version:
+    description: 'Go version to install'
+    required: false
+    default: '1.21'
+  working-directory:
+    description: 'Working directory for dependency installation'
+    required: false
+    default: '.'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun
+      if: inputs.runtime == 'js' && inputs.package_manager == 'bun'
+      uses: oven-sh/setup-bun@v2
+
+    - name: Setup Node.js
+      if: inputs.runtime == 'js' && inputs.package_manager != 'bun'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Setup Python
+      if: inputs.runtime == 'python'
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Setup Go
+      if: inputs.runtime == 'go'
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    - name: Setup Rust
+      if: inputs.runtime == 'rust'
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        case "${{ inputs.runtime }}" in
+          js)
+            if [ -f "package.json" ]; then
+              case "${{ inputs.package_manager }}" in
+                bun) bun install ;;
+                pnpm) npm install -g pnpm && pnpm install ;;
+                yarn) yarn install ;;
+                npm) npm install ;;
+              esac
+            fi
+            ;;
+          python)
+            if [ -f "requirements.txt" ]; then
+              pip install -r requirements.txt
+            elif [ -f "pyproject.toml" ]; then
+              if [ "${{ inputs.package_manager }}" = "poetry" ]; then
+                pip install poetry && poetry install
+              else
+                pip install .
+              fi
+            fi
+            ;;
+          go)
+            if [ -f "go.mod" ]; then
+              go mod download
+            fi
+            ;;
+          rust)
+            if [ -f "Cargo.toml" ]; then
+              cargo fetch
+            fi
+            ;;
+        esac

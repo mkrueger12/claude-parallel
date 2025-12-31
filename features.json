@@ -66,7 +66,7 @@
       "Step 3: Verify runtime setup and deps is replaced with action reference",
       "Step 4: Verify build checks is replaced with action reference"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

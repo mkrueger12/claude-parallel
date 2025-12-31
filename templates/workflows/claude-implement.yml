@@ -95,50 +95,16 @@ jobs:
 
       - name: Setup Claude CLI
         if: ${{ inputs.dry_run != true }}
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          # Validate authentication
-          if [[ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]] && [[ -z "$ANTHROPIC_API_KEY" ]]; then
-            echo "Error: At least one authentication method must be provided"
-            exit 1
-          fi
-
-          # Install Claude CLI
-          curl -fsSL https://claude.ai/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-          # Set authentication method
-          if [[ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]]; then
-            echo "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" >> $GITHUB_ENV
-            echo "Using OAuth token for authentication"
-          elif [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> $GITHUB_ENV
-            echo "Using API key for authentication"
-          fi
-
-      - name: Setup Bun for Agent Runner
-        if: ${{ inputs.dry_run != true }}
-        uses: oven-sh/setup-bun@v2
+        uses: ./.github/claude-parallel/actions/setup-claude
         with:
-          bun-version: latest
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
-      - name: Install agent runner dependencies
+      - name: Setup OpenCode Environment
         if: ${{ inputs.dry_run != true }}
-        run: |
-          cd ${{ github.workspace }}
-          bun install
-
-      - name: Copy custom agents to home directory
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          mkdir -p "$HOME/.claude/agents"
-          for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
-            cp .claude/agents/${agent}.md "$HOME/.claude/agents/${agent}.md"
-          done
-          echo "Installed agents:"
-          ls -la "$HOME/.claude/agents/"
+        uses: ./.github/claude-parallel/actions/setup-opencode-environment
+        with:
+          install-ast-grep: 'false'
 
       - name: Detect runtime
         id: runtime
@@ -146,67 +112,11 @@ jobs:
           # Run the bundled detect-runtime script from installed location
           bash .github/claude-parallel/scripts/detect-runtime.sh
 
-      - name: Setup Bun
-        if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
-
-      - name: Setup Node.js
-        if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager != 'bun'
-        uses: actions/setup-node@v4
+      - name: Setup Runtime and Dependencies
+        uses: ./.github/claude-parallel/actions/setup-runtime-and-deps
         with:
-          node-version: '20'
-
-      - name: Setup Python
-        if: steps.runtime.outputs.runtime == 'python'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Setup Go
-        if: steps.runtime.outputs.runtime == 'go'
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
-      - name: Setup Rust
-        if: steps.runtime.outputs.runtime == 'rust'
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: Install dependencies
-        run: |
-          case "${{ steps.runtime.outputs.runtime }}" in
-            js)
-              if [ -f "package.json" ]; then
-                case "${{ steps.runtime.outputs.package_manager }}" in
-                  bun) bun install ;;
-                  pnpm) npm install -g pnpm && pnpm install ;;
-                  yarn) yarn install ;;
-                  npm) npm install ;;
-                esac
-              fi
-              ;;
-            python)
-              if [ -f "requirements.txt" ]; then
-                pip install -r requirements.txt
-              elif [ -f "pyproject.toml" ]; then
-                if [ "${{ steps.runtime.outputs.package_manager }}" = "poetry" ]; then
-                  pip install poetry && poetry install
-                else
-                  pip install .
-                fi
-              fi
-              ;;
-            go)
-              if [ -f "go.mod" ]; then
-                go mod download
-              fi
-              ;;
-            rust)
-              if [ -f "Cargo.toml" ]; then
-                cargo fetch
-              fi
-              ;;
-          esac
+          runtime: ${{ steps.runtime.outputs.runtime }}
+          package_manager: ${{ steps.runtime.outputs.package_manager }}
 
       - name: Run implementation
         if: ${{ inputs.dry_run != true }}
@@ -334,50 +244,16 @@ jobs:
 
       - name: Setup Claude CLI
         if: ${{ inputs.dry_run != true }}
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          # Validate authentication
-          if [[ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]] && [[ -z "$ANTHROPIC_API_KEY" ]]; then
-            echo "Error: At least one authentication method must be provided"
-            exit 1
-          fi
-
-          # Install Claude CLI
-          curl -fsSL https://claude.ai/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-          # Set authentication method
-          if [[ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]]; then
-            echo "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" >> $GITHUB_ENV
-            echo "Using OAuth token for authentication"
-          elif [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> $GITHUB_ENV
-            echo "Using API key for authentication"
-          fi
-
-      - name: Setup Bun for Agent Runner
-        if: ${{ inputs.dry_run != true }}
-        uses: oven-sh/setup-bun@v2
+        uses: ./.github/claude-parallel/actions/setup-claude
         with:
-          bun-version: latest
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
-      - name: Install agent runner dependencies
+      - name: Setup OpenCode Environment
         if: ${{ inputs.dry_run != true }}
-        run: |
-          cd ${{ github.workspace }}
-          bun install
-
-      - name: Copy custom agents to home directory
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          mkdir -p "$HOME/.claude/agents"
-          for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
-            cp .claude/agents/${agent}.md "$HOME/.claude/agents/${agent}.md"
-          done
-          echo "Installed agents:"
-          ls -la "$HOME/.claude/agents/"
+        uses: ./.github/claude-parallel/actions/setup-opencode-environment
+        with:
+          install-ast-grep: 'false'
 
       - name: Review implementations
         if: ${{ inputs.dry_run != true }}
@@ -508,50 +384,16 @@ jobs:
 
       - name: Setup Claude CLI
         if: ${{ inputs.dry_run != true }}
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          # Validate authentication
-          if [[ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]] && [[ -z "$ANTHROPIC_API_KEY" ]]; then
-            echo "Error: At least one authentication method must be provided"
-            exit 1
-          fi
-
-          # Install Claude CLI
-          curl -fsSL https://claude.ai/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-          # Set authentication method
-          if [[ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]]; then
-            echo "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" >> $GITHUB_ENV
-            echo "Using OAuth token for authentication"
-          elif [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> $GITHUB_ENV
-            echo "Using API key for authentication"
-          fi
-
-      - name: Setup Bun for Agent Runner
-        if: ${{ inputs.dry_run != true }}
-        uses: oven-sh/setup-bun@v2
+        uses: ./.github/claude-parallel/actions/setup-claude
         with:
-          bun-version: latest
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
-      - name: Install agent runner dependencies
+      - name: Setup OpenCode Environment
         if: ${{ inputs.dry_run != true }}
-        run: |
-          cd ${{ github.workspace }}
-          bun install
-
-      - name: Copy custom agents to home directory
-        if: ${{ inputs.dry_run != true }}
-        run: |
-          mkdir -p "$HOME/.claude/agents"
-          for agent in codebase-analyzer codebase-locator coding-agent debug-agent; do
-            cp .claude/agents/${agent}.md "$HOME/.claude/agents/${agent}.md"
-          done
-          echo "Installed agents:"
-          ls -la "$HOME/.claude/agents/"
+        uses: ./.github/claude-parallel/actions/setup-opencode-environment
+        with:
+          install-ast-grep: 'false'
 
       - name: Detect runtime
         id: runtime
@@ -559,246 +401,18 @@ jobs:
           # Run the bundled detect-runtime script from installed location
           bash .github/claude-parallel/scripts/detect-runtime.sh
 
-      - name: Setup Bun
-        if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager == 'bun'
-        uses: oven-sh/setup-bun@v2
-
-      - name: Setup Node.js
-        if: steps.runtime.outputs.runtime == 'js' && steps.runtime.outputs.package_manager != 'bun'
-        uses: actions/setup-node@v4
+      - name: Setup Runtime and Dependencies
+        uses: ./.github/claude-parallel/actions/setup-runtime-and-deps
         with:
-          node-version: '20'
-
-      - name: Setup Python
-        if: steps.runtime.outputs.runtime == 'python'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Setup Go
-        if: steps.runtime.outputs.runtime == 'go'
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
-      - name: Setup Rust
-        if: steps.runtime.outputs.runtime == 'rust'
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-
-      - name: Install dependencies
-        run: |
-          case "${{ steps.runtime.outputs.runtime }}" in
-            js)
-              if [ -f "package.json" ]; then
-                case "${{ steps.runtime.outputs.package_manager }}" in
-                  bun) bun install ;;
-                  pnpm) npm install -g pnpm && pnpm install ;;
-                  yarn) yarn install ;;
-                  npm) npm install ;;
-                esac
-              fi
-              ;;
-            python)
-              if [ -f "requirements.txt" ]; then
-                pip install -r requirements.txt
-              elif [ -f "pyproject.toml" ]; then
-                if [ "${{ steps.runtime.outputs.package_manager }}" = "poetry" ]; then
-                  pip install poetry && poetry install
-                else
-                  pip install .
-                fi
-              fi
-              ;;
-            go)
-              if [ -f "go.mod" ]; then
-                go mod download
-              fi
-              ;;
-            rust)
-              if [ -f "Cargo.toml" ]; then
-                cargo fetch
-              fi
-              ;;
-          esac
+          runtime: ${{ steps.runtime.outputs.runtime }}
+          package_manager: ${{ steps.runtime.outputs.package_manager }}
 
       - name: Run build checks
         id: build_checks
-        run: |
-          mkdir -p /tmp/build-results
-
-          # Initialize statuses
-          BUILD_STATUS="skip"
-          TESTS_STATUS="skip"
-          LINT_STATUS="skip"
-          TYPECHECK_STATUS="skip"
-
-          # Run build
-          echo "=== Running build ===" > /tmp/build-results/build.txt
-          case "${{ steps.runtime.outputs.runtime }}" in
-            js)
-              if [ -f "package.json" ] && grep -q '"build"' package.json; then
-                if ${{ steps.runtime.outputs.package_manager }} run build >> /tmp/build-results/build.txt 2>&1; then
-                  BUILD_STATUS="pass"
-                else
-                  BUILD_STATUS="fail"
-                fi
-              else
-                echo "No build script found" >> /tmp/build-results/build.txt
-              fi
-              ;;
-            python)
-              if [ -f "setup.py" ] || ([ -f "pyproject.toml" ] && grep -q '\[build-system\]' pyproject.toml); then
-                if python -m build >> /tmp/build-results/build.txt 2>&1; then
-                  BUILD_STATUS="pass"
-                else
-                  BUILD_STATUS="fail"
-                fi
-              else
-                echo "No build system found" >> /tmp/build-results/build.txt
-              fi
-              ;;
-            go)
-              if go build ./... >> /tmp/build-results/build.txt 2>&1; then
-                BUILD_STATUS="pass"
-              else
-                BUILD_STATUS="fail"
-              fi
-              ;;
-            rust)
-              if cargo build >> /tmp/build-results/build.txt 2>&1; then
-                BUILD_STATUS="pass"
-              else
-                BUILD_STATUS="fail"
-              fi
-              ;;
-          esac
-          echo "BUILD_STATUS=$BUILD_STATUS" >> $GITHUB_OUTPUT
-
-          # Run tests
-          echo "=== Running tests ===" > /tmp/build-results/tests.txt
-          case "${{ steps.runtime.outputs.runtime }}" in
-            js)
-              if [ -f "package.json" ] && grep -q '"test"' package.json; then
-                if ${{ steps.runtime.outputs.package_manager }} test >> /tmp/build-results/tests.txt 2>&1; then
-                  TESTS_STATUS="pass"
-                else
-                  TESTS_STATUS="fail"
-                fi
-              else
-                echo "No test script found" >> /tmp/build-results/tests.txt
-              fi
-              ;;
-            python)
-              if command -v pytest >/dev/null 2>&1; then
-                if pytest >> /tmp/build-results/tests.txt 2>&1; then
-                  TESTS_STATUS="pass"
-                else
-                  TESTS_STATUS="fail"
-                fi
-              else
-                echo "pytest not found" >> /tmp/build-results/tests.txt
-              fi
-              ;;
-            go)
-              if go test ./... >> /tmp/build-results/tests.txt 2>&1; then
-                TESTS_STATUS="pass"
-              else
-                TESTS_STATUS="fail"
-              fi
-              ;;
-            rust)
-              if cargo test >> /tmp/build-results/tests.txt 2>&1; then
-                TESTS_STATUS="pass"
-              else
-                TESTS_STATUS="fail"
-              fi
-              ;;
-          esac
-          echo "TESTS_STATUS=$TESTS_STATUS" >> $GITHUB_OUTPUT
-
-          # Run lint
-          echo "=== Running lint ===" > /tmp/build-results/lint.txt
-          case "${{ steps.runtime.outputs.runtime }}" in
-            js)
-              if [ -f "package.json" ] && grep -q '"lint"' package.json; then
-                if ${{ steps.runtime.outputs.package_manager }} run lint >> /tmp/build-results/lint.txt 2>&1; then
-                  LINT_STATUS="pass"
-                else
-                  LINT_STATUS="fail"
-                fi
-              else
-                echo "No lint script found" >> /tmp/build-results/lint.txt
-              fi
-              ;;
-            python)
-              if command -v ruff >/dev/null 2>&1; then
-                if ruff check . >> /tmp/build-results/lint.txt 2>&1; then
-                  LINT_STATUS="pass"
-                else
-                  LINT_STATUS="fail"
-                fi
-              else
-                echo "ruff not found" >> /tmp/build-results/lint.txt
-              fi
-              ;;
-            go)
-              if command -v golint >/dev/null 2>&1; then
-                if golint ./... >> /tmp/build-results/lint.txt 2>&1; then
-                  LINT_STATUS="pass"
-                else
-                  LINT_STATUS="fail"
-                fi
-              else
-                echo "golint not found" >> /tmp/build-results/lint.txt
-              fi
-              ;;
-            rust)
-              if cargo clippy >> /tmp/build-results/lint.txt 2>&1; then
-                LINT_STATUS="pass"
-              else
-                LINT_STATUS="fail"
-              fi
-              ;;
-          esac
-          echo "LINT_STATUS=$LINT_STATUS" >> $GITHUB_OUTPUT
-
-          # Run typecheck
-          echo "=== Running typecheck ===" > /tmp/build-results/typecheck.txt
-          case "${{ steps.runtime.outputs.runtime }}" in
-            js)
-              if [ -f "tsconfig.json" ]; then
-                if npx tsc --noEmit >> /tmp/build-results/typecheck.txt 2>&1; then
-                  TYPECHECK_STATUS="pass"
-                else
-                  TYPECHECK_STATUS="fail"
-                fi
-              else
-                echo "No tsconfig.json found" >> /tmp/build-results/typecheck.txt
-              fi
-              ;;
-            python)
-              if command -v mypy >/dev/null 2>&1; then
-                if mypy . >> /tmp/build-results/typecheck.txt 2>&1; then
-                  TYPECHECK_STATUS="pass"
-                else
-                  TYPECHECK_STATUS="fail"
-                fi
-              else
-                echo "mypy not found" >> /tmp/build-results/typecheck.txt
-              fi
-              ;;
-            *)
-              echo "Typecheck not applicable for ${{ steps.runtime.outputs.runtime }}" >> /tmp/build-results/typecheck.txt
-              ;;
-          esac
-          echo "TYPECHECK_STATUS=$TYPECHECK_STATUS" >> $GITHUB_OUTPUT
-
-          # Combine all results
-          cat /tmp/build-results/*.txt > /tmp/build-results/all.txt
-          echo "Build: $BUILD_STATUS"
-          echo "Tests: $TESTS_STATUS"
-          echo "Lint: $LINT_STATUS"
-          echo "TypeCheck: $TYPECHECK_STATUS"
+        uses: ./.github/claude-parallel/actions/run-build-checks
+        with:
+          runtime: ${{ steps.runtime.outputs.runtime }}
+          package_manager: ${{ steps.runtime.outputs.package_manager }}
 
       - name: Run verification
         if: ${{ inputs.dry_run != true }}
