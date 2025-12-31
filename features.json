@@ -1,0 +1,221 @@
+{
+  "features": [
+    {
+      "category": "functional",
+      "id": "task-1-sync-modify",
+      "task": "DEL-1347",
+      "description": "Sync script copies modified template actions to .github/actions",
+      "steps": [
+        "Modify a file under `templates/actions/*`",
+        "Run `bun run scripts/sync-github-actions.ts`",
+        "Verify `.github/actions/*` matches exactly"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "id": "task-1-sync-check",
+      "task": "DEL-1347",
+      "description": "Sync script detects drift and exits with error in check mode",
+      "steps": [
+        "Modify `.github/actions/*` directly",
+        "Run `bun run scripts/sync-github-actions.ts --check`",
+        "Verify script exits with code 1"
+      ],
+      "passes": false
+    },
+    {
+      "category": "automated",
+      "id": "task-1-automated",
+      "task": "DEL-1347",
+      "description": "Sync script automated verification",
+      "steps": [
+        "Script runs without errors: `bun run scripts/sync-github-actions.ts --check`",
+        "Type checking passes: `bun run type-check`",
+        "Files in `.github/actions/` match `templates/actions/` exactly"
+      ],
+      "passes": true
+    },
+    {
+      "category": "functional",
+      "id": "task-2-tools-available",
+      "task": "DEL-1348",
+      "description": "setup-planning-env action makes tools available",
+      "steps": [
+        "Reference action in a test workflow",
+        "Verify Bun, OpenCode CLI, and ast-grep are available",
+        "Verify action completes successfully"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "id": "task-2-skip-bun-install",
+      "task": "DEL-1348",
+      "description": "setup-planning-env handles repos without package.json",
+      "steps": [
+        "Run in repo without package.json with `skip_bun_install: true`",
+        "Verify action doesn't fail on missing package.json",
+        "OpenCode CLI and ast-grep still installed"
+      ],
+      "passes": false
+    },
+    {
+      "category": "automated",
+      "id": "task-2-automated",
+      "task": "DEL-1348",
+      "description": "setup-planning-env automated verification",
+      "steps": [
+        "Action YAML is valid GitHub Actions syntax",
+        "Sync check passes after running sync script",
+        "All tool installations succeed (bun, opencode, ast-grep)"
+      ],
+      "passes": true
+    },
+    {
+      "category": "functional",
+      "id": "task-3-setup-complete",
+      "task": "DEL-1349",
+      "description": "setup-agent-runner sets up Claude and agents",
+      "steps": [
+        "Reference action in test workflow with valid secrets",
+        "Verify Claude CLI is installed and authenticated",
+        "Verify agents are available in `$HOME/.claude/agents/`"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "id": "task-3-dry-run",
+      "task": "DEL-1349",
+      "description": "setup-agent-runner respects dry_run input",
+      "steps": [
+        "Call action with `dry_run: true`",
+        "Verify setup steps are skipped",
+        "Workflow continues without error"
+      ],
+      "passes": false
+    },
+    {
+      "category": "automated",
+      "id": "task-3-automated",
+      "task": "DEL-1349",
+      "description": "setup-agent-runner automated verification",
+      "steps": [
+        "Action YAML is valid GitHub Actions syntax",
+        "Sync check passes after running sync script",
+        "References to sub-actions (`setup-claude`, `fetch-agents`) use correct paths"
+      ],
+      "passes": true
+    },
+    {
+      "category": "functional",
+      "id": "task-4-workflow-runs",
+      "task": "DEL-1350",
+      "description": "Refactored planning workflows run successfully",
+      "steps": [
+        "Trigger `multi-provider-plan-v2.yml` via workflow_dispatch",
+        "Observe all 3 provider jobs run successfully",
+        "Consolidation job completes and creates Linear issues"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "id": "task-4-template-runs",
+      "task": "DEL-1350",
+      "description": "Template planning workflow runs in installed repos",
+      "steps": [
+        "Run `templates/workflows/claude-plan.yml` in an installed repo",
+        "Verify planning jobs complete successfully",
+        "Linear issues created correctly"
+      ],
+      "passes": false
+    },
+    {
+      "category": "automated",
+      "id": "task-4-automated",
+      "task": "DEL-1350",
+      "description": "Planning workflow automated verification",
+      "steps": [
+        "Workflow YAML validates (no missing action references)",
+        "No repeated 'Install OpenCode CLI' blocks remain (review diff)",
+        "Workflow runs successfully in CI test"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "id": "task-5-implement-runs",
+      "task": "DEL-1351",
+      "description": "Refactored implementation workflows run successfully",
+      "steps": [
+        "Trigger `reusable-implement-issue.yml` with valid Linear issue",
+        "Verify implement, review, and verify jobs complete",
+        "Verify PR is created with verification results"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "id": "task-5-dry-run",
+      "task": "DEL-1351",
+      "description": "Implementation workflow dry run mode works",
+      "steps": [
+        "Trigger with `dry_run: true`",
+        "Verify setup is skipped but workflow completes",
+        "Mock results are generated correctly"
+      ],
+      "passes": false
+    },
+    {
+      "category": "automated",
+      "id": "task-5-automated",
+      "task": "DEL-1351",
+      "description": "Implementation workflow automated verification",
+      "steps": [
+        "YAML validates for both workflows",
+        "No inline Claude setup blocks remain in template workflow",
+        "Dry run mode still works correctly",
+        "All jobs reference the new composite action"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "id": "task-6-ci-fails-on-drift",
+      "task": "DEL-1352",
+      "description": "CI sync check fails when actions drift",
+      "steps": [
+        "Create PR that modifies `.github/actions/*` directly (without syncing)",
+        "CI runs sync-check job",
+        "Job fails with clear error message"
+      ],
+      "passes": false
+    },
+    {
+      "category": "functional",
+      "id": "task-6-ci-passes",
+      "task": "DEL-1352",
+      "description": "CI sync check passes when files are synced",
+      "steps": [
+        "Modify `templates/actions/*` and run sync script",
+        "Commit both template and synced files",
+        "CI sync-check passes"
+      ],
+      "passes": false
+    },
+    {
+      "category": "automated",
+      "id": "task-6-automated",
+      "task": "DEL-1352",
+      "description": "CI sync verification automated checks",
+      "steps": [
+        "CI workflow YAML is valid",
+        "Sync check passes on main branch (after all tasks complete)",
+        "Sync check fails when actions differ"
+      ],
+      "passes": false
+    }
+  ]
+}

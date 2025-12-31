@@ -1,0 +1,42 @@
+name: 'Setup Planning Environment'
+description: 'Install Bun, OpenCode CLI, and ast-grep for planning workflows'
+inputs:
+  skip_bun_install:
+    description: 'Skip running bun install (useful for repos without package.json)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install OpenCode CLI
+      shell: bash
+      run: |
+        echo "Installing OpenCode CLI..."
+        bun install -g opencode-ai@latest
+        echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
+    - name: Install ast-grep
+      shell: bash
+      run: |
+        echo "Installing ast-grep..."
+        bun install -g @ast-grep/cli
+        bun pm -g trust @ast-grep/cli
+        echo "ast-grep installed: $(ast-grep --version)"
+
+    - name: Install dependencies
+      if: inputs.skip_bun_install != 'true'
+      shell: bash
+      run: |
+        if [ -f "package.json" ]; then
+          echo "Installing dependencies with bun install..."
+          bun install
+          echo "Dependencies installed successfully"
+        else
+          echo "No package.json found, skipping bun install"
+        fi

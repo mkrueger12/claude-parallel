@@ -23,6 +23,8 @@
     "planning-agent": "bun run src/agents/planning-agent.ts",
     "linear-agent": "bun run src/agents/linear-agent.ts",
     "claude-agent-runner": "bun run scripts/claude-agent-runner.ts",
+    "sync-actions": "bun run scripts/sync-github-actions.ts",
+    "sync-actions:check": "bun run scripts/sync-github-actions.ts --check",
     "prepare": "husky"
   },
   "keywords": [

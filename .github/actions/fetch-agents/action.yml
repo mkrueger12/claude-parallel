@@ -32,3 +32,4 @@ runs:
       run: |
         echo "Installed agents:"
         ls -la "$HOME/.claude/agents/"
+

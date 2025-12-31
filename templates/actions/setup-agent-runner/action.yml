@@ -1,0 +1,66 @@
+name: 'Setup Agent Runner Environment'
+description: 'Install Claude CLI, Bun, dependencies, and agents for implementation workflows'
+
+inputs:
+  dry_run:
+    description: 'Skip setup when true (for testing)'
+    required: false
+    default: 'false'
+  prompts_repo:
+    description: 'Repository for prompts and agents (format: owner/repo)'
+    required: false
+    default: 'mkrueger12/claude-parallel'
+  prompts_ref:
+    description: 'Git ref (branch, tag, or commit) for prompts repository'
+    required: false
+    default: 'main'
+  claude_code_oauth_token:
+    description: 'OAuth token for Claude CLI (preferred method)'
+    required: false
+  anthropic_api_key:
+    description: 'Anthropic API key for Claude CLI (alternative to OAuth)'
+    required: false
+
+outputs:
+  auth_method:
+    description: 'Authentication method being used (oauth or api_key)'
+    value: ${{ steps.setup-claude.outputs.auth_method }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Claude CLI
+      id: setup-claude
+      if: ${{ inputs.dry_run != 'true' }}
+      uses: ./.github/actions/setup-claude
+      with:
+        claude_code_oauth_token: ${{ inputs.claude_code_oauth_token }}
+        anthropic_api_key: ${{ inputs.anthropic_api_key }}
+
+    - name: Setup Bun
+      if: ${{ inputs.dry_run != 'true' }}
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install workspace dependencies
+      if: ${{ inputs.dry_run != 'true' }}
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        bun install
+
+    - name: Install ast-grep
+      if: ${{ inputs.dry_run != 'true' }}
+      shell: bash
+      run: |
+        bun install -g @ast-grep/cli
+        bun pm -g trust @ast-grep/cli
+        ast-grep --version
+
+    - name: Fetch custom agents
+      if: ${{ inputs.dry_run != 'true' }}
+      uses: ./.github/actions/fetch-agents
+      with:
+        repo: ${{ inputs.prompts_repo }}
+        ref: ${{ inputs.prompts_ref }}
