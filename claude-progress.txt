@@ -30,3 +30,48 @@ Next steps:
 - Task 4: Refactor multi-provider-plan-v2.yml to use new action
 
 Current status: 1/10 tests passing
+
+---
+
+Session 20: Task 2 - Create setup-runtime-and-deps composite action
+
+Completed:
+- Created .github/actions/setup-runtime-and-deps/action.yml
+- Composite action consolidates runtime setup and dependency installation
+- Accepts required inputs:
+  - runtime (js, python, go, rust)
+  - package_manager (bun, npm, yarn, pnpm, pip, poetry, go, cargo)
+- Accepts optional inputs with defaults:
+  - node-version (default: '20')
+  - python-version (default: '3.11')
+  - go-version (default: '1.21')
+  - working-directory (default: '.')
+- Conditional runtime setup:
+  - JS: Setup Bun (if bun) or Node.js (if npm/yarn/pnpm)
+  - Python: Setup Python with specified version
+  - Go: Setup Go with specified version
+  - Rust: Setup Rust toolchain
+- Dependency installation handles all package managers:
+  - JS: bun install, npm install, yarn install, pnpm install
+  - Python: pip install, poetry install
+  - Go: go mod download
+  - Rust: cargo fetch
+- Consolidates ~65 lines of runtime setup + ~35 lines of install dependencies
+- Matches original workflow logic exactly
+- Updated features.json: marked test #2 as passing
+
+Verification performed:
+- File exists at .github/actions/setup-runtime-and-deps/action.yml
+- Is valid YAML (validated with Node.js)
+- Uses composite action structure (using: 'composite')
+- Accepts runtime and package_manager inputs (both required)
+- Handles all 4 runtime types (js, python, go, rust)
+- Includes dependency installation for each runtime
+- Logic matches reusable-implement-issue.yml lines 136-196
+
+Next steps:
+- Task 3: Create run-build-checks composite action
+- Task 4: Refactor multi-provider-plan-v2.yml to use new action
+- Task 5: Refactor reusable-implement-issue.yml to use new composite actions
+
+Current status: 2/10 tests passing
