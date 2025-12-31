@@ -20,7 +20,7 @@
       "Step 3: Verify action handles js, python, go, rust runtimes",
       "Step 4: Verify action includes dependency installation for each runtime"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
