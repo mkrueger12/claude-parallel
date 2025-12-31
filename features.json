@@ -10,7 +10,7 @@
         "Run `bun run scripts/sync-github-actions.ts`",
         "Verify `.github/actions/*` matches exactly"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "functional",
@@ -22,7 +22,7 @@
         "Run `bun run scripts/sync-github-actions.ts --check`",
         "Verify script exits with code 1"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "category": "automated",
