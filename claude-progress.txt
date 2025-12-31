@@ -118,3 +118,32 @@ Next steps:
 - Task 7: Refactor templates/workflows/claude-implement.yml
 
 Current status: 3/10 tests passing
+
+---
+
+Session 22: Task 4 - Refactor multi-provider-plan-v2.yml
+
+Completed:
+- Refactored .github/workflows/multi-provider-plan-v2.yml
+- Replaced 4-step setup block with single action call in all 4 jobs:
+  * generate-plan-anthropic (lines 92-110 -> 92-93)
+  * generate-plan-openai (lines 153-171 -> 136-137)
+  * generate-plan-google (lines 214-232 -> 180-181)
+  * consolidate-and-create-linear (lines 276-294 -> 225-226)
+- Each job now uses: ./.github/actions/setup-opencode-environment
+- Reduced workflow from 314 to 245 lines (22% reduction)
+- Eliminated 69 lines of duplicate setup code
+- Updated features.json: marked test #4 as passing
+
+Verification performed:
+- Workflow references setup-opencode-environment in all 4 jobs (lines 93, 137, 181, 226)
+- Old "Setup Bun" steps completely removed (0 matches found)
+- Workflow is valid YAML (validated with Node.js)
+- All other steps remain unchanged (generate plan, consolidate)
+
+Next steps:
+- Task 5: Refactor reusable-implement-issue.yml to use all 3 new composite actions
+- Task 7: Refactor templates/workflows/claude-implement.yml
+- Task 8: Refactor templates/workflows/claude-plan.yml
+
+Current status: 4/10 tests passing
