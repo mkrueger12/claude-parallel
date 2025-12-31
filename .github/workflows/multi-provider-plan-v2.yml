@@ -89,25 +89,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Install OpenCode CLI
-        run: |
-          echo "Installing OpenCode CLI..."
-          bun install -g opencode-ai@latest
-          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Install ast-grep
-        run: |
-          bun install -g @ast-grep/cli
-          bun pm -g trust @ast-grep/cli
-          ast-grep --version
+      - name: Setup OpenCode environment
+        uses: ./.github/actions/setup-opencode-environment
 
       - name: Generate plan
         id: generate
@@ -150,25 +133,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Install OpenCode CLI
-        run: |
-          echo "Installing OpenCode CLI..."
-          bun install -g opencode-ai@latest
-          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Install ast-grep
-        run: |
-          bun install -g @ast-grep/cli
-          bun pm -g trust @ast-grep/cli
-          ast-grep --version
+      - name: Setup OpenCode environment
+        uses: ./.github/actions/setup-opencode-environment
 
       - name: Generate plan
         id: generate
@@ -211,25 +177,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Install OpenCode CLI
-        run: |
-          echo "Installing OpenCode CLI..."
-          bun install -g opencode-ai@latest
-          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Install ast-grep
-        run: |
-          bun install -g @ast-grep/cli
-          bun pm -g trust @ast-grep/cli
-          ast-grep --version
+      - name: Setup OpenCode environment
+        uses: ./.github/actions/setup-opencode-environment
 
       - name: Generate plan
         id: generate
@@ -273,25 +222,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Install OpenCode CLI
-        run: |
-          echo "Installing OpenCode CLI..."
-          bun install -g opencode-ai@latest
-          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
-
-      - name: Install dependencies
-        run: bun install
-
-      - name: Install ast-grep
-        run: |
-          bun install -g @ast-grep/cli
-          bun pm -g trust @ast-grep/cli
-          ast-grep --version
+      - name: Setup OpenCode environment
+        uses: ./.github/actions/setup-opencode-environment
 
       - name: Consolidate plans and create Linear issues
         id: consolidate

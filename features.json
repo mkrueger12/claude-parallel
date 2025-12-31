@@ -42,7 +42,7 @@
       "Step 2: Verify the 4-step setup block is not duplicated in generate-plan-anthropic, generate-plan-openai, generate-plan-google, consolidate-and-create-linear jobs",
       "Step 3: Verify workflow is valid YAML"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
