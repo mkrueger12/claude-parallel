@@ -87,7 +87,7 @@
       "Step 2: Verify templates/actions/setup-runtime-and-deps/action.yml exists",
       "Step 3: Verify templates/actions/run-build-checks/action.yml exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -98,7 +98,7 @@
       "Step 2: Run yq or yaml validator on all templates/workflows/*.yml files",
       "Step 3: Run yq or yaml validator on all action.yml files"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "quality",
@@ -109,6 +109,6 @@
       "Step 2: Run bun run type-check (TypeScript)",
       "Step 3: Run bun run build"
     ],
-    "passes": false
+    "passes": true
   }
 ]
