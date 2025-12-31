@@ -1,0 +1,114 @@
+[
+  {
+    "category": "functional",
+    "description": "setup-opencode-environment composite action correctly sets up Bun, OpenCode CLI, dependencies, and ast-grep",
+    "plan_ref": "Task 1 - Create setup-opencode-environment composite action",
+    "steps": [
+      "Step 1: Verify .github/actions/setup-opencode-environment/action.yml exists",
+      "Step 2: Verify action.yml is valid YAML with correct composite action structure",
+      "Step 3: Verify action includes steps for: setup-bun, install opencode-ai, bun install, install ast-grep"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "setup-runtime-and-deps composite action correctly handles multi-language runtime setup",
+    "plan_ref": "Task 2 - Create setup-runtime-and-deps composite action",
+    "steps": [
+      "Step 1: Verify .github/actions/setup-runtime-and-deps/action.yml exists",
+      "Step 2: Verify action accepts runtime and package_manager inputs",
+      "Step 3: Verify action handles js, python, go, rust runtimes",
+      "Step 4: Verify action includes dependency installation for each runtime"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "run-build-checks composite action executes build, test, lint, and typecheck",
+    "plan_ref": "Task 3 - Create run-build-checks composite action",
+    "steps": [
+      "Step 1: Verify .github/actions/run-build-checks/action.yml exists",
+      "Step 2: Verify action outputs BUILD_STATUS, TESTS_STATUS, LINT_STATUS, TYPECHECK_STATUS",
+      "Step 3: Verify action handles multiple runtime types"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "multi-provider-plan-v2.yml uses setup-opencode-environment action instead of duplicated steps",
+    "plan_ref": "Task 4 - Refactor multi-provider-plan-v2.yml",
+    "steps": [
+      "Step 1: Verify workflow references setup-opencode-environment action",
+      "Step 2: Verify the 4-step setup block is not duplicated in generate-plan-anthropic, generate-plan-openai, generate-plan-google, consolidate-and-create-linear jobs",
+      "Step 3: Verify workflow is valid YAML"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "reusable-implement-issue.yml uses composite actions to eliminate duplication",
+    "plan_ref": "Task 5 - Refactor reusable-implement-issue.yml",
+    "steps": [
+      "Step 1: Verify workflow uses setup-opencode-environment action",
+      "Step 2: Verify workflow uses setup-runtime-and-deps action",
+      "Step 3: Verify workflow uses run-build-checks action",
+      "Step 4: Verify no duplicate setup blocks remain in implement, review, verify jobs"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "templates/workflows/claude-implement.yml is refactored to use bundled composite actions",
+    "plan_ref": "Task 7 - Refactor templates/workflows/claude-implement.yml",
+    "steps": [
+      "Step 1: Verify template references local composite actions",
+      "Step 2: Verify inline Claude CLI setup is replaced with action reference",
+      "Step 3: Verify runtime setup and deps is replaced with action reference",
+      "Step 4: Verify build checks is replaced with action reference"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "templates/workflows/claude-plan.yml is refactored to use bundled composite actions",
+    "plan_ref": "Task 8 - Refactor templates/workflows/claude-plan.yml",
+    "steps": [
+      "Step 1: Verify template references local composite actions",
+      "Step 2: Verify setup blocks are not duplicated across jobs"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "New composite actions are added to templates for installer",
+    "plan_ref": "Task 9 - Update installer to include new composite actions",
+    "steps": [
+      "Step 1: Verify templates/actions/setup-opencode-environment/action.yml exists",
+      "Step 2: Verify templates/actions/setup-runtime-and-deps/action.yml exists",
+      "Step 3: Verify templates/actions/run-build-checks/action.yml exists"
+    ],
+    "passes": false
+  },
+  {
+    "category": "quality",
+    "description": "All workflow files pass YAML validation",
+    "plan_ref": "All tasks",
+    "steps": [
+      "Step 1: Run yq or yaml validator on all .github/workflows/*.yml files",
+      "Step 2: Run yq or yaml validator on all templates/workflows/*.yml files",
+      "Step 3: Run yq or yaml validator on all action.yml files"
+    ],
+    "passes": false
+  },
+  {
+    "category": "quality",
+    "description": "Codebase passes existing CI checks",
+    "plan_ref": "All tasks",
+    "steps": [
+      "Step 1: Run bun run check (Biome)",
+      "Step 2: Run bun run type-check (TypeScript)",
+      "Step 3: Run bun run build"
+    ],
+    "passes": false
+  }
+]
