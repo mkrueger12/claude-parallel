@@ -194,6 +194,7 @@ export async function createOpencodeServer(
 ): Promise<{ client: OpencodeClient; server: OpencodeServer }> {
   const {
     provider,
+    apiKey,
     model,
     agentName,
     agentDescription,
@@ -245,6 +246,9 @@ export async function createOpencodeServer(
   });
 
   console.error(`✓ OpenCode server started at ${server.url}`);
+
+  // Setup authentication after server creation
+  await setupAuthentication(client as OpencodeClient, provider, apiKey);
 
   return { client: client as OpencodeClient, server: server as OpencodeServer };
 }

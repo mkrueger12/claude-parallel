@@ -42,7 +42,7 @@
       "Step 2: Check that optional apiKey fallback is passed correctly",
       "Step 3: Run bun run build to verify compilation"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
