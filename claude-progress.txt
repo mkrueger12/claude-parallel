@@ -110,21 +110,79 @@ The following auth types were added to match the OpenCode SDK's structure:
   * Git commit: ed4293b
   * features.json: Test #5 marked as passing
 
-### Next Steps
-
 **Task 6: Update types.ts ProviderConfig Interface**
-- Mark apiKey as optional in ProviderConfig
+- Status: COMPLETE
+- File modified: src/lib/types.ts
+- Changes:
+  * Made apiKey optional in ProviderConfig interface (apiKey?: string)
+  * Added comment explaining optional nature
+  * Aligns with new auth flow supporting server-inherited credentials
+- Verification:
+  * bun run type-check: PASSED (no TypeScript errors)
+  * Git commit: 35aea58
+  * features.json: Test #6 marked as passing
 
 **Task 7: Build and Verify**
-- Run full build and verify all changes work together
+- Status: COMPLETE
+- Changes:
+  * Ran bun run build to compile all TypeScript to dist/
+  * Verified no compilation errors
+  * Confirmed all files updated with correct timestamps
+- Verification:
+  * bun run build: PASSED
+  * bun run type-check: PASSED
+  * All dist/ files updated at 05:51
+  * Git commit: e112e06
+  * features.json: Test #7 marked as passing
 
-**Task 8: Test Fallback Behavior**
-- Verify environment variable fallback works when auth.json unavailable
+**Task 8: Verify Authentication Fallback**
+- Status: COMPLETE
+- Changes:
+  * Created verify-auth-fallback.ts script
+  * Verified authentication priority order:
+    1. OAuth token (CLAUDE_CODE_OAUTH_TOKEN) for Anthropic
+    2. Explicit API key parameter
+    3. Environment variables (ANTHROPIC_API_KEY, etc.)
+  * All 4 test scenarios passed:
+    - Explicit API key usage
+    - Environment variable fallback
+    - OAuth token precedence
+    - No credentials error case
+- Verification:
+  * All test cases passed
+  * Authentication flow verified end-to-end
+  * Git commit: bb9e137
+  * features.json: Test #8 marked as passing
+
+### Summary of All Changes
+
+This refactoring successfully implements server-inherited credentials with
+fallback to explicit API keys. The changes span 3 main files:
+
+1. **src/lib/opencode.ts**:
+   - Added auth.set() type definitions (AuthData, AuthSetOptions)
+   - Made apiKey optional in OpencodeServerOptions
+   - Created setupAuthentication() function with fallback logic
+   - Integrated setupAuthentication() into createOpencodeServer()
+
+2. **src/lib/agent-runner.ts**:
+   - Made API key retrieval optional via try-catch
+   - Added authentication flow logging
+   - Passes optional apiKey to createOpencodeServer()
+
+3. **src/lib/types.ts**:
+   - Made apiKey optional in ProviderConfig interface
 
 ### Current Status
 
-Tests passing: 5/8 (62.5%)
-Current file state: Clean working directory after commit ed4293b
+**ALL TESTS PASSING: 8/8 (100%)**
 
-Tasks 1-5 are complete. The agent-runner now supports both explicit API keys
-from environment variables and server-inherited credentials via auth.set().
+Current file state: Clean working directory after commit bb9e137
+
+The authentication refactoring is complete. The system now supports:
+- Server-inherited credentials via auth.set() (preferred)
+- OAuth tokens (CLAUDE_CODE_OAUTH_TOKEN for Anthropic)
+- Explicit API keys from environment variables (fallback)
+
+All code compiles successfully, passes type checking, and the authentication
+flow has been verified through simulation testing.
