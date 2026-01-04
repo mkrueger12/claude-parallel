@@ -2,92 +2,56 @@
  * OpenCode SDK helpers for server setup and event monitoring.
  */
 
+import type { OpencodeClient as SdkOpencodeClient } from "@opencode-ai/sdk";
 import { createOpencode } from "@opencode-ai/sdk";
 import type { ConversationLogger } from "./conversation-logger.js";
 import type { Provider } from "./types.js";
 
 /**
- * Tool part state for event monitoring
+ * Auth data types for client.auth.set()
+ * These match the OpenCode SDK's Auth types from @opencode-ai/sdk
  */
-interface ToolPartState {
-  status: string;
-  input?: Record<string, unknown>;
-  output?: string;
-  error?: string;
-  time?: {
-    start?: number;
-    end?: number;
+export type AuthOAuth = {
+  type: "oauth";
+  access: string;
+  refresh: string;
+  expires: number;
+  enterpriseUrl?: string;
+};
+
+export type AuthApiKey = {
+  type: "api";
+  key: string;
+};
+
+export type AuthWellKnown = {
+  type: "wellknown";
+  key: string;
+  token: string;
+};
+
+export type AuthData = AuthOAuth | AuthApiKey | AuthWellKnown;
+
+/**
+ * Options for auth.set() call
+ */
+export interface AuthSetOptions {
+  path: { id: string };
+  body?: AuthData;
+  query?: {
+    directory?: string;
   };
-}
-
-/**
- * Tool part for event monitoring
- */
-interface ToolPart {
-  type: string;
-  tool?: string;
-  state?: ToolPartState;
-}
-
-/**
- * Session status for event monitoring
- */
-type SessionStatus = string | { attempt: number; message?: string; next?: number };
-
-/**
- * Event properties for different event types
- */
-interface EventProperties {
-  part?: ToolPart;
-  status?: SessionStatus;
-  error?: unknown;
 }
 
 /**
  * OpenCode client interface for event monitoring and session management
+ *
+ * We use the SDK's OpencodeClient type directly, which includes:
+ * - auth.set() for authentication configuration
+ * - event.subscribe() for event monitoring
+ * - session.create(), session.prompt() and other session methods
  */
-export interface OpencodeClient {
-  event: {
-    subscribe(): Promise<{
-      stream: AsyncIterable<{
-        type: string;
-        properties: EventProperties;
-      }>;
-    }>;
-  };
-  session: {
-    create(options: { body: { title: string } }): Promise<{ data: { id: string } }>;
-    prompt(options: {
-      path: { id: string };
-      body: {
-        model?: {
-          providerID: string;
-          modelID: string;
-        };
-        agent?: string;
-        parts: Array<{
-          type: string;
-          text?: string;
-        }>;
-      };
-    }): Promise<{
-      data: {
-        info?: {
-          error?: {
-            name: string;
-            data?: {
-              message?: string;
-            };
-          };
-        };
-        parts: Array<{
-          type: string;
-          text?: string;
-        }>;
-      };
-    }>;
-  };
-}
+export type OpencodeClient = SdkOpencodeClient;
 
 /**
  * Options for creating an OpenCode server
