@@ -91,11 +91,26 @@ The following auth types were added to match the OpenCode SDK's structure:
   * Git commit: 74f62d1
   * features.json: Test #4 marked as passing
 
-### Next Steps
-
 **Task 5: Update agent-runner.ts to Use New Auth Flow**
-- Wrap getApiKey in try-catch for optional behavior
-- Pass apiKey as optional fallback to createOpencodeServer
+- Status: COMPLETE
+- File modified: src/lib/agent-runner.ts
+- Changes:
+  * Wrapped getApiKey(provider) in try-catch block for optional behavior
+  * Changed apiKey from const to let with type `string | undefined`
+  * API key is now optional, allowing fallback to auth.set() credentials
+  * Added authentication flow logging:
+    - "[Auth] Using explicit API key from environment variables" when key found
+    - "[Auth] No explicit API key found for {provider}, will use auth.set() fallback" when not found
+  * The setupAuthentication function handles the actual fallback logic
+  * apiKey passed to createOpencodeServer as optional parameter
+- Verification:
+  * bun run type-check: PASSED (no TypeScript errors)
+  * bun run build: PASSED (compilation successful)
+  * Compiled JavaScript verified to contain try-catch block
+  * Git commit: ed4293b
+  * features.json: Test #5 marked as passing
+
+### Next Steps
 
 **Task 6: Update types.ts ProviderConfig Interface**
 - Mark apiKey as optional in ProviderConfig
@@ -103,11 +118,13 @@ The following auth types were added to match the OpenCode SDK's structure:
 **Task 7: Build and Verify**
 - Run full build and verify all changes work together
 
+**Task 8: Test Fallback Behavior**
+- Verify environment variable fallback works when auth.json unavailable
+
 ### Current Status
 
-Tests passing: 4/8 (50%)
-Current file state: Clean working directory after commit 74f62d1
+Tests passing: 5/8 (62.5%)
+Current file state: Clean working directory after commit ed4293b
 
-Tasks 1-4 are complete. The createOpencodeServer function now properly
-calls setupAuthentication after server creation, enabling server-inherited
-credentials with fallback to explicit API keys.
+Tasks 1-5 are complete. The agent-runner now supports both explicit API keys
+from environment variables and server-inherited credentials via auth.set().
