@@ -3,9 +3,18 @@ description: 'Install and configure OpenCode SDK with multi-provider authenticat
 inputs:
   anthropic_api_key:
     description: 'Anthropic API key for Claude provider'
-    required: true
+    required: false
   claude_code_oauth_token:
     description: 'Claude Code OAuth token (deprecated - use anthropic_api_key)'
+    required: false
+  anthropic_oauth_access:
+    description: 'Anthropic OAuth access token'
+    required: false
+  anthropic_oauth_refresh:
+    description: 'Anthropic OAuth refresh token'
+    required: false
+  anthropic_oauth_expires:
+    description: 'Anthropic OAuth expiration timestamp'
     required: false
   openai_api_key:
     description: 'OpenAI API key for GPT-4 provider'
@@ -49,10 +58,20 @@ runs:
       run: |
         echo "Validating required API keys..."
 
-        # Check all required keys are provided
+        # Check Anthropic authentication (API key OR OAuth)
         if [[ -z "${{ inputs.anthropic_api_key }}" ]]; then
-          echo "Error: anthropic_api_key is required"
-          exit 1
+          # No API key, check for OAuth credentials
+          if [[ -z "${{ inputs.anthropic_oauth_access }}" ]] || \
+             [[ -z "${{ inputs.anthropic_oauth_refresh }}" ]] || \
+             [[ -z "${{ inputs.anthropic_oauth_expires }}" ]]; then
+            echo "Error: Anthropic authentication required. Provide either:"
+            echo "  - anthropic_api_key, OR"
+            echo "  - All three OAuth credentials: anthropic_oauth_access, anthropic_oauth_refresh, anthropic_oauth_expires"
+            exit 1
+          fi
+          echo "Using Anthropic OAuth authentication"
+        else
+          echo "Using Anthropic API key authentication"
         fi
 
         if [[ -z "${{ inputs.openai_api_key }}" ]]; then
@@ -103,8 +122,17 @@ runs:
       run: |
         echo "Configuring environment variables..."
 
+        # Anthropic authentication (API key or OAuth)
+        if [[ -n "${{ inputs.anthropic_api_key }}" ]]; then
+          echo "ANTHROPIC_API_KEY=${{ inputs.anthropic_api_key }}" >> $GITHUB_ENV
+        fi
+        if [[ -n "${{ inputs.anthropic_oauth_access }}" ]]; then
+          echo "ANTHROPIC_OAUTH_ACCESS=${{ inputs.anthropic_oauth_access }}" >> $GITHUB_ENV
+          echo "ANTHROPIC_OAUTH_REFRESH=${{ inputs.anthropic_oauth_refresh }}" >> $GITHUB_ENV
+          echo "ANTHROPIC_OAUTH_EXPIRES=${{ inputs.anthropic_oauth_expires }}" >> $GITHUB_ENV
+        fi
+
         # Provider API keys
-        echo "ANTHROPIC_API_KEY=${{ inputs.anthropic_api_key }}" >> $GITHUB_ENV
         echo "OPENAI_API_KEY=${{ inputs.openai_api_key }}" >> $GITHUB_ENV
         echo "GOOGLE_GENERATIVE_AI_API_KEY=${{ inputs.google_api_key }}" >> $GITHUB_ENV
 
@@ -119,7 +147,7 @@ runs:
         echo "LINEAR_PROJECT_ID=${{ inputs.linear_project_id }}" >> $GITHUB_ENV
 
         echo "Environment variables configured successfully"
-        echo "- Anthropic API key configured"
+        echo "- Anthropic authentication configured"
         echo "- OpenAI model: ${{ inputs.openai_model }}"
         echo "- Google model: ${{ inputs.google_model }}"
         echo "- Linear team: ${{ inputs.linear_team_id }}"
