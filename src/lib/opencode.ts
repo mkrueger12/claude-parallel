@@ -58,7 +58,7 @@ export type OpencodeClient = SdkOpencodeClient;
  */
 export interface OpencodeServerOptions {
   provider: Provider;
-  apiKey: string;
+  apiKey?: string;
   model: string;
   agentName: string;
   agentDescription: string;
@@ -103,7 +103,6 @@ export async function createOpencodeServer(
 ): Promise<{ client: OpencodeClient; server: OpencodeServer }> {
   const {
     provider,
-    apiKey,
     model,
     agentName,
     agentDescription,
@@ -119,7 +118,6 @@ export async function createOpencodeServer(
     provider: {
       [provider]: {
         options: {
-          apiKey,
           timeout: false, // Disable timeout
         },
       },

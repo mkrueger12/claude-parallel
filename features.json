@@ -19,7 +19,7 @@
       "Step 2: Check provider config construction does not include apiKey",
       "Step 3: Run bun run type-check to verify no breaking changes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
