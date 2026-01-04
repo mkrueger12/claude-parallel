@@ -26,10 +26,143 @@
  *   1: Error (authentication, SDK error, no result, etc.)
  */
 
+import { existsSync } from "node:fs";
 import { stdin } from "node:process";
 import type { McpServerConfig, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import { runClaudeQuery } from "../src/lib/claude-agent-sdk.js";
 import { createConversationLogger } from "../src/lib/conversation-logger.js";
+
+// ============================================================================
+// Diagnostic Utilities
+// ============================================================================
+
+/**
+ * Common Claude CLI installation paths to check
+ */
+const COMMON_CLI_PATHS = [
+  `${process.env.HOME}/.local/bin/claude`,
+  "/usr/local/bin/claude",
+  `${process.env.HOME}/.npm-global/bin/claude`,
+  `${process.env.HOME}/.bun/bin/claude`,
+];
+
+/**
+ * Validate that the Claude CLI exists at the specified or default path
+ */
+function validateClaudeCliPath(specifiedPath?: string): {
+  valid: boolean;
+  path: string;
+  error?: string;
+} {
+  if (specifiedPath) {
+    if (existsSync(specifiedPath)) {
+      return { valid: true, path: specifiedPath };
+    }
+    return {
+      valid: false,
+      path: specifiedPath,
+      error: `Claude CLI not found at specified path: ${specifiedPath}`,
+    };
+  }
+
+  // Check common paths
+  for (const path of COMMON_CLI_PATHS) {
+    if (existsSync(path)) {
+      return { valid: true, path };
+    }
+  }
+
+  return {
+    valid: false,
+    path: "auto-detect",
+    error: `Claude CLI not found in common locations. Checked:\n${COMMON_CLI_PATHS.map((p) => `  - ${p}`).join("\n")}`,
+  };
+}
+
+/**
+ * Check authentication configuration
+ */
+function checkAuthentication(): { configured: boolean; method?: string; error?: string } {
+  if (process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+    return { configured: true, method: "CLAUDE_CODE_OAUTH_TOKEN" };
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return { configured: true, method: "ANTHROPIC_API_KEY" };
+  }
+  return {
+    configured: false,
+    error: "No authentication configured. Set CLAUDE_CODE_OAUTH_TOKEN or ANTHROPIC_API_KEY",
+  };
+}
+
+/**
+ * Analyze an error and provide diagnostic information
+ */
+function diagnoseError(
+  error: Error,
+  context: { cliPath?: string; cwd: string; model: string }
+): string {
+  const lines: string[] = [];
+  const errorMsg = error.message.toLowerCase();
+
+  lines.push("DIAGNOSTIC INFORMATION:");
+  lines.push("-".repeat(40));
+
+  // Check for common error patterns
+  if (errorMsg.includes("exited with code 1")) {
+    lines.push("");
+    lines.push("The Claude Code CLI process exited with an error.");
+    lines.push("");
+    lines.push("Common causes:");
+
+    // Check CLI path
+    const cliCheck = validateClaudeCliPath(context.cliPath);
+    if (!cliCheck.valid) {
+      lines.push(`  ❌ CLI PATH ISSUE: ${cliCheck.error}`);
+      lines.push("");
+      lines.push("  Fix: Install Claude CLI or specify path with --claude-cli-path");
+      lines.push("  Install: curl -fsSL https://claude.ai/install.sh | bash");
+    } else {
+      lines.push(`  ✓ CLI found at: ${cliCheck.path}`);
+    }
+
+    // Check authentication
+    const authCheck = checkAuthentication();
+    if (!authCheck.configured) {
+      lines.push(`  ❌ AUTH ISSUE: ${authCheck.error}`);
+    } else {
+      lines.push(`  ✓ Auth configured via: ${authCheck.method}`);
+    }
+
+    // Check working directory
+    if (!existsSync(context.cwd)) {
+      lines.push(`  ❌ CWD ISSUE: Working directory does not exist: ${context.cwd}`);
+    } else {
+      lines.push(`  ✓ CWD exists: ${context.cwd}`);
+    }
+
+    lines.push("");
+    lines.push("If all checks pass, the error may be:");
+    lines.push("  - Invalid API key or expired OAuth token");
+    lines.push("  - Rate limiting or API errors");
+    lines.push("  - Network connectivity issues");
+    lines.push("  - Permission issues in the working directory");
+  } else if (errorMsg.includes("not found") || errorMsg.includes("enoent")) {
+    lines.push("  ❌ FILE NOT FOUND: The Claude CLI executable could not be located");
+    lines.push("");
+    lines.push("  Fix: Specify the CLI path with --claude-cli-path $HOME/.local/bin/claude");
+  } else if (errorMsg.includes("authentication") || errorMsg.includes("unauthorized")) {
+    lines.push("  ❌ AUTHENTICATION ERROR: Check your API key or OAuth token");
+  }
+
+  lines.push("");
+  lines.push("Configuration at time of error:");
+  lines.push(`  CLI Path: ${context.cliPath || "(auto-detect)"}`);
+  lines.push(`  CWD: ${context.cwd}`);
+  lines.push(`  Model: ${context.model}`);
+
+  return lines.join("\n");
+}
 
 // ============================================================================
 // Review Decision Schema
@@ -189,6 +322,40 @@ async function main() {
   console.error(`Mode: ${args.mode}`);
   console.error("");
 
+  // Pre-flight validation
+  console.error("Running pre-flight checks...");
+
+  // Check CLI path
+  const cliValidation = validateClaudeCliPath(args.claudeCliPath);
+  if (cliValidation.valid) {
+    console.error(`✓ Claude CLI: ${cliValidation.path}`);
+  } else {
+    console.error(`⚠️  Claude CLI: ${cliValidation.error}`);
+    console.error(`   The SDK will attempt auto-detection, but this may fail.`);
+    console.error(`   Recommendation: Use --claude-cli-path $HOME/.local/bin/claude`);
+  }
+
+  // Check authentication
+  const authValidation = checkAuthentication();
+  if (authValidation.configured) {
+    console.error(`✓ Authentication: ${authValidation.method}`);
+  } else {
+    console.error(`❌ Authentication: ${authValidation.error}`);
+    console.error("=".repeat(60));
+    process.exit(1);
+  }
+
+  // Check working directory
+  if (existsSync(args.cwd)) {
+    console.error(`✓ Working directory exists`);
+  } else {
+    console.error(`❌ Working directory does not exist: ${args.cwd}`);
+    console.error("=".repeat(60));
+    process.exit(1);
+  }
+
+  console.error("");
+
   // Read prompt from stdin
   console.error("Reading prompt from stdin...");
   const prompt = await readStdin();
@@ -311,10 +478,22 @@ async function main() {
     console.error("ERROR!");
     console.error("=".repeat(60));
     console.error(`Error: ${errorMessage}`);
-    if (error instanceof Error && error.stack) {
+
+    // Provide diagnostic information for common errors
+    if (error instanceof Error) {
       console.error("");
-      console.error("Stack trace:");
-      console.error(error.stack);
+      const diagnostics = diagnoseError(error, {
+        cliPath: args.claudeCliPath,
+        cwd: args.cwd,
+        model: args.model,
+      });
+      console.error(diagnostics);
+
+      if (error.stack) {
+        console.error("");
+        console.error("Stack trace:");
+        console.error(error.stack);
+      }
     }
     console.error("");
 
