@@ -2,99 +2,63 @@
  * OpenCode SDK helpers for server setup and event monitoring.
  */
 
+import type { OpencodeClient as SdkOpencodeClient } from "@opencode-ai/sdk";
 import { createOpencode } from "@opencode-ai/sdk";
 import type { ConversationLogger } from "./conversation-logger.js";
 import type { Provider } from "./types.js";
 
 /**
- * Tool part state for event monitoring
+ * Auth data types for client.auth.set()
+ * These match the OpenCode SDK's Auth types from @opencode-ai/sdk
  */
-interface ToolPartState {
-  status: string;
-  input?: Record<string, unknown>;
-  output?: string;
-  error?: string;
-  time?: {
-    start?: number;
-    end?: number;
+export type AuthOAuth = {
+  type: "oauth";
+  access: string;
+  refresh: string;
+  expires: number;
+  enterpriseUrl?: string;
+};
+
+export type AuthApiKey = {
+  type: "api";
+  key: string;
+};
+
+export type AuthWellKnown = {
+  type: "wellknown";
+  key: string;
+  token: string;
+};
+
+export type AuthData = AuthOAuth | AuthApiKey | AuthWellKnown;
+
+/**
+ * Options for auth.set() call
+ */
+export interface AuthSetOptions {
+  path: { id: string };
+  body?: AuthData;
+  query?: {
+    directory?: string;
   };
-}
-
-/**
- * Tool part for event monitoring
- */
-interface ToolPart {
-  type: string;
-  tool?: string;
-  state?: ToolPartState;
-}
-
-/**
- * Session status for event monitoring
- */
-type SessionStatus = string | { attempt: number; message?: string; next?: number };
-
-/**
- * Event properties for different event types
- */
-interface EventProperties {
-  part?: ToolPart;
-  status?: SessionStatus;
-  error?: unknown;
 }
 
 /**
  * OpenCode client interface for event monitoring and session management
+ *
+ * We use the SDK's OpencodeClient type directly, which includes:
+ * - auth.set() for authentication configuration
+ * - event.subscribe() for event monitoring
+ * - session.create(), session.prompt() and other session methods
  */
-export interface OpencodeClient {
-  event: {
-    subscribe(): Promise<{
-      stream: AsyncIterable<{
-        type: string;
-        properties: EventProperties;
-      }>;
-    }>;
-  };
-  session: {
-    create(options: { body: { title: string } }): Promise<{ data: { id: string } }>;
-    prompt(options: {
-      path: { id: string };
-      body: {
-        model?: {
-          providerID: string;
-          modelID: string;
-        };
-        agent?: string;
-        parts: Array<{
-          type: string;
-          text?: string;
-        }>;
-      };
-    }): Promise<{
-      data: {
-        info?: {
-          error?: {
-            name: string;
-            data?: {
-              message?: string;
-            };
-          };
-        };
-        parts: Array<{
-          type: string;
-          text?: string;
-        }>;
-      };
-    }>;
-  };
-}
+export type OpencodeClient = SdkOpencodeClient;
 
 /**
  * Options for creating an OpenCode server
  */
 export interface OpencodeServerOptions {
   provider: Provider;
-  apiKey: string;
+  apiKey?: string;
   model: string;
   agentName: string;
   agentDescription: string;
@@ -129,6 +93,97 @@ export interface OpencodeServer {
 }
 
 /**
+ * Get API key from environment variables for a provider
+ */
+function getApiKeyFromEnv(provider: Provider): string | undefined {
+  const envVarMap: Record<Provider, string[]> = {
+    anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+    openai: ["OPENAI_API_KEY"],
+    google: ["GOOGLE_GENERATIVE_AI_API_KEY"],
+  };
+
+  const envVars = envVarMap[provider];
+  for (const envVar of envVars) {
+    const value = process.env[envVar];
+    if (value) return value;
+  }
+  return undefined;
+}
+
+/**
+ * Setup authentication for the OpenCode client using auth.set()
+ *
+ * Attempts to configure authentication using:
+ * 1. Explicit apiKey parameter (if provided)
+ * 2. Environment variables (CLAUDE_CODE_OAUTH_TOKEN, ANTHROPIC_API_KEY, etc.)
+ *
+ * @param client - OpenCode client instance
+ * @param provider - AI provider (anthropic, openai, google)
+ * @param apiKey - Optional explicit API key for fallback
+ * @throws Error if no authentication credentials are found
+ */
+export async function setupAuthentication(
+  client: OpencodeClient,
+  provider: Provider,
+  apiKey?: string
+): Promise<void> {
+  // Check for OAuth token first (preferred for Anthropic)
+  const oauthToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
+
+  // Build auth data based on available credentials
+  let authData: AuthData;
+
+  if (oauthToken && provider === "anthropic") {
+    // Use OAuth authentication for Anthropic
+    console.error(`[Auth] Using CLAUDE_CODE_OAUTH_TOKEN for ${provider}`);
+    authData = {
+      type: "oauth",
+      access: oauthToken,
+      refresh: "",
+      expires: 0,
+    };
+  } else if (apiKey) {
+    // Use provided API key
+    console.error(`[Auth] Using provided API key for ${provider}`);
+    authData = {
+      type: "api",
+      key: apiKey,
+    };
+  } else {
+    // Try to get API key from environment
+    const envKey = getApiKeyFromEnv(provider);
+    if (envKey) {
+      console.error(`[Auth] Using environment API key for ${provider}`);
+      authData = {
+        type: "api",
+        key: envKey,
+      };
+    } else {
+      throw new Error(
+        `Authentication failed for provider "${provider}".\n` +
+          `No credentials found. Please either:\n` +
+          `  - Run 'opencode auth login' to authenticate, or\n` +
+          `  - Set the appropriate environment variable`
+      );
+    }
+  }
+
+  // Call client.auth.set()
+  const result = await client.auth.set({
+    path: { id: provider },
+    body: authData,
+  });
+
+  if (result.error) {
+    throw new Error(
+      `Failed to set authentication for ${provider}: ${JSON.stringify(result.error)}`
+    );
+  }
+
+  console.error(`[Auth] Successfully configured authentication for ${provider}`);
+}
+
+/**
  * Create and configure an OpenCode server instance
  *
  * @param options - Configuration options for the OpenCode server
@@ -155,7 +210,6 @@ export async function createOpencodeServer(
     provider: {
       [provider]: {
         options: {
-          apiKey,
           timeout: false, // Disable timeout
         },
       },
@@ -192,6 +246,9 @@ export async function createOpencodeServer(
   });
 
   console.error(`✓ OpenCode server started at ${server.url}`);
+
+  // Setup authentication after server creation
+  await setupAuthentication(client as OpencodeClient, provider, apiKey);
 
   return { client: client as OpencodeClient, server: server as OpencodeServer };
 }

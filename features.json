@@ -1,0 +1,90 @@
+[
+  {
+    "category": "functional",
+    "description": "TypeScript compilation succeeds with the new auth types and interfaces",
+    "plan_ref": "Task 1 - Update OpencodeClient Interface and Add auth.set() Types",
+    "steps": [
+      "Step 1: Run bun run type-check",
+      "Step 2: Verify no TypeScript errors related to auth types",
+      "Step 3: Check that OpencodeClient interface includes auth.set method"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "OpencodeServerOptions no longer requires apiKey and provider config is clean",
+    "plan_ref": "Task 2 - Remove apiKey from OpencodeServerOptions and Provider Config",
+    "steps": [
+      "Step 1: Verify OpencodeServerOptions interface has apiKey as optional",
+      "Step 2: Check provider config construction does not include apiKey",
+      "Step 3: Run bun run type-check to verify no breaking changes"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "setupAuthentication function correctly calls client.auth.set()",
+    "plan_ref": "Task 3 - Create setupAuthentication Function",
+    "steps": [
+      "Step 1: Verify setupAuthentication function exists and is exported",
+      "Step 2: Check function handles oauth token case",
+      "Step 3: Check function handles api_key case",
+      "Step 4: Verify error handling for missing credentials"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "createOpencodeServer integrates setupAuthentication after client creation",
+    "plan_ref": "Task 4 - Integrate setupAuthentication into createOpencodeServer",
+    "steps": [
+      "Step 1: Verify setupAuthentication is called after createOpencode()",
+      "Step 2: Check that optional apiKey fallback is passed correctly",
+      "Step 3: Run bun run build to verify compilation"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "agent-runner.ts uses new auth flow with optional API key fallback",
+    "plan_ref": "Task 5 - Update agent-runner.ts to Use New Auth Flow",
+    "steps": [
+      "Step 1: Verify getApiKey is wrapped in try-catch for optional behavior",
+      "Step 2: Check apiKey is passed as optional fallback",
+      "Step 3: Verify logging indicates authentication flow"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "ProviderConfig interface has optional apiKey field",
+    "plan_ref": "Task 6 - Update types.ts ProviderConfig Interface",
+    "steps": [
+      "Step 1: Verify apiKey is marked as optional in ProviderConfig",
+      "Step 2: Run bun run type-check to confirm no type errors"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Build completes successfully with all changes",
+    "plan_ref": "Task 7 - Build and Verify",
+    "steps": [
+      "Step 1: Run bun run build",
+      "Step 2: Verify no compilation errors",
+      "Step 3: Check dist/ directory contains updated files"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Fallback to environment variables works when auth.json unavailable",
+    "plan_ref": "Task 5 - Update agent-runner.ts to Use New Auth Flow",
+    "steps": [
+      "Step 1: Set ANTHROPIC_API_KEY environment variable",
+      "Step 2: Ensure no auth.json is present",
+      "Step 3: Verify setupAuthentication uses environment variable as fallback"
+    ],
+    "passes": true
+  }
+]
