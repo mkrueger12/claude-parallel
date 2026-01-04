@@ -5,12 +5,6 @@
  * as well as shared utilities and types.
  */
 
-// Export Claude Agent SDK helpers
-export type { AuthConfig, ClaudeQueryOptions } from "./lib/claude-agent-sdk.js";
-export {
-  getAuthentication,
-  runClaudeQuery,
-} from "./lib/claude-agent-sdk.js";
 // Export conversation logging utilities
 export * from "./lib/conversation-logger.js";
 // Export OpenCode helpers

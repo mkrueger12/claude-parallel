@@ -76,6 +76,13 @@ Sessions 1-13 have been archived. Key milestones:
 
 ---
 
+## Active Plans
+
+- **OpenCode SDK Migration** (see [plans/2026-01-04-opencode-sdk-migration.md](plans/2026-01-04-opencode-sdk-migration.md))
+  - Remove Claude Agent SDK, unify on OpenCode SDK for implementation workflow
+
+---
+
 ## Documentation
 
 ### Architecture & Implementation

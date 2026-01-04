@@ -96,13 +96,6 @@ jobs:
           git checkout -b "$BRANCH"
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: Setup Claude CLI
-        if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-
       - name: Setup Bun for Agent Runner
         if: ${{ inputs.dry_run != true }}
         uses: oven-sh/setup-bun@v2
@@ -208,8 +201,6 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-
           # Substitute LINEAR_ISSUE placeholder with the issue ID/URL
           IMPL_PROMPT=$(sed "s|{{LINEAR_ISSUE}}|${{ inputs.linear_issue }}|g" /tmp/implementation-template.md)
 
@@ -219,7 +210,7 @@ jobs:
 
           # Run agent runner and capture exit code
           set +e
-          echo "$IMPL_PROMPT" | bun run scripts/claude-agent-runner.ts \
+          echo "$IMPL_PROMPT" | bun run scripts/opencode-agent-runner.ts \
             --cwd "$(pwd)" \
             --model ${{ inputs.claude_model }} \
             --mode implementation \
@@ -358,13 +349,6 @@ jobs:
             fi
           done
 
-      - name: Setup Claude CLI
-        if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-
       - name: Setup Bun for Agent Runner
         if: ${{ inputs.dry_run != true }}
         uses: oven-sh/setup-bun@v2
@@ -404,8 +388,6 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-
           # Substitute template variables
           REVIEW_PROMPT=$(sed \
             -e "s|{{LINEAR_ISSUE}}|${{ inputs.linear_issue }}|g" \
@@ -417,7 +399,7 @@ jobs:
           echo "Linear issue: ${{ inputs.linear_issue }}"
 
           # Run agent runner in review mode (schema automatically applied)
-          echo "$REVIEW_PROMPT" | bun run scripts/claude-agent-runner.ts \
+          echo "$REVIEW_PROMPT" | bun run scripts/opencode-agent-runner.ts \
             --cwd "$(pwd)" \
             --model ${{ inputs.claude_model }} \
             --mode review \
@@ -530,13 +512,6 @@ jobs:
           ref: ${{ needs.review.outputs.winning_branch }}
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
-
-      - name: Setup Claude CLI
-        if: ${{ inputs.dry_run != true }}
-        uses: mkrueger12/claude-parallel/.github/actions/setup-claude@main
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Setup Bun for Agent Runner
         if: ${{ inputs.dry_run != true }}
@@ -822,8 +797,6 @@ jobs:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-
           # Read build output for substitution
           BUILD_OUTPUT=$(cat /tmp/build-results/all.txt)
 
@@ -842,7 +815,7 @@ jobs:
           echo "Linear issue: ${{ inputs.linear_issue }}"
 
           # Run agent runner in implementation mode
-          echo "$VERIFY_PROMPT" | bun run scripts/claude-agent-runner.ts \
+          echo "$VERIFY_PROMPT" | bun run scripts/opencode-agent-runner.ts \
             --cwd "$(pwd)" \
             --model ${{ inputs.claude_model }} \
             --mode implementation \
