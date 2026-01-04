@@ -93,6 +93,97 @@ export interface OpencodeServer {
 }
 
 /**
+ * Get API key from environment variables for a provider
+ */
+function getApiKeyFromEnv(provider: Provider): string | undefined {
+  const envVarMap: Record<Provider, string[]> = {
+    anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+    openai: ["OPENAI_API_KEY"],
+    google: ["GOOGLE_GENERATIVE_AI_API_KEY"],
+  };
+
+  const envVars = envVarMap[provider];
+  for (const envVar of envVars) {
+    const value = process.env[envVar];
+    if (value) return value;
+  }
+  return undefined;
+}
+
+/**
+ * Setup authentication for the OpenCode client using auth.set()
+ *
+ * Attempts to configure authentication using:
+ * 1. Explicit apiKey parameter (if provided)
+ * 2. Environment variables (CLAUDE_CODE_OAUTH_TOKEN, ANTHROPIC_API_KEY, etc.)
+ *
+ * @param client - OpenCode client instance
+ * @param provider - AI provider (anthropic, openai, google)
+ * @param apiKey - Optional explicit API key for fallback
+ * @throws Error if no authentication credentials are found
+ */
+export async function setupAuthentication(
+  client: OpencodeClient,
+  provider: Provider,
+  apiKey?: string
+): Promise<void> {
+  // Check for OAuth token first (preferred for Anthropic)
+  const oauthToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
+
+  // Build auth data based on available credentials
+  let authData: AuthData;
+
+  if (oauthToken && provider === "anthropic") {
+    // Use OAuth authentication for Anthropic
+    console.error(`[Auth] Using CLAUDE_CODE_OAUTH_TOKEN for ${provider}`);
+    authData = {
+      type: "oauth",
+      access: oauthToken,
+      refresh: "",
+      expires: 0,
+    };
+  } else if (apiKey) {
+    // Use provided API key
+    console.error(`[Auth] Using provided API key for ${provider}`);
+    authData = {
+      type: "api",
+      key: apiKey,
+    };
+  } else {
+    // Try to get API key from environment
+    const envKey = getApiKeyFromEnv(provider);
+    if (envKey) {
+      console.error(`[Auth] Using environment API key for ${provider}`);
+      authData = {
+        type: "api",
+        key: envKey,
+      };
+    } else {
+      throw new Error(
+        `Authentication failed for provider "${provider}".\n` +
+          `No credentials found. Please either:\n` +
+          `  - Run 'opencode auth login' to authenticate, or\n` +
+          `  - Set the appropriate environment variable`
+      );
+    }
+  }
+
+  // Call client.auth.set()
+  const result = await client.auth.set({
+    path: { id: provider },
+    body: authData,
+  });
+
+  if (result.error) {
+    throw new Error(
+      `Failed to set authentication for ${provider}: ${JSON.stringify(result.error)}`
+    );
+  }
+
+  console.error(`[Auth] Successfully configured authentication for ${provider}`);
+}
+
+/**
  * Create and configure an OpenCode server instance
  *
  * @param options - Configuration options for the OpenCode server

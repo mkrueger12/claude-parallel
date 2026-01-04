@@ -31,7 +31,7 @@
       "Step 3: Check function handles api_key case",
       "Step 4: Verify error handling for missing credentials"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
