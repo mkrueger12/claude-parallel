@@ -45,7 +45,20 @@ export async function runAgent(config: AgentConfig) {
   }
 
   const provider = (process.env.PROVIDER || "anthropic") as Provider;
-  const apiKey = getApiKey(provider);
+
+  // Try to get API key from environment, but make it optional
+  // The setupAuthentication function will handle fallback to auth.set()
+  let apiKey: string | undefined;
+  try {
+    apiKey = getApiKey(provider);
+    console.error(`[Auth] Using explicit API key from environment variables`);
+  } catch {
+    // API key not found in environment, will rely on auth.set() fallback
+    console.error(
+      `[Auth] No explicit API key found for ${provider}, will use auth.set() fallback (OAuth or session credentials)`
+    );
+  }
+
   const model = process.env.MODEL || (provider === "anthropic" ? "claude-opus-4-5" : "");
   const linearApiKey = process.env.LINEAR_API_KEY;
 

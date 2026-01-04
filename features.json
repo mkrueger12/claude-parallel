@@ -53,7 +53,7 @@
       "Step 2: Check apiKey is passed as optional fallback",
       "Step 3: Verify logging indicates authentication flow"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
