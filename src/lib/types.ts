@@ -15,7 +15,7 @@ export interface Part {
  * Provider configuration options
  */
 export interface ProviderConfig {
-  apiKey: string;
+  apiKey?: string; // Optional - can use auth.set() via server-inherited credentials
   timeout?: boolean;
 }
 
