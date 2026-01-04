@@ -85,6 +85,6 @@
       "Step 2: Ensure no auth.json is present",
       "Step 3: Verify setupAuthentication uses environment variable as fallback"
     ],
-    "passes": false
+    "passes": true
   }
 ]
