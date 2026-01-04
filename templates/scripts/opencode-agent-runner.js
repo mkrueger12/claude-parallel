@@ -8826,9 +8826,9 @@ var init_turso = __esm(() => {
   init_turso_schema();
 });
 
-// src/lib/agent-runner.ts
-import { access, readFile } from "node:fs/promises";
-import { join as join2 } from "node:path";
+// scripts/opencode-agent-runner.ts
+import { existsSync } from "node:fs";
+import { stdin } from "node:process";
 
 // src/lib/conversation-logger.ts
 class ConversationLogger {
@@ -10408,19 +10408,6 @@ function extractTextFromParts(parts) {
   return parts.filter((part) => part.type === "text").map((part) => part.text || "").join(`
 `);
 }
-function validateEnvVars(requiredVars) {
-  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
-  if (missingVars.length > 0) {
-    const errorMsg = [
-      "Error: Missing required environment variables:",
-      ...missingVars.map((varName) => `  - ${varName}`),
-      "",
-      "Please set all required environment variables and try again."
-    ].join(`
-`);
-    throw new Error(errorMsg);
-  }
-}
 function getAuthCredentials(provider) {
   const oauthVars = OAUTH_ENV_VARS[provider];
   if (oauthVars && oauthVars.length === 3) {
@@ -10629,97 +10616,249 @@ function setupEventMonitoring(client3, logger) {
   })();
 }
 
-// src/lib/agent-runner.ts
-async function findPromptFile(fileName) {
-  const possiblePaths = [
-    join2(process.cwd(), ".github", "claude-parallel", "prompts", fileName),
-    join2(process.cwd(), "prompts", fileName)
-  ];
-  for (const path of possiblePaths) {
-    try {
-      await access(path);
-      return path;
-    } catch {}
+// scripts/opencode-agent-runner.ts
+var REVIEW_DECISION_SCHEMA = {
+  type: "object",
+  properties: {
+    best: {
+      type: "integer",
+      minimum: 1,
+      description: "The number (1-based) of the best implementation"
+    },
+    reasoning: {
+      type: "string",
+      description: "Detailed explanation for why this implementation was chosen"
+    }
+  },
+  required: ["best", "reasoning"],
+  additionalProperties: false
+};
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const parsedArgs = {
+    model: "claude-opus-4-5",
+    mode: "implementation"
+  };
+  for (let i = 0;i < args.length; i++) {
+    const arg = args[i];
+    switch (arg) {
+      case "--cwd":
+        parsedArgs.cwd = args[++i];
+        break;
+      case "--model":
+        parsedArgs.model = args[++i];
+        break;
+      case "--mode": {
+        const mode = args[++i];
+        if (mode !== "implementation" && mode !== "review") {
+          console.error(`Error: Invalid mode "${mode}". Must be "implementation" or "review".`);
+          process.exit(1);
+        }
+        parsedArgs.mode = mode;
+        break;
+      }
+      case "--help":
+      case "-h":
+        printUsage();
+        process.exit(0);
+      default:
+        console.error(`Error: Unknown argument "${arg}"`);
+        printUsage();
+        process.exit(1);
+    }
   }
-  throw new Error(`Could not find ${fileName} in any of these locations:
-${possiblePaths.map((p) => `  - ${p}`).join(`
-`)}`);
-}
-async function runAgent(config) {
-  try {
-    validateEnvVars(config.requiredEnvVars);
-  } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error));
+  if (!parsedArgs.cwd) {
+    console.error("Error: --cwd is required");
+    printUsage();
     process.exit(1);
   }
-  const provider = process.env.PROVIDER || "anthropic";
-  const model = process.env.MODEL || (provider === "anthropic" ? "claude-opus-4-5" : "");
-  const linearApiKey = process.env.LINEAR_API_KEY;
+  return parsedArgs;
+}
+function printUsage() {
   console.error(`
-${"=".repeat(60)}`);
-  console.error(`${config.name}`);
-  console.error(`${"=".repeat(60)}`);
-  console.error(`Provider: ${provider}`);
-  console.error(`Model: ${model}`);
+Usage: opencode-agent-runner.ts --cwd <path> [options]
+
+Arguments:
+  --cwd <path>              Working directory for the agent (required)
+  --model <modelName>       Model to use (default: claude-opus-4-5)
+  --mode <mode>             Execution mode: implementation or review (default: implementation)
+  -h, --help                Show this help message
+
+Input:
+  Reads prompt from stdin (supports multiline prompts)
+
+Output:
+  - stdout: Final result JSON with response text
+  - stderr: Progress logs and error messages
+
+Examples:
+  # Implementation mode
+  echo "What is 2+2?" | opencode-agent-runner.ts --cwd /tmp --mode implementation
+
+  # Review mode with structured output
+  echo "Review these implementations" | opencode-agent-runner.ts --cwd /tmp --mode review
+
+  # Custom model
+  echo "Analyze this code" | opencode-agent-runner.ts --cwd /tmp --model claude-sonnet-4-5
+
+Environment Variables:
+  ANTHROPIC_OAUTH_ACCESS    OAuth access token (preferred)
+  ANTHROPIC_OAUTH_REFRESH   OAuth refresh token (with access token)
+  ANTHROPIC_OAUTH_EXPIRES   OAuth token expiry (with access token)
+  ANTHROPIC_API_KEY         API key (fallback)
+  CLAUDE_CODE_OAUTH_TOKEN   API key (fallback)
+  LINEAR_API_KEY            Linear API key (optional, enables Linear MCP)
+`);
+}
+async function readStdin() {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stdin.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+    stdin.on("end", () => {
+      resolve(Buffer.concat(chunks).toString("utf-8"));
+    });
+    stdin.on("error", (error) => {
+      reject(error);
+    });
+  });
+}
+function checkAuthentication() {
+  if (process.env.ANTHROPIC_OAUTH_ACCESS && process.env.ANTHROPIC_OAUTH_REFRESH && process.env.ANTHROPIC_OAUTH_EXPIRES) {
+    return { configured: true, method: "ANTHROPIC_OAUTH (access, refresh, expires)" };
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return { configured: true, method: "ANTHROPIC_API_KEY" };
+  }
+  if (process.env.CLAUDE_CODE_OAUTH_TOKEN) {
+    return { configured: true, method: "CLAUDE_CODE_OAUTH_TOKEN" };
+  }
+  return {
+    configured: false,
+    error: "No authentication configured. Set ANTHROPIC_OAUTH_* or ANTHROPIC_API_KEY"
+  };
+}
+async function main() {
+  const args = parseArgs();
+  console.error("");
+  console.error("=".repeat(60));
+  console.error("OpenCode Agent Runner");
+  console.error("=".repeat(60));
+  console.error(`CWD: ${args.cwd}`);
+  console.error(`Model: ${args.model}`);
+  console.error(`Mode: ${args.mode}`);
+  console.error("");
+  console.error("Running pre-flight checks...");
+  const authValidation = checkAuthentication();
+  if (authValidation.configured) {
+    console.error(`✓ Authentication: ${authValidation.method}`);
+  } else {
+    console.error(`❌ Authentication: ${authValidation.error}`);
+    console.error("=".repeat(60));
+    process.exit(1);
+  }
+  if (existsSync(args.cwd)) {
+    console.error(`✓ Working directory exists`);
+  } else {
+    console.error(`❌ Working directory does not exist: ${args.cwd}`);
+    console.error("=".repeat(60));
+    process.exit(1);
+  }
+  console.error("");
+  console.error("Reading prompt from stdin...");
+  const prompt = await readStdin();
+  if (!prompt.trim()) {
+    console.error("Error: Empty prompt received from stdin");
+    process.exit(1);
+  }
+  console.error(`✓ Received prompt: ${prompt.length} characters`);
   console.error("");
   const logger = await createConversationLogger();
   if (logger) {
     console.error(`✓ Conversation logging enabled`);
   }
-  let prompt;
-  try {
-    const promptFile = await findPromptFile(config.promptFileName);
-    const template = await readFile(promptFile, "utf-8");
-    prompt = config.processPrompt ? config.processPrompt(template, process.env) : template;
-    console.error(`✓ Loaded and processed prompt from ${promptFile}`);
-  } catch (error) {
-    console.error(`✗ Failed to load prompt: ${error instanceof Error ? error.message : String(error)}`);
-    process.exit(1);
+  const linearApiKey = process.env.LINEAR_API_KEY;
+  if (linearApiKey) {
+    console.error(`✓ LINEAR_API_KEY found - enabling Linear MCP`);
+  } else {
+    console.error(`⚠️  LINEAR_API_KEY not found - Linear MCP disabled`);
+    console.error(`   Set LINEAR_API_KEY to enable Linear issue fetching`);
   }
-  const { client: client3, server: server2 } = await createOpencodeServer2({
-    provider,
-    model,
-    agentName: config.name,
-    agentDescription: config.description,
-    agentPrompt: prompt,
-    agentTools: config.getAgentTools ? config.getAgentTools(linearApiKey) : {
-      read: true,
-      list: true,
-      glob: true,
-      grep: true,
-      webfetch: true
-    },
-    agentPermissions: config.getAgentPermissions ? config.getAgentPermissions(linearApiKey) : {
-      bash: "allow",
-      webfetch: "allow"
-    },
-    maxSteps: config.maxSteps || 30,
-    linearApiKey
-  });
-  setupEventMonitoring(client3, logger);
+  const agentTools = args.mode === "implementation" ? {
+    write: true,
+    edit: true,
+    bash: true,
+    read: true,
+    list: true,
+    glob: true,
+    grep: true,
+    webfetch: true
+  } : {
+    read: true,
+    list: true,
+    glob: true,
+    grep: true,
+    webfetch: true
+  };
+  const agentPermissions = args.mode === "implementation" ? {
+    edit: "allow",
+    bash: "allow",
+    webfetch: "allow"
+  } : {
+    webfetch: "allow"
+  };
+  const finalPrompt = args.mode === "review" ? `${prompt}
+
+IMPORTANT: You MUST respond with valid JSON matching this schema:
+${JSON.stringify(REVIEW_DECISION_SCHEMA, null, 2)}
+
+Do not include any text outside the JSON object.` : prompt;
+  const provider = "anthropic";
+  const agentName = args.mode === "review" ? "review-agent" : "implementation-agent";
+  const agentDescription = args.mode === "review" ? "Reviews multiple implementations and selects the best one" : "Implements features and fixes bugs";
   try {
     if (logger) {
       await logger.startSession({
         id: crypto.randomUUID(),
-        agentType: config.name,
-        model,
+        agentType: args.mode === "review" ? "review" : "implementation",
+        model: args.model,
         provider
       });
     }
+    console.error("");
+    const { client: client3, server: server2 } = await createOpencodeServer2({
+      provider,
+      model: args.model,
+      agentName,
+      agentDescription,
+      agentPrompt: finalPrompt,
+      agentTools,
+      agentPermissions,
+      maxSteps: 30,
+      linearApiKey
+    });
+    setupEventMonitoring(client3, logger);
+    console.error("");
+    console.error("Starting agent session...");
     const sessionResponse = await client3.session.create({
-      body: { title: `${config.name}: ${new Date().toISOString()}` }
+      body: { title: `${agentName}: ${new Date().toISOString()}` }
     });
     if (!sessionResponse.data) {
       throw new Error("Failed to create session");
     }
     const session = sessionResponse.data;
     console.error(`✓ Session created: ${session.id}`);
+    process.chdir(args.cwd);
+    console.error(`✓ Changed to working directory: ${args.cwd}`);
+    console.error("Sending prompt to agent...");
+    console.error("");
     const promptResponse = await client3.session.prompt({
       path: { id: session.id },
       body: {
-        model: { providerID: provider, modelID: model },
-        agent: config.name,
-        parts: [{ type: "text", text: prompt }]
+        model: { providerID: provider, modelID: args.model },
+        agent: agentName,
+        parts: [{ type: "text", text: finalPrompt }]
       }
     });
     if (!promptResponse.data) {
@@ -10728,68 +10867,53 @@ ${"=".repeat(60)}`);
     const responseInfo = promptResponse.data.info;
     if (responseInfo?.error) {
       const err = responseInfo.error;
-      throw new Error(`Provider error: ${err.name}`);
+      const errMessage = err.data?.message || err.name;
+      throw new Error(`Provider error: ${errMessage}`);
     }
     const resultText = extractTextFromParts(promptResponse.data.parts);
     if (resultText.length === 0) {
       throw new Error("Empty response from agent");
     }
-    console.log(resultText);
+    console.error("");
+    console.error("=".repeat(60));
+    console.error("SUCCESS: Agent completed");
+    console.error("=".repeat(60));
+    const result = {
+      type: "result",
+      subtype: "success",
+      response: resultText,
+      mode: args.mode
+    };
+    console.log(JSON.stringify(result, null, 2));
+    console.error("");
+    console.error("Result written to stdout");
+    console.error("=".repeat(60));
+    console.error("");
     if (logger) {
       await logger.endSession("completed");
       await logger.syncToCloud();
     }
+    server2.close();
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`
-ERROR: ${errorMessage}`);
+    console.error("");
+    console.error("=".repeat(60));
+    console.error("ERROR!");
+    console.error("=".repeat(60));
+    console.error(`Error: ${errorMessage}`);
+    if (error instanceof Error && error.stack) {
+      console.error("");
+      console.error("Stack trace:");
+      console.error(error.stack);
+    }
+    console.error("");
     if (logger) {
       await logger.endSession("error", errorMessage);
       await logger.syncToCloud();
     }
     process.exit(1);
-  } finally {
-    server2.close();
   }
-}
-
-// src/agents/linear-agent.ts
-async function main() {
-  await runAgent({
-    name: "linear-agent",
-    description: "Consolidate implementation plans and create Linear issues",
-    requiredEnvVars: [
-      "ANTHROPIC_PLAN",
-      "OPENAI_PLAN",
-      "GOOGLE_PLAN",
-      "GITHUB_ISSUE_URL",
-      "ISSUE_TITLE",
-      "LINEAR_TEAM_ID",
-      "LINEAR_API_KEY"
-    ],
-    promptFileName: "consolidate-and-create-linear.md",
-    getAgentTools: (linearApiKey) => ({
-      write: false,
-      edit: false,
-      bash: true,
-      read: true,
-      list: true,
-      glob: true,
-      grep: true,
-      webfetch: true,
-      ...linearApiKey && { "mcp__linear__*": true }
-    }),
-    getAgentPermissions: (linearApiKey) => ({
-      edit: "deny",
-      bash: "allow",
-      webfetch: "allow",
-      ...linearApiKey && { "mcp__linear__*": "allow" }
-    }),
-    processPrompt: (template, env) => {
-      return template.replace(/\{\{ANTHROPIC_PLAN\}\}/g, env.ANTHROPIC_PLAN || "").replace(/\{\{OPENAI_PLAN\}\}/g, env.OPENAI_PLAN || "").replace(/\{\{GOOGLE_PLAN\}\}/g, env.GOOGLE_PLAN || "").replace(/\{\{GITHUB_ISSUE_URL\}\}/g, env.GITHUB_ISSUE_URL || "").replace(/\{\{ISSUE_TITLE\}\}/g, env.ISSUE_TITLE || "").replace(/\{\{LINEAR_TEAM_ID\}\}/g, env.LINEAR_TEAM_ID || "").replace(/\{\{LINEAR_PROJECT_ID\}\}/g, env.LINEAR_PROJECT_ID || "");
-    }
-  });
 }
 main().catch((error) => {
   console.error("FATAL ERROR:", error);
