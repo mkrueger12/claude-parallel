@@ -59,6 +59,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.GH_PAT }}" ]; then
+            echo "ERROR: GH_PAT secret is not set"
+            echo "Please add GH_PAT to your repository secrets"
+            exit 1
+          fi
+
       - name: Get issue details
         id: issue
         uses: ./.github/actions/get-issue-details

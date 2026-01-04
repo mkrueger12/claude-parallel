@@ -35,6 +35,13 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.github_token }}
       run: |
+        # Validate GH_TOKEN is set
+        if [ -z "$GH_TOKEN" ]; then
+          echo "ERROR: GH_PAT secret is not set"
+          echo "Please add GH_PAT to your repository secrets"
+          exit 1
+        fi
+        
         # Determine issue number based on event type
         if [ "${{ inputs.event_name }}" = "workflow_dispatch" ]; then
           ISSUE_NUMBER="${{ inputs.issue_number }}"

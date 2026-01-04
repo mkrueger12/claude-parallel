@@ -17,7 +17,19 @@ permissions:
   pull-requests: write
 
 jobs:
+  validate-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.GH_PAT }}" ]; then
+            echo "ERROR: GH_PAT secret is not set"
+            echo "Please add GH_PAT to your repository secrets"
+            exit 1
+          fi
+
   implement:
+    needs: validate-secrets
     uses: ./.github/workflows/reusable-implement-issue.yml
     with:
       linear_issue: ${{ inputs.linear_issue }}

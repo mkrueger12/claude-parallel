@@ -428,6 +428,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
+          # Validate GH_PAT is set
+          if [ -z "$GH_TOKEN" ]; then
+            echo "ERROR: GH_PAT secret is not set"
+            echo "Please add GH_PAT to your repository secrets"
+            exit 1
+          fi
+          
           # Extract decision from structured_output (guaranteed by agent runner)
           echo "=== Parsing review result ==="
           cat review-result.json
@@ -862,6 +869,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
+          # Validate GH_PAT is set
+          if [ -z "$GH_TOKEN" ]; then
+            echo "ERROR: GH_PAT secret is not set"
+            echo "Please add GH_PAT to your repository secrets"
+            exit 1
+          fi
+          
           # Use pre-computed build results
           BUILD="${{ steps.build_checks.outputs.BUILD_STATUS }}"
           TESTS="${{ steps.build_checks.outputs.TESTS_STATUS }}"
