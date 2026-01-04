@@ -370,7 +370,8 @@ The local `parallel-impl.sh` script now uses the OpenCode SDK (@opencode-ai/sdk)
 - **GitHub CLI (gh)** - For creating PRs (`brew install gh` or `sudo apt install gh`)
 - **jq** - JSON parsing utility (`brew install jq` or `sudo apt install jq`)
 
-**Authentication** - Set one of the following environment variables:
+**Authentication** - Set the following environment variables:
+- **`GH_PAT`** (required) - GitHub Personal Access Token with `repo` scope for creating PRs and pushing branches. [Create one here](https://github.com/settings/tokens)
 - **`CLAUDE_CODE_OAUTH_TOKEN`** (recommended) - OAuth token for Claude Code. Get yours from [claude.ai/settings](https://claude.ai/settings)
 - **`ANTHROPIC_API_KEY`** (fallback) - Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
 
@@ -528,6 +529,16 @@ Worktree location: ../parallel-impls/impl-2
 - Draft PR on GitHub
 
 ## Troubleshooting
+
+### "GH_PAT environment variable is not set"
+
+The `GH_PAT` environment variable is required for GitHub operations:
+
+```bash
+# Create a Personal Access Token at https://github.com/settings/tokens
+# Select "repo" scope for full repository access
+export GH_PAT="ghp_your_token_here"
+```
 
 ### "Not in a git repository"
 
