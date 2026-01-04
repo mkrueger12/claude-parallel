@@ -34,22 +34,37 @@ The following auth types were added to match the OpenCode SDK's structure:
 - By using the SDK's type directly, we inherit all methods including auth
 - EventProperties and related types were custom types that are no longer needed
 
-### Next Steps
-
 **Task 2: Remove apiKey from OpencodeServerOptions and Provider Config**
-- Remove apiKey from OpencodeServerOptions interface (line 62)
-- Remove apiKey from provider config in createOpencodeServer (lines 120-122)
-- Make apiKey optional instead of required
+- Status: COMPLETE
+- File modified: src/lib/opencode.ts
+- Changes:
+  * Made apiKey optional in OpencodeServerOptions interface (line 61: `apiKey?: string`)
+  * Removed apiKey from provider config construction (lines 118-124)
+  * Provider config now only contains `timeout: false`
+  * Removed apiKey from function destructuring since it's no longer used
+- Verification:
+  * bun run type-check: PASSED (no TypeScript errors)
+  * biome formatting: PASSED
+  * Git commit: 5d6dd96
+  * features.json: Test #2 marked as passing
+
+### Next Steps
 
 **Task 3: Create setupAuthentication Function**
 - Add new function to call client.auth.set() with proper error handling
 - Support both OAuth tokens and API keys
 - Include fallback logic for environment variables
+- Function signature: `setupAuthentication(client: OpencodeClient, provider: Provider, apiKey?: string)`
+
+**Task 4: Integrate setupAuthentication into createOpencodeServer**
+- Call setupAuthentication after server creation
+- Pass optional apiKey as fallback parameter
 
 ### Current Status
 
-Tests passing: 1/8 (12.5%)
-Current file state: Clean working directory after commit bf04b68
+Tests passing: 2/8 (25%)
+Current file state: Clean working directory after commit 5d6dd96
 
-The foundation is now in place for implementing the actual authentication
-flow in Tasks 2-7. The type system is ready to support auth.set() calls.
+Tasks 1-2 are complete. The provider configuration is now clean and ready
+for the new authentication flow using client.auth.set(). Next step is to
+implement the setupAuthentication function.
