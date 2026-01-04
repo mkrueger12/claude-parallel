@@ -48,23 +48,49 @@ The following auth types were added to match the OpenCode SDK's structure:
   * Git commit: 5d6dd96
   * features.json: Test #2 marked as passing
 
-### Next Steps
-
 **Task 3: Create setupAuthentication Function**
-- Add new function to call client.auth.set() with proper error handling
-- Support both OAuth tokens and API keys
-- Include fallback logic for environment variables
-- Function signature: `setupAuthentication(client: OpencodeClient, provider: Provider, apiKey?: string)`
+- Status: COMPLETE
+- File modified: src/lib/opencode.ts
+- Changes:
+  * Added exported async function setupAuthentication()
+  * Implements client.auth.set() call with proper error handling
+  * Supports OAuth token authentication for Anthropic (CLAUDE_CODE_OAUTH_TOKEN)
+  * Supports API key authentication for all providers
+  * Includes fallback logic to environment variables
+  * Added helper function getApiKeyFromEnv() to check environment variables
+  * Throws descriptive error when no credentials found
+- Authentication flow:
+  1. First checks for CLAUDE_CODE_OAUTH_TOKEN for Anthropic provider
+  2. Falls back to explicit apiKey parameter if provided
+  3. Falls back to environment variables (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)
+  4. Throws error if no credentials found
+- Verification:
+  * bun run type-check: PASSED (no TypeScript errors)
+  * biome formatting: PASSED
+  * Git commit: 4651612
+  * features.json: Test #3 marked as passing
+
+### Next Steps
 
 **Task 4: Integrate setupAuthentication into createOpencodeServer**
 - Call setupAuthentication after server creation
 - Pass optional apiKey as fallback parameter
 
+**Task 5: Update agent-runner.ts to Use New Auth Flow**
+- Wrap getApiKey in try-catch for optional behavior
+- Pass apiKey as optional fallback to createOpencodeServer
+
+**Task 6: Update types.ts ProviderConfig Interface**
+- Mark apiKey as optional in ProviderConfig
+
+**Task 7: Build and Verify**
+- Run full build and verify all changes work together
+
 ### Current Status
 
-Tests passing: 2/8 (25%)
-Current file state: Clean working directory after commit 5d6dd96
+Tests passing: 3/8 (37.5%)
+Current file state: Clean working directory after commit 4651612
 
-Tasks 1-2 are complete. The provider configuration is now clean and ready
-for the new authentication flow using client.auth.set(). Next step is to
-implement the setupAuthentication function.
+Tasks 1-3 are complete. The setupAuthentication function is now ready
+to be integrated into createOpencodeServer. This function will handle
+server-inherited credentials and provide fallback to explicit API keys.
