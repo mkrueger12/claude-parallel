@@ -70,11 +70,28 @@ The following auth types were added to match the OpenCode SDK's structure:
   * Git commit: 4651612
   * features.json: Test #3 marked as passing
 
-### Next Steps
-
 **Task 4: Integrate setupAuthentication into createOpencodeServer**
-- Call setupAuthentication after server creation
-- Pass optional apiKey as fallback parameter
+- Status: COMPLETE
+- File modified: src/lib/opencode.ts
+- Changes:
+  * Re-added apiKey to options destructuring in createOpencodeServer()
+  * Added call to setupAuthentication() after server creation (line 251)
+  * The function now properly sets up authentication via client.auth.set()
+  * apiKey is passed as optional fallback parameter
+- Flow:
+  1. Extract options including optional apiKey
+  2. Build config WITHOUT apiKey in provider options
+  3. Create server with createOpencode()
+  4. Call setupAuthentication(client, provider, apiKey)
+  5. Return client and server
+- Verification:
+  * bun run type-check: PASSED (no TypeScript errors)
+  * bun run build: PASSED (compilation successful)
+  * biome formatting: PASSED
+  * Git commit: 74f62d1
+  * features.json: Test #4 marked as passing
+
+### Next Steps
 
 **Task 5: Update agent-runner.ts to Use New Auth Flow**
 - Wrap getApiKey in try-catch for optional behavior
@@ -88,9 +105,9 @@ The following auth types were added to match the OpenCode SDK's structure:
 
 ### Current Status
 
-Tests passing: 3/8 (37.5%)
-Current file state: Clean working directory after commit 4651612
+Tests passing: 4/8 (50%)
+Current file state: Clean working directory after commit 74f62d1
 
-Tasks 1-3 are complete. The setupAuthentication function is now ready
-to be integrated into createOpencodeServer. This function will handle
-server-inherited credentials and provide fallback to explicit API keys.
+Tasks 1-4 are complete. The createOpencodeServer function now properly
+calls setupAuthentication after server creation, enabling server-inherited
+credentials with fallback to explicit API keys.
