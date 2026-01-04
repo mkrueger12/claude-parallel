@@ -1,0 +1,55 @@
+## Session Progress - 2026-01-04
+
+### Completed Work
+
+**Task 1: Update OpencodeClient Interface and Add auth.set() Types**
+- Status:  COMPLETE
+- File modified: src/lib/opencode.ts
+- Changes:
+  * Added imports for SDK's OpencodeClient type from @opencode-ai/sdk
+  * Defined AuthData discriminated union types (AuthOAuth, AuthApiKey, AuthWellKnown)
+  * Created AuthSetOptions interface for client.auth.set() calls
+  * Simplified OpencodeClient to use SDK type directly (type alias instead of interface)
+  * Removed custom EventProperties, ToolPart, SessionStatus types (no longer needed)
+- Verification:
+  * bun run type-check: PASSED (no TypeScript errors)
+  * biome formatting: PASSED
+  * Git commit: bf04b68
+  * features.json: Test #1 marked as passing
+
+### Type Definitions Added
+
+The following auth types were added to match the OpenCode SDK's structure:
+
+1. **AuthOAuth**: OAuth credentials with access, refresh, expires, enterpriseUrl
+2. **AuthApiKey**: API key auth with type="api" and key field
+3. **AuthWellKnown**: Well-known auth with key and token fields
+4. **AuthData**: Union type of all three auth types
+5. **AuthSetOptions**: Options interface for client.auth.set() calls
+
+### Key Discoveries
+
+- The SDK uses type="api" not "api_key" for API key authentication
+- The SDK's OpencodeClient already has the auth.set() method built-in
+- By using the SDK's type directly, we inherit all methods including auth
+- EventProperties and related types were custom types that are no longer needed
+
+### Next Steps
+
+**Task 2: Remove apiKey from OpencodeServerOptions and Provider Config**
+- Remove apiKey from OpencodeServerOptions interface (line 62)
+- Remove apiKey from provider config in createOpencodeServer (lines 120-122)
+- Make apiKey optional instead of required
+
+**Task 3: Create setupAuthentication Function**
+- Add new function to call client.auth.set() with proper error handling
+- Support both OAuth tokens and API keys
+- Include fallback logic for environment variables
+
+### Current Status
+
+Tests passing: 1/8 (12.5%)
+Current file state: Clean working directory after commit bf04b68
+
+The foundation is now in place for implementing the actual authentication
+flow in Tasks 2-7. The type system is ready to support auth.set() calls.
