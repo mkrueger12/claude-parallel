@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { createConversationLogger } from "./conversation-logger.js";
 import { createOpencodeServer, setupEventMonitoring } from "./opencode.js";
 import type { Provider } from "./types.js";
-import { extractTextFromParts, getApiKey, validateEnvVars } from "./utils.js";
+import { extractTextFromParts, validateEnvVars } from "./utils.js";
 
 export interface AgentConfig {
   name: string;
@@ -45,7 +45,6 @@ export async function runAgent(config: AgentConfig) {
   }
 
   const provider = (process.env.PROVIDER || "anthropic") as Provider;
-  const apiKey = getApiKey(provider);
   const model = process.env.MODEL || (provider === "anthropic" ? "claude-opus-4-5" : "");
   const linearApiKey = process.env.LINEAR_API_KEY;
 
@@ -76,7 +75,6 @@ export async function runAgent(config: AgentConfig) {
 
   const { client, server } = await createOpencodeServer({
     provider,
-    apiKey,
     model,
     agentName: config.name,
     agentDescription: config.description,

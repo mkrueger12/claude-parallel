@@ -2,7 +2,7 @@
  * Shared utility functions for the multi-provider plan generation system.
  */
 
-import { API_KEY_ENV_VARS, type Part, type Provider } from "./types.js";
+import { API_KEY_ENV_VARS, OAUTH_ENV_VARS, type Part, type Provider } from "./types.js";
 
 /**
  * Extract text from message parts
@@ -43,6 +43,7 @@ export function validateEnvVars(requiredVars: string[]): void {
 /**
  * Get API key from environment variables for a specific provider
  *
+ * @deprecated Use getAuthCredentials() instead for OAuth support
  * @param provider - The AI provider (anthropic, openai, google)
  * @returns The API key for the provider
  * @throws Error if no API key is found for the provider
@@ -64,6 +65,64 @@ export function getApiKey(provider: Provider): string {
   ].join("\n");
 
   throw new Error(errorMsg);
+}
+
+/**
+ * Get authentication credentials from environment variables for a specific provider
+ * Checks for OAuth credentials first (Anthropic only), then falls back to API key
+ *
+ * @param provider - The AI provider (anthropic, openai, google)
+ * @returns Structured authentication credentials or null if none found
+ */
+export function getAuthCredentials(provider: Provider):
+  | {
+      type: "oauth";
+      oauth: { access: string; refresh: string; expires: number };
+    }
+  | {
+      type: "api";
+      apiKey: string;
+    }
+  | null {
+  // Check for OAuth credentials (currently only Anthropic supports this)
+  const oauthVars = OAUTH_ENV_VARS[provider];
+  if (oauthVars && oauthVars.length === 3) {
+    const accessVar = oauthVars[0];
+    const refreshVar = oauthVars[1];
+    const expiresVar = oauthVars[2];
+
+    if (accessVar && refreshVar && expiresVar) {
+      const access = process.env[accessVar];
+      const refresh = process.env[refreshVar];
+      const expiresStr = process.env[expiresVar];
+
+      // All three OAuth environment variables must be present
+      if (access && refresh && expiresStr) {
+        const expires = Number.parseInt(expiresStr, 10);
+        if (!Number.isNaN(expires)) {
+          return {
+            type: "oauth",
+            oauth: { access, refresh, expires },
+          };
+        }
+      }
+    }
+  }
+
+  // Fall back to API key
+  const envVars = API_KEY_ENV_VARS[provider];
+  for (const envVar of envVars) {
+    const apiKey = process.env[envVar];
+    if (apiKey) {
+      return {
+        type: "api",
+        apiKey,
+      };
+    }
+  }
+
+  // No credentials found
+  return null;
 }
 
 /**

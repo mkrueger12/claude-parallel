@@ -36,8 +36,8 @@ const ENTRYPOINTS = [
     output: "linear-agent.js",
   },
   {
-    input: "./scripts/claude-agent-runner.ts",
-    output: "claude-agent-runner.js",
+    input: "./scripts/opencode-agent-runner.ts",
+    output: "opencode-agent-runner.js",
   },
 ];
 

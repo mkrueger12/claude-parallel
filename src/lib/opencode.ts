@@ -5,6 +5,7 @@
 import { createOpencode } from "@opencode-ai/sdk";
 import type { ConversationLogger } from "./conversation-logger.js";
 import type { Provider } from "./types.js";
+import { getAuthCredentials } from "./utils.js";
 
 /**
  * Tool part state for event monitoring
@@ -87,6 +88,18 @@ export interface OpencodeClient {
       };
     }>;
   };
+  auth: {
+    set(options: {
+      path: { id: string };
+      body: {
+        type: "oauth" | "api";
+        access?: string;
+        refresh?: string;
+        expires?: number;
+        key?: string;
+      };
+    }): Promise<{ data?: boolean; error?: unknown }>;
+  };
 }
 
 /**
@@ -94,7 +107,6 @@ export interface OpencodeClient {
  */
 export interface OpencodeServerOptions {
   provider: Provider;
-  apiKey: string;
   model: string;
   agentName: string;
   agentDescription: string;
@@ -129,6 +141,54 @@ export interface OpencodeServer {
 }
 
 /**
+ * Set authentication credentials for a provider
+ *
+ * @param client - OpenCode client instance
+ * @param provider - The AI provider to authenticate
+ * @throws Error if no credentials are found for the provider
+ */
+async function setProviderAuth(client: OpencodeClient, provider: Provider): Promise<void> {
+  const credentials = getAuthCredentials(provider);
+
+  if (!credentials) {
+    const errorMsg = [
+      `Error: No authentication credentials found for provider "${provider}"`,
+      `Please set one of the following environment variables:`,
+      provider === "anthropic"
+        ? "  OAuth (preferred): ANTHROPIC_OAUTH_ACCESS, ANTHROPIC_OAUTH_REFRESH, ANTHROPIC_OAUTH_EXPIRES"
+        : "",
+      provider === "anthropic" ? "  OR API Key: ANTHROPIC_API_KEY, CLAUDE_CODE_OAUTH_TOKEN" : "",
+      provider === "openai" ? "  API Key: OPENAI_API_KEY" : "",
+      provider === "google" ? "  API Key: GOOGLE_GENERATIVE_AI_API_KEY" : "",
+    ]
+      .filter((line) => line !== "")
+      .join("\n");
+
+    throw new Error(errorMsg);
+  }
+
+  if (credentials.type === "oauth") {
+    await client.auth.set({
+      path: { id: provider },
+      body: {
+        type: "oauth",
+        access: credentials.oauth.access,
+        refresh: credentials.oauth.refresh,
+        expires: credentials.oauth.expires,
+      },
+    });
+  } else {
+    await client.auth.set({
+      path: { id: provider },
+      body: {
+        type: "api",
+        key: credentials.apiKey,
+      },
+    });
+  }
+}
+
+/**
  * Create and configure an OpenCode server instance
  *
  * @param options - Configuration options for the OpenCode server
@@ -139,7 +199,6 @@ export async function createOpencodeServer(
 ): Promise<{ client: OpencodeClient; server: OpencodeServer }> {
   const {
     provider,
-    apiKey,
     model,
     agentName,
     agentDescription,
@@ -155,7 +214,6 @@ export async function createOpencodeServer(
     provider: {
       [provider]: {
         options: {
-          apiKey,
           timeout: false, // Disable timeout
         },
       },
@@ -192,6 +250,9 @@ export async function createOpencodeServer(
   });
 
   console.error(`✓ OpenCode server started at ${server.url}`);
+
+  // Set provider authentication
+  await setProviderAuth(client as OpencodeClient, provider);
 
   return { client: client as OpencodeClient, server: server as OpencodeServer };
 }

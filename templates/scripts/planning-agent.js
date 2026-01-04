@@ -8826,7 +8826,7 @@ var init_turso = __esm(() => {
   init_turso_schema();
 });
 
-// src/agents/planning-agent.ts
+// src/lib/agent-runner.ts
 import { access, readFile } from "node:fs/promises";
 import { join as join2 } from "node:path";
 
@@ -10391,11 +10391,108 @@ async function createOpencode(options) {
   };
 }
 
+// src/lib/types.ts
+var API_KEY_ENV_VARS = {
+  anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+  openai: ["OPENAI_API_KEY"],
+  google: ["GOOGLE_GENERATIVE_AI_API_KEY"]
+};
+var OAUTH_ENV_VARS = {
+  anthropic: ["ANTHROPIC_OAUTH_ACCESS", "ANTHROPIC_OAUTH_REFRESH", "ANTHROPIC_OAUTH_EXPIRES"]
+};
+
+// src/lib/utils.ts
+function extractTextFromParts(parts) {
+  if (!Array.isArray(parts))
+    return "";
+  return parts.filter((part) => part.type === "text").map((part) => part.text || "").join(`
+`);
+}
+function validateEnvVars(requiredVars) {
+  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
+  if (missingVars.length > 0) {
+    const errorMsg = [
+      "Error: Missing required environment variables:",
+      ...missingVars.map((varName) => `  - ${varName}`),
+      "",
+      "Please set all required environment variables and try again."
+    ].join(`
+`);
+    throw new Error(errorMsg);
+  }
+}
+function getAuthCredentials(provider) {
+  const oauthVars = OAUTH_ENV_VARS[provider];
+  if (oauthVars && oauthVars.length === 3) {
+    const accessVar = oauthVars[0];
+    const refreshVar = oauthVars[1];
+    const expiresVar = oauthVars[2];
+    if (accessVar && refreshVar && expiresVar) {
+      const access = process.env[accessVar];
+      const refresh = process.env[refreshVar];
+      const expiresStr = process.env[expiresVar];
+      if (access && refresh && expiresStr) {
+        const expires = Number.parseInt(expiresStr, 10);
+        if (!Number.isNaN(expires)) {
+          return {
+            type: "oauth",
+            oauth: { access, refresh, expires }
+          };
+        }
+      }
+    }
+  }
+  const envVars = API_KEY_ENV_VARS[provider];
+  for (const envVar of envVars) {
+    const apiKey = process.env[envVar];
+    if (apiKey) {
+      return {
+        type: "api",
+        apiKey
+      };
+    }
+  }
+  return null;
+}
+
 // src/lib/opencode.ts
+async function setProviderAuth(client3, provider) {
+  const credentials = getAuthCredentials(provider);
+  if (!credentials) {
+    const errorMsg = [
+      `Error: No authentication credentials found for provider "${provider}"`,
+      `Please set one of the following environment variables:`,
+      provider === "anthropic" ? "  OAuth (preferred): ANTHROPIC_OAUTH_ACCESS, ANTHROPIC_OAUTH_REFRESH, ANTHROPIC_OAUTH_EXPIRES" : "",
+      provider === "anthropic" ? "  OR API Key: ANTHROPIC_API_KEY, CLAUDE_CODE_OAUTH_TOKEN" : "",
+      provider === "openai" ? "  API Key: OPENAI_API_KEY" : "",
+      provider === "google" ? "  API Key: GOOGLE_GENERATIVE_AI_API_KEY" : ""
+    ].filter((line) => line !== "").join(`
+`);
+    throw new Error(errorMsg);
+  }
+  if (credentials.type === "oauth") {
+    await client3.auth.set({
+      path: { id: provider },
+      body: {
+        type: "oauth",
+        access: credentials.oauth.access,
+        refresh: credentials.oauth.refresh,
+        expires: credentials.oauth.expires
+      }
+    });
+  } else {
+    await client3.auth.set({
+      path: { id: provider },
+      body: {
+        type: "api",
+        key: credentials.apiKey
+      }
+    });
+  }
+}
 async function createOpencodeServer2(options) {
   const {
     provider,
-    apiKey,
     model,
     agentName,
     agentDescription,
@@ -10409,7 +10506,6 @@ async function createOpencodeServer2(options) {
     provider: {
       [provider]: {
         options: {
-          apiKey,
           timeout: false
         }
       }
@@ -10444,6 +10540,7 @@ async function createOpencodeServer2(options) {
     config: opcodeConfig
   });
   console.error(`✓ OpenCode server started at ${server2.url}`);
+  await setProviderAuth(client3, provider);
   return { client: client3, server: server2 };
 }
 function setupEventMonitoring(client3, logger) {
@@ -10532,54 +10629,11 @@ function setupEventMonitoring(client3, logger) {
   })();
 }
 
-// src/lib/types.ts
-var DEFAULT_MODELS = {
-  anthropic: "claude-opus-4-5",
-  openai: "gpt-5.2-pro",
-  google: "gemini-2.5-flash"
-};
-var API_KEY_ENV_VARS = {
-  anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
-  openai: ["OPENAI_API_KEY"],
-  google: ["GOOGLE_GENERATIVE_AI_API_KEY"]
-};
-
-// src/lib/utils.ts
-function extractTextFromParts(parts) {
-  if (!Array.isArray(parts))
-    return "";
-  return parts.filter((part) => part.type === "text").map((part) => part.text || "").join(`
-`);
-}
-function getApiKey(provider) {
-  const envVars = API_KEY_ENV_VARS[provider];
-  for (const envVar of envVars) {
-    const apiKey = process.env[envVar];
-    if (apiKey) {
-      return apiKey;
-    }
-  }
-  const errorMsg = [
-    `Error: No API key found for provider "${provider}"`,
-    `Required environment variables (at least one):`,
-    ...envVars.map((envVar) => `  - ${envVar}`)
-  ].join(`
-`);
-  throw new Error(errorMsg);
-}
-function validateProvider(provider) {
-  const validProviders = ["anthropic", "openai", "google"];
-  if (!validProviders.includes(provider)) {
-    throw new Error(`Error: Unsupported provider "${provider}". ` + `Supported providers: ${validProviders.join(", ")}`);
-  }
-}
-
-// src/agents/planning-agent.ts
-var AGENT_NAME = "planning-agent";
-async function findPromptFile() {
+// src/lib/agent-runner.ts
+async function findPromptFile(fileName) {
   const possiblePaths = [
-    join2(process.cwd(), ".github", "claude-parallel", "prompts", "plan-generation.md"),
-    join2(process.cwd(), "prompts", "plan-generation.md")
+    join2(process.cwd(), ".github", "claude-parallel", "prompts", fileName),
+    join2(process.cwd(), "prompts", fileName)
   ];
   for (const path of possiblePaths) {
     try {
@@ -10587,68 +10641,127 @@ async function findPromptFile() {
       return path;
     } catch {}
   }
-  throw new Error(`Could not find plan-generation.md in any of these locations:
+  throw new Error(`Could not find ${fileName} in any of these locations:
 ${possiblePaths.map((p) => `  - ${p}`).join(`
 `)}`);
 }
-async function main() {
-  const args = process.argv.slice(2);
-  if (args.length < 1) {
-    console.error("Usage: planning-agent.ts <feature-description>");
-    console.error("");
-    console.error("Examples:");
-    console.error("  # Use default (Anthropic Claude)");
-    console.error('  ANTHROPIC_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error("");
-    console.error("  # Use OpenAI GPT-4");
-    console.error('  PROVIDER=openai OPENAI_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error("");
-    console.error("  # Use Google Gemini");
-    console.error('  PROVIDER=google GOOGLE_GENERATIVE_AI_API_KEY=xxx planning-agent.ts "Add user authentication"');
-    console.error("");
-    console.error("Environment variables:");
-    console.error("  PROVIDER - anthropic (default), openai, or google");
-    console.error("  MODEL - Override default model for the provider");
+async function runAgent(config) {
+  try {
+    validateEnvVars(config.requiredEnvVars);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
-  const featureDescription = args.join(" ");
-  const providerEnv = (process.env.PROVIDER || "anthropic").toLowerCase();
-  validateProvider(providerEnv);
-  const provider = providerEnv;
-  const apiKey = getApiKey(provider);
-  const model = process.env.MODEL || DEFAULT_MODELS[provider];
+  const provider = process.env.PROVIDER || "anthropic";
+  const model = process.env.MODEL || (provider === "anthropic" ? "claude-opus-4-5" : "");
+  const linearApiKey = process.env.LINEAR_API_KEY;
   console.error(`
 ${"=".repeat(60)}`);
-  console.error(`Planning Agent`);
+  console.error(`${config.name}`);
   console.error(`${"=".repeat(60)}`);
   console.error(`Provider: ${provider}`);
   console.error(`Model: ${model}`);
-  console.error(`Feature: ${featureDescription}`);
   console.error("");
   const logger = await createConversationLogger();
   if (logger) {
     console.error(`✓ Conversation logging enabled`);
   }
   let prompt;
-  let promptFile;
   try {
-    promptFile = await findPromptFile();
-    prompt = await readFile(promptFile, "utf-8");
-    console.error(`✓ Loaded prompt from ${promptFile}`);
+    const promptFile = await findPromptFile(config.promptFileName);
+    const template = await readFile(promptFile, "utf-8");
+    prompt = config.processPrompt ? config.processPrompt(template, process.env) : template;
+    console.error(`✓ Loaded and processed prompt from ${promptFile}`);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`✗ Failed to read prompt file: ${errorMessage}`);
-    console.error("Please create a plan-generation.md file in the prompts directory");
+    console.error(`✗ Failed to load prompt: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
   const { client: client3, server: server2 } = await createOpencodeServer2({
     provider,
-    apiKey,
     model,
-    agentName: AGENT_NAME,
-    agentDescription: "Generate a comprehensive implementation plan for a given feature",
+    agentName: config.name,
+    agentDescription: config.description,
     agentPrompt: prompt,
-    agentTools: {
+    agentTools: config.getAgentTools ? config.getAgentTools(linearApiKey) : {
+      read: true,
+      list: true,
+      glob: true,
+      grep: true,
+      webfetch: true
+    },
+    agentPermissions: config.getAgentPermissions ? config.getAgentPermissions(linearApiKey) : {
+      bash: "allow",
+      webfetch: "allow"
+    },
+    maxSteps: config.maxSteps || 30,
+    linearApiKey
+  });
+  setupEventMonitoring(client3, logger);
+  try {
+    if (logger) {
+      await logger.startSession({
+        id: crypto.randomUUID(),
+        agentType: config.name,
+        model,
+        provider
+      });
+    }
+    const sessionResponse = await client3.session.create({
+      body: { title: `${config.name}: ${new Date().toISOString()}` }
+    });
+    if (!sessionResponse.data) {
+      throw new Error("Failed to create session");
+    }
+    const session = sessionResponse.data;
+    console.error(`✓ Session created: ${session.id}`);
+    const promptResponse = await client3.session.prompt({
+      path: { id: session.id },
+      body: {
+        model: { providerID: provider, modelID: model },
+        agent: config.name,
+        parts: [{ type: "text", text: prompt }]
+      }
+    });
+    if (!promptResponse.data) {
+      throw new Error("Failed to get response");
+    }
+    const responseInfo = promptResponse.data.info;
+    if (responseInfo?.error) {
+      const err = responseInfo.error;
+      throw new Error(`Provider error: ${err.name}`);
+    }
+    const resultText = extractTextFromParts(promptResponse.data.parts);
+    if (resultText.length === 0) {
+      throw new Error("Empty response from agent");
+    }
+    console.log(resultText);
+    if (logger) {
+      await logger.endSession("completed");
+      await logger.syncToCloud();
+    }
+    process.exit(0);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`
+ERROR: ${errorMessage}`);
+    if (logger) {
+      await logger.endSession("error", errorMessage);
+      await logger.syncToCloud();
+    }
+    process.exit(1);
+  } finally {
+    server2.close();
+  }
+}
+
+// src/agents/planning-agent.ts
+async function main() {
+  await runAgent({
+    name: "planning-agent",
+    description: "Generate a comprehensive implementation plan for a given feature",
+    requiredEnvVars: [],
+    promptFileName: "plan-generation.md",
+    getAgentTools: () => ({
       write: false,
       edit: false,
       bash: false,
@@ -10657,94 +10770,21 @@ ${"=".repeat(60)}`);
       glob: true,
       grep: true,
       webfetch: true
-    },
-    agentPermissions: {
+    }),
+    getAgentPermissions: () => ({
       edit: "deny",
       bash: "deny",
       webfetch: "allow"
-    },
-    maxSteps: 30
-  });
-  setupEventMonitoring(client3, logger);
-  try {
-    if (logger) {
-      await logger.startSession({
-        id: crypto.randomUUID(),
-        agentType: "planning",
-        model,
-        provider
-      });
-    }
-    console.error(`Creating session...`);
-    const sessionResponse = await client3.session.create({
-      body: { title: `Plan generation: ${featureDescription}` }
-    });
-    if (!sessionResponse.data) {
-      throw new Error("Failed to create session: no data in response");
-    }
-    const session = sessionResponse.data;
-    console.error(`✓ Session created: ${session.id}`);
-    console.error(`Generating plan with ${AGENT_NAME}...`);
-    console.error(`This may take a few moments while the AI generates the plan...`);
-    const promptResponse = await client3.session.prompt({
-      path: { id: session.id },
-      body: {
-        model: {
-          providerID: provider,
-          modelID: model
-        },
-        agent: AGENT_NAME,
-        parts: [{ type: "text", text: featureDescription }]
+    }),
+    processPrompt: (template) => {
+      const args = process.argv.slice(2);
+      if (args.length < 1) {
+        console.error("Usage: planning-agent.ts <feature-description>");
+        process.exit(1);
       }
-    });
-    if (!promptResponse.data) {
-      throw new Error("Failed to get response: no data in response");
+      return template;
     }
-    const responseInfo = promptResponse.data.info;
-    if (responseInfo?.error) {
-      const err = responseInfo.error;
-      const errorName = err.name;
-      const errorData = "data" in err ? err.data : undefined;
-      const errorMessage = errorData && "message" in errorData ? errorData.message : JSON.stringify(errorData);
-      throw new Error(`Provider error: ${errorName}: ${errorMessage}`);
-    }
-    const planText = extractTextFromParts(promptResponse.data.parts);
-    if (planText.length === 0) {
-      throw new Error("Empty response from planning agent");
-    }
-    console.error("");
-    console.error(`${"=".repeat(60)}`);
-    console.error(`SUCCESS!`);
-    console.error(`${"=".repeat(60)}`);
-    console.error(`Generated plan: ${planText.length} characters`);
-    console.error(`Session ID: ${session.id}`);
-    console.error("");
-    console.log(planText);
-    if (logger) {
-      await logger.endSession("completed");
-      await logger.syncToCloud();
-    }
-    process.exit(0);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("");
-    console.error(`${"=".repeat(60)}`);
-    console.error("ERROR!");
-    console.error(`${"=".repeat(60)}`);
-    console.error(`Error: ${errorMessage}`);
-    if (error instanceof Error && error.stack) {
-      console.error("Stack trace:", error.stack);
-    }
-    console.error("");
-    if (logger) {
-      await logger.endSession("error", errorMessage);
-      await logger.syncToCloud();
-    }
-    process.exit(1);
-  } finally {
-    console.error("Shutting down OpenCode server...");
-    server2.close();
-  }
+  });
 }
 main().catch((error) => {
   console.error("FATAL ERROR:", error);

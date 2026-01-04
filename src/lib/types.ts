@@ -41,3 +41,11 @@ export const API_KEY_ENV_VARS: Record<Provider, string[]> = {
   openai: ["OPENAI_API_KEY"],
   google: ["GOOGLE_GENERATIVE_AI_API_KEY"],
 };
+
+/**
+ * Environment variable names for OAuth credentials by provider
+ * Note: Only Anthropic supports OAuth currently
+ */
+export const OAUTH_ENV_VARS: Record<string, string[]> = {
+  anthropic: ["ANTHROPIC_OAUTH_ACCESS", "ANTHROPIC_OAUTH_REFRESH", "ANTHROPIC_OAUTH_EXPIRES"],
+};
