@@ -21696,7 +21696,7 @@ function diagnoseError(error, context) {
     lines.push("Common causes:");
     const cliCheck = validateClaudeCliPath(context.cliPath);
     if (!cliCheck.valid) {
-      lines.push("  ❌ CLI PATH ISSUE: " + cliCheck.error);
+      lines.push(`  ❌ CLI PATH ISSUE: ${cliCheck.error}`);
       lines.push("");
       lines.push("  Fix: Install Claude CLI or specify path with --claude-cli-path");
       lines.push("  Install: curl -fsSL https://claude.ai/install.sh | bash");
@@ -21705,7 +21705,7 @@ function diagnoseError(error, context) {
     }
     const authCheck = checkAuthentication();
     if (!authCheck.configured) {
-      lines.push("  ❌ AUTH ISSUE: " + authCheck.error);
+      lines.push(`  ❌ AUTH ISSUE: ${authCheck.error}`);
     } else {
       lines.push(`  ✓ Auth configured via: ${authCheck.method}`);
     }
@@ -21938,6 +21938,39 @@ async function main() {
     for await (const message of runClaudeQuery(prompt, queryOptions)) {
       messageCount++;
       console.error(`[Message ${messageCount}] Type: ${message.type}`);
+      if (message.type === "assistant" && message.message) {
+        const content = message.message.content;
+        if (Array.isArray(content)) {
+          for (const block of content) {
+            if (block.type === "tool_use") {
+              const toolName = block.name;
+              const inputStr = JSON.stringify(block.input);
+              const inputPreview = inputStr.length > 200 ? `${inputStr.slice(0, 200)}...` : inputStr;
+              console.error(`[Tool] ${toolName}`);
+              console.error(`       Input: ${inputPreview}`);
+            } else if (block.type === "text" && block.text) {
+              const textPreview = block.text.length > 300 ? `${block.text.slice(0, 300)}...` : block.text;
+              if (textPreview.trim()) {
+                console.error(`[Text] ${textPreview.replace(/\n/g, `
+       `)}`);
+              }
+            }
+          }
+        }
+      }
+      if (message.type === "user" && message.message) {
+        const content = message.message.content;
+        if (Array.isArray(content)) {
+          for (const block of content) {
+            if (block.type === "tool_result") {
+              const resultStr = typeof block.content === "string" ? block.content : JSON.stringify(block.content);
+              const resultPreview = resultStr.length > 200 ? `${resultStr.slice(0, 200)}...` : resultStr;
+              console.error(`[Tool Result] ${resultPreview.replace(/\n/g, `
+              `)}`);
+            }
+          }
+        }
+      }
       if (message.type === "result") {
         finalResult = message;
         console.error(`[Message ${messageCount}] Subtype: ${message.subtype}`);

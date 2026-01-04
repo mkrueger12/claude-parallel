@@ -8826,7 +8826,7 @@ var init_turso = __esm(() => {
   init_turso_schema();
 });
 
-// src/agents/linear-agent.ts
+// src/lib/agent-runner.ts
 import { access, readFile } from "node:fs/promises";
 import { join as join2 } from "node:path";
 
@@ -10576,13 +10576,11 @@ function getApiKey(provider) {
   throw new Error(errorMsg);
 }
 
-// src/agents/linear-agent.ts
-var AGENT_NAME = "linear-agent";
-var DEFAULT_MODEL = "claude-opus-4-5";
-async function findPromptFile() {
+// src/lib/agent-runner.ts
+async function findPromptFile(fileName) {
   const possiblePaths = [
-    join2(process.cwd(), ".github", "claude-parallel", "prompts", "consolidate-and-create-linear.md"),
-    join2(process.cwd(), "prompts", "consolidate-and-create-linear.md")
+    join2(process.cwd(), ".github", "claude-parallel", "prompts", fileName),
+    join2(process.cwd(), "prompts", fileName)
   ];
   for (const path of possiblePaths) {
     try {
@@ -10590,98 +10588,137 @@ async function findPromptFile() {
       return path;
     } catch {}
   }
-  throw new Error(`Could not find consolidate-and-create-linear.md in any of these locations:
+  throw new Error(`Could not find ${fileName} in any of these locations:
 ${possiblePaths.map((p) => `  - ${p}`).join(`
 `)}`);
 }
-async function main() {
-  const requiredEnvVars = [
-    "ANTHROPIC_PLAN",
-    "OPENAI_PLAN",
-    "GOOGLE_PLAN",
-    "GITHUB_ISSUE_URL",
-    "ISSUE_TITLE",
-    "LINEAR_TEAM_ID",
-    "LINEAR_API_KEY"
-  ];
+async function runAgent(config) {
   try {
-    validateEnvVars(requiredEnvVars);
+    validateEnvVars(config.requiredEnvVars);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
-    console.error("");
-    console.error("Usage: Set all required environment variables and run:");
-    console.error("  bun run linear-agent.ts");
     process.exit(1);
   }
-  const provider = "anthropic";
+  const provider = process.env.PROVIDER || "anthropic";
   const apiKey = getApiKey(provider);
-  const anthropicPlan = process.env.ANTHROPIC_PLAN;
-  const openaiPlan = process.env.OPENAI_PLAN;
-  const googlePlan = process.env.GOOGLE_PLAN;
-  const githubIssueUrl = process.env.GITHUB_ISSUE_URL;
-  const issueTitle = process.env.ISSUE_TITLE;
-  const linearTeamId = process.env.LINEAR_TEAM_ID;
-  const linearProjectId = process.env.LINEAR_PROJECT_ID || "";
+  const model = process.env.MODEL || (provider === "anthropic" ? "claude-opus-4-5" : "");
   const linearApiKey = process.env.LINEAR_API_KEY;
-  const model = process.env.MODEL || DEFAULT_MODEL;
-  if (!anthropicPlan) {
-    throw new Error("ANTHROPIC_PLAN environment variable is required");
-  }
-  if (!openaiPlan) {
-    throw new Error("OPENAI_PLAN environment variable is required");
-  }
-  if (!googlePlan) {
-    throw new Error("GOOGLE_PLAN environment variable is required");
-  }
-  if (!githubIssueUrl) {
-    throw new Error("GITHUB_ISSUE_URL environment variable is required");
-  }
-  if (!issueTitle) {
-    throw new Error("ISSUE_TITLE environment variable is required");
-  }
-  if (!linearTeamId) {
-    throw new Error("LINEAR_TEAM_ID environment variable is required");
-  }
-  if (!linearApiKey) {
-    throw new Error("LINEAR_API_KEY environment variable is required");
-  }
   console.error(`
 ${"=".repeat(60)}`);
-  console.error(`Linear Agent - Plan Consolidation`);
+  console.error(`${config.name}`);
   console.error(`${"=".repeat(60)}`);
   console.error(`Provider: ${provider}`);
   console.error(`Model: ${model}`);
-  console.error(`Issue: ${issueTitle}`);
-  console.error(`GitHub URL: ${githubIssueUrl}`);
-  console.error(`Linear Team: ${linearTeamId}`);
-  console.error(`Linear Project: ${linearProjectId || "(none)"}`);
   console.error("");
   const logger = await createConversationLogger();
   if (logger) {
     console.error(`✓ Conversation logging enabled`);
   }
-  let promptTemplate;
-  let promptFile;
+  let prompt;
   try {
-    promptFile = await findPromptFile();
-    promptTemplate = await readFile(promptFile, "utf-8");
-    console.error(`✓ Loaded prompt template from ${promptFile}`);
+    const promptFile = await findPromptFile(config.promptFileName);
+    const template = await readFile(promptFile, "utf-8");
+    prompt = config.processPrompt ? config.processPrompt(template, process.env) : template;
+    console.error(`✓ Loaded and processed prompt from ${promptFile}`);
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`✗ Failed to read prompt file: ${errorMessage}`);
-    console.error("Please create consolidate-and-create-linear.md file in the prompts directory");
+    console.error(`✗ Failed to load prompt: ${error instanceof Error ? error.message : String(error)}`);
     process.exit(1);
   }
-  const prompt = promptTemplate.replace(/\{\{ANTHROPIC_PLAN\}\}/g, anthropicPlan).replace(/\{\{OPENAI_PLAN\}\}/g, openaiPlan).replace(/\{\{GOOGLE_PLAN\}\}/g, googlePlan).replace(/\{\{GITHUB_ISSUE_URL\}\}/g, githubIssueUrl).replace(/\{\{ISSUE_TITLE\}\}/g, issueTitle).replace(/\{\{LINEAR_TEAM_ID\}\}/g, linearTeamId).replace(/\{\{LINEAR_PROJECT_ID\}\}/g, linearProjectId);
-  console.error(`✓ Filled prompt template with plans and context`);
   const { client: client3, server: server2 } = await createOpencodeServer2({
     provider,
     apiKey,
     model,
-    agentName: AGENT_NAME,
-    agentDescription: "Consolidate implementation plans and create Linear issues",
+    agentName: config.name,
+    agentDescription: config.description,
     agentPrompt: prompt,
-    agentTools: {
+    agentTools: config.getAgentTools ? config.getAgentTools(linearApiKey) : {
+      read: true,
+      list: true,
+      glob: true,
+      grep: true,
+      webfetch: true
+    },
+    agentPermissions: config.getAgentPermissions ? config.getAgentPermissions(linearApiKey) : {
+      bash: "allow",
+      webfetch: "allow"
+    },
+    maxSteps: config.maxSteps || 30,
+    linearApiKey
+  });
+  setupEventMonitoring(client3, logger);
+  try {
+    if (logger) {
+      await logger.startSession({
+        id: crypto.randomUUID(),
+        agentType: config.name,
+        model,
+        provider
+      });
+    }
+    const sessionResponse = await client3.session.create({
+      body: { title: `${config.name}: ${new Date().toISOString()}` }
+    });
+    if (!sessionResponse.data) {
+      throw new Error("Failed to create session");
+    }
+    const session = sessionResponse.data;
+    console.error(`✓ Session created: ${session.id}`);
+    const promptResponse = await client3.session.prompt({
+      path: { id: session.id },
+      body: {
+        model: { providerID: provider, modelID: model },
+        agent: config.name,
+        parts: [{ type: "text", text: prompt }]
+      }
+    });
+    if (!promptResponse.data) {
+      throw new Error("Failed to get response");
+    }
+    const responseInfo = promptResponse.data.info;
+    if (responseInfo?.error) {
+      const err = responseInfo.error;
+      throw new Error(`Provider error: ${err.name}`);
+    }
+    const resultText = extractTextFromParts(promptResponse.data.parts);
+    if (resultText.length === 0) {
+      throw new Error("Empty response from agent");
+    }
+    console.log(resultText);
+    if (logger) {
+      await logger.endSession("completed");
+      await logger.syncToCloud();
+    }
+    process.exit(0);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`
+ERROR: ${errorMessage}`);
+    if (logger) {
+      await logger.endSession("error", errorMessage);
+      await logger.syncToCloud();
+    }
+    process.exit(1);
+  } finally {
+    server2.close();
+  }
+}
+
+// src/agents/linear-agent.ts
+async function main() {
+  await runAgent({
+    name: "linear-agent",
+    description: "Consolidate implementation plans and create Linear issues",
+    requiredEnvVars: [
+      "ANTHROPIC_PLAN",
+      "OPENAI_PLAN",
+      "GOOGLE_PLAN",
+      "GITHUB_ISSUE_URL",
+      "ISSUE_TITLE",
+      "LINEAR_TEAM_ID",
+      "LINEAR_API_KEY"
+    ],
+    promptFileName: "consolidate-and-create-linear.md",
+    getAgentTools: (linearApiKey) => ({
       write: false,
       edit: false,
       bash: true,
@@ -10691,96 +10728,17 @@ ${"=".repeat(60)}`);
       grep: true,
       webfetch: true,
       ...linearApiKey && { "mcp__linear__*": true }
-    },
-    agentPermissions: {
+    }),
+    getAgentPermissions: (linearApiKey) => ({
       edit: "deny",
       bash: "allow",
       webfetch: "allow",
       ...linearApiKey && { "mcp__linear__*": "allow" }
-    },
-    maxSteps: 30,
-    linearApiKey
+    }),
+    processPrompt: (template, env) => {
+      return template.replace(/\{\{ANTHROPIC_PLAN\}\}/g, env.ANTHROPIC_PLAN || "").replace(/\{\{OPENAI_PLAN\}\}/g, env.OPENAI_PLAN || "").replace(/\{\{GOOGLE_PLAN\}\}/g, env.GOOGLE_PLAN || "").replace(/\{\{GITHUB_ISSUE_URL\}\}/g, env.GITHUB_ISSUE_URL || "").replace(/\{\{ISSUE_TITLE\}\}/g, env.ISSUE_TITLE || "").replace(/\{\{LINEAR_TEAM_ID\}\}/g, env.LINEAR_TEAM_ID || "").replace(/\{\{LINEAR_PROJECT_ID\}\}/g, env.LINEAR_PROJECT_ID || "");
+    }
   });
-  setupEventMonitoring(client3, logger);
-  try {
-    if (logger) {
-      await logger.startSession({
-        id: crypto.randomUUID(),
-        agentType: "linear",
-        model,
-        provider
-      });
-    }
-    console.error(`Creating session...`);
-    const sessionResponse = await client3.session.create({
-      body: { title: `Plan consolidation: ${issueTitle}` }
-    });
-    if (!sessionResponse.data) {
-      throw new Error("Failed to create session: no data in response");
-    }
-    const session = sessionResponse.data;
-    console.error(`✓ Session created: ${session.id}`);
-    console.error(`Consolidating plans and creating Linear issues with ${AGENT_NAME}...`);
-    console.error(`This may take a few moments while the AI consolidates the plans...`);
-    const promptResponse = await client3.session.prompt({
-      path: { id: session.id },
-      body: {
-        model: {
-          providerID: provider,
-          modelID: model
-        },
-        agent: AGENT_NAME,
-        parts: [{ type: "text", text: prompt }]
-      }
-    });
-    if (!promptResponse.data) {
-      throw new Error("Failed to get response: no data in response");
-    }
-    const responseInfo = promptResponse.data.info;
-    if (responseInfo?.error) {
-      const err = responseInfo.error;
-      const errorName = err.name;
-      const errorData = "data" in err ? err.data : undefined;
-      const errorMessage = errorData && "message" in errorData ? errorData.message : JSON.stringify(errorData);
-      throw new Error(`Provider error: ${errorName}: ${errorMessage}`);
-    }
-    const resultText = extractTextFromParts(promptResponse.data.parts);
-    if (resultText.length === 0) {
-      throw new Error("Empty response from linear agent");
-    }
-    console.error("");
-    console.error(`${"=".repeat(60)}`);
-    console.error(`SUCCESS!`);
-    console.error(`${"=".repeat(60)}`);
-    console.error(`Consolidated plan and Linear issues: ${resultText.length} characters`);
-    console.error(`Session ID: ${session.id}`);
-    console.error("");
-    console.log(resultText);
-    if (logger) {
-      await logger.endSession("completed");
-      await logger.syncToCloud();
-    }
-    process.exit(0);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("");
-    console.error(`${"=".repeat(60)}`);
-    console.error("ERROR!");
-    console.error(`${"=".repeat(60)}`);
-    console.error(`Error: ${errorMessage}`);
-    if (error instanceof Error && error.stack) {
-      console.error("Stack trace:", error.stack);
-    }
-    console.error("");
-    if (logger) {
-      await logger.endSession("error", errorMessage);
-      await logger.syncToCloud();
-    }
-    process.exit(1);
-  } finally {
-    console.error("Shutting down OpenCode server...");
-    server2.close();
-  }
 }
 main().catch((error) => {
   console.error("FATAL ERROR:", error);

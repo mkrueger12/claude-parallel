@@ -1,32 +1,32 @@
 # Session Context: claude-parallel
 
-**Date**: December 30, 2025
-**Status**: Claude CLI path resolution fixed - swellai v1.0.5 ready for npm publish 🔧→✅
+**Date**: January 4, 2026
+**Status**: Live tool call logging added to GitHub Actions workflow
 
 ---
 
 ## Current State
 
-**Latest Work**: Fixed Claude Code executable path resolution bug (Session 19)
+**Latest Work**: Added live tool call logging to GitHub Actions (Session 20)
 **Repository**: Working on branch `main` - modified files
 **Latest Commits**:
-- `a21a1f6` - Session 18: Fix critical npm package bugs (v1.0.2 & v1.0.3)
-- `6dd4c74` - Update templates and bump version to 1.0.1
-- `00ffd9d` - Archive Session 17: npm publishing and swellai rebranding
-- `798cce6` - Session 17: Rebrand package to swellai and prepare for npm publish
-- `f7e01ce` - update docs
+- `82aedb6` - Refactor agents to use shared agent-runner module
+- `1abc7f9` - Add pre-flight validation and error diagnostics to agent runner
+- `d3e5c4a` - Document GH_PAT requirement in README
+- `df42f22` - error when GH_PAT is not set
+- `524b6c3` - bump versions
 
 **Recent Accomplishments**:
-- Fixed Claude Code executable path resolution (v1.0.5)
-- Added `--claude-cli-path` argument to agent runner
-- Updated SDK wrapper to pass `pathToClaudeCodeExecutable` correctly
-- All 3 workflow steps now specify Claude CLI location
-- Package tested and ready (329.2 KB, 83 files)
+- Added live tool call logging to agent runner for GitHub Actions visibility
+- Updated workflow to use `tee` for stderr so logs appear in console AND are captured to file
+- Tool calls now show: tool name, input preview (200 chars), result preview (200 chars)
+- Text outputs from assistant also logged (300 chars preview)
 
 ---
 
 ## Recent Sessions
 
+*Session 20 (Jan 4, 2026) - Live Tool Call Logging*
 *Session 19 (Dec 30, 2025) - Claude CLI Path Resolution Fix*
 *Session 18 (Dec 30, 2025) - Critical Bug Fixes for npm Package*
 *Session 17 (Dec 29, 2025) - npm Package Publishing & Rebranding*
@@ -83,6 +83,40 @@ Sessions 1-13 have been archived. Key milestones:
 ---
 
 ## Notes
+
+### Session 20 Accomplishments (Jan 4, 2026)
+
+**Live Tool Call Logging for GitHub Actions**
+
+Added visibility into agent tool calls during GitHub Actions workflow execution.
+
+**Problem**: Console logs from `claude-agent-sdk.ts` weren't showing in GitHub Actions because stderr was redirected to `error.log` file only.
+
+**Solution**:
+1. Updated workflow to use `tee` for stderr: `2> >(tee error.log >&2)`
+   - Shows logs live in GitHub Actions console
+   - Still captures to error.log for artifacts
+2. Added detailed tool call logging to `scripts/claude-agent-runner.ts`:
+   - `[Tool] <name>` with input preview (200 chars max)
+   - `[Tool Result]` with result preview (200 chars max)
+   - `[Text]` for assistant text output (300 chars max)
+
+**Files Modified**:
+- `.github/workflows/claude-implement.yml` (3 locations - implementation, review, verify steps)
+- `scripts/claude-agent-runner.ts` (added tool call logging in message loop)
+- `templates/scripts/claude-agent-runner.js` (rebuilt bundle)
+- `.github/claude-parallel/scripts/claude-agent-runner.js` (copied rebuilt bundle)
+
+**Logging Output Example**:
+```
+[Message 1] Type: assistant
+[Tool] Read
+       Input: {"file_path":"/home/user/project/src/index.ts"}
+[Message 2] Type: user
+[Tool Result] // src/index.ts contents...
+[Message 3] Type: assistant
+[Text] I'll analyze this file and...
+```
 
 ### Session 19 Accomplishments (Dec 30, 2025)
 

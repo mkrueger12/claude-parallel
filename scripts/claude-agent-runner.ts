@@ -434,6 +434,46 @@ async function main() {
       // Log message type to stderr for debugging
       console.error(`[Message ${messageCount}] Type: ${message.type}`);
 
+      // Log tool calls from assistant messages
+      if (message.type === "assistant" && message.message) {
+        const content = message.message.content;
+        if (Array.isArray(content)) {
+          for (const block of content) {
+            if (block.type === "tool_use") {
+              const toolName = block.name;
+              const inputStr = JSON.stringify(block.input);
+              const inputPreview =
+                inputStr.length > 200 ? `${inputStr.slice(0, 200)}...` : inputStr;
+              console.error(`[Tool] ${toolName}`);
+              console.error(`       Input: ${inputPreview}`);
+            } else if (block.type === "text" && block.text) {
+              // Log text output (truncated)
+              const textPreview =
+                block.text.length > 300 ? `${block.text.slice(0, 300)}...` : block.text;
+              if (textPreview.trim()) {
+                console.error(`[Text] ${textPreview.replace(/\n/g, "\n       ")}`);
+              }
+            }
+          }
+        }
+      }
+
+      // Log tool results
+      if (message.type === "user" && message.message) {
+        const content = message.message.content;
+        if (Array.isArray(content)) {
+          for (const block of content) {
+            if (block.type === "tool_result") {
+              const resultStr =
+                typeof block.content === "string" ? block.content : JSON.stringify(block.content);
+              const resultPreview =
+                resultStr.length > 200 ? `${resultStr.slice(0, 200)}...` : resultStr;
+              console.error(`[Tool Result] ${resultPreview.replace(/\n/g, "\n              ")}`);
+            }
+          }
+        }
+      }
+
       // Check if this is the final result
       if (message.type === "result") {
         finalResult = message;
