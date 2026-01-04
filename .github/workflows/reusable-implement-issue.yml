@@ -210,10 +210,9 @@ jobs:
 
           # Run agent runner and capture exit code
           set +e
+          MODEL="${{ inputs.claude_model }}" \
+          MODE="implementation" \
           echo "$IMPL_PROMPT" | bun run scripts/opencode-agent-runner.ts \
-            --cwd "$(pwd)" \
-            --model ${{ inputs.claude_model }} \
-            --mode implementation \
             > result.json 2> error.log
           RUNNER_EXIT=$?
           set -e
@@ -399,10 +398,9 @@ jobs:
           echo "Linear issue: ${{ inputs.linear_issue }}"
 
           # Run agent runner in review mode (schema automatically applied)
+          MODEL="${{ inputs.claude_model }}" \
+          MODE="review" \
           echo "$REVIEW_PROMPT" | bun run scripts/opencode-agent-runner.ts \
-            --cwd "$(pwd)" \
-            --model ${{ inputs.claude_model }} \
-            --mode review \
             > review-result.json 2> review-error.log || true
 
           cat review-result.json
@@ -815,10 +813,9 @@ jobs:
           echo "Linear issue: ${{ inputs.linear_issue }}"
 
           # Run agent runner in implementation mode
+          MODEL="${{ inputs.claude_model }}" \
+          MODE="implementation" \
           echo "$VERIFY_PROMPT" | bun run scripts/opencode-agent-runner.ts \
-            --cwd "$(pwd)" \
-            --model ${{ inputs.claude_model }} \
-            --mode implementation \
             > verify-result.json 2> verify-error.log || true
 
           cat verify-result.json

@@ -10633,82 +10633,19 @@ var REVIEW_DECISION_SCHEMA = {
   required: ["best", "reasoning"],
   additionalProperties: false
 };
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const parsedArgs = {
-    model: "claude-opus-4-5",
-    mode: "implementation"
-  };
-  for (let i = 0;i < args.length; i++) {
-    const arg = args[i];
-    switch (arg) {
-      case "--cwd":
-        parsedArgs.cwd = args[++i];
-        break;
-      case "--model":
-        parsedArgs.model = args[++i];
-        break;
-      case "--mode": {
-        const mode = args[++i];
-        if (mode !== "implementation" && mode !== "review") {
-          console.error(`Error: Invalid mode "${mode}". Must be "implementation" or "review".`);
-          process.exit(1);
-        }
-        parsedArgs.mode = mode;
-        break;
-      }
-      case "--help":
-      case "-h":
-        printUsage();
-        process.exit(0);
-      default:
-        console.error(`Error: Unknown argument "${arg}"`);
-        printUsage();
-        process.exit(1);
-    }
-  }
-  if (!parsedArgs.cwd) {
-    console.error("Error: --cwd is required");
-    printUsage();
+function getConfig() {
+  const cwd = process.cwd();
+  const model = process.env.MODEL || "claude-opus-4-5";
+  const modeEnv = process.env.MODE || "implementation";
+  if (modeEnv !== "implementation" && modeEnv !== "review") {
+    console.error(`Error: Invalid MODE "${modeEnv}". Must be "implementation" or "review".`);
     process.exit(1);
   }
-  return parsedArgs;
-}
-function printUsage() {
-  console.error(`
-Usage: opencode-agent-runner.ts --cwd <path> [options]
-
-Arguments:
-  --cwd <path>              Working directory for the agent (required)
-  --model <modelName>       Model to use (default: claude-opus-4-5)
-  --mode <mode>             Execution mode: implementation or review (default: implementation)
-  -h, --help                Show this help message
-
-Input:
-  Reads prompt from stdin (supports multiline prompts)
-
-Output:
-  - stdout: Final result JSON with response text
-  - stderr: Progress logs and error messages
-
-Examples:
-  # Implementation mode
-  echo "What is 2+2?" | opencode-agent-runner.ts --cwd /tmp --mode implementation
-
-  # Review mode with structured output
-  echo "Review these implementations" | opencode-agent-runner.ts --cwd /tmp --mode review
-
-  # Custom model
-  echo "Analyze this code" | opencode-agent-runner.ts --cwd /tmp --model claude-sonnet-4-5
-
-Environment Variables:
-  ANTHROPIC_OAUTH_ACCESS    OAuth access token (preferred)
-  ANTHROPIC_OAUTH_REFRESH   OAuth refresh token (with access token)
-  ANTHROPIC_OAUTH_EXPIRES   OAuth token expiry (with access token)
-  ANTHROPIC_API_KEY         API key (fallback)
-  CLAUDE_CODE_OAUTH_TOKEN   API key (fallback)
-  LINEAR_API_KEY            Linear API key (optional, enables Linear MCP)
-`);
+  return {
+    cwd,
+    model,
+    mode: modeEnv
+  };
 }
 async function readStdin() {
   return new Promise((resolve, reject) => {
@@ -10740,14 +10677,14 @@ function checkAuthentication() {
   };
 }
 async function main() {
-  const args = parseArgs();
+  const config = getConfig();
   console.error("");
   console.error("=".repeat(60));
   console.error("OpenCode Agent Runner");
   console.error("=".repeat(60));
-  console.error(`CWD: ${args.cwd}`);
-  console.error(`Model: ${args.model}`);
-  console.error(`Mode: ${args.mode}`);
+  console.error(`CWD: ${config.cwd}`);
+  console.error(`Model: ${config.model}`);
+  console.error(`Mode: ${config.mode}`);
   console.error("");
   console.error("Running pre-flight checks...");
   const authValidation = checkAuthentication();
@@ -10758,10 +10695,10 @@ async function main() {
     console.error("=".repeat(60));
     process.exit(1);
   }
-  if (existsSync(args.cwd)) {
+  if (existsSync(config.cwd)) {
     console.error(`✓ Working directory exists`);
   } else {
-    console.error(`❌ Working directory does not exist: ${args.cwd}`);
+    console.error(`❌ Working directory does not exist: ${config.cwd}`);
     console.error("=".repeat(60));
     process.exit(1);
   }
@@ -10785,7 +10722,7 @@ async function main() {
     console.error(`⚠️  LINEAR_API_KEY not found - Linear MCP disabled`);
     console.error(`   Set LINEAR_API_KEY to enable Linear issue fetching`);
   }
-  const agentTools = args.mode === "implementation" ? {
+  const agentTools = config.mode === "implementation" ? {
     write: true,
     edit: true,
     bash: true,
@@ -10801,35 +10738,35 @@ async function main() {
     grep: true,
     webfetch: true
   };
-  const agentPermissions = args.mode === "implementation" ? {
+  const agentPermissions = config.mode === "implementation" ? {
     edit: "allow",
     bash: "allow",
     webfetch: "allow"
   } : {
     webfetch: "allow"
   };
-  const finalPrompt = args.mode === "review" ? `${prompt}
+  const finalPrompt = config.mode === "review" ? `${prompt}
 
 IMPORTANT: You MUST respond with valid JSON matching this schema:
 ${JSON.stringify(REVIEW_DECISION_SCHEMA, null, 2)}
 
 Do not include any text outside the JSON object.` : prompt;
   const provider = "anthropic";
-  const agentName = args.mode === "review" ? "review-agent" : "implementation-agent";
-  const agentDescription = args.mode === "review" ? "Reviews multiple implementations and selects the best one" : "Implements features and fixes bugs";
+  const agentName = config.mode === "review" ? "review-agent" : "implementation-agent";
+  const agentDescription = config.mode === "review" ? "Reviews multiple implementations and selects the best one" : "Implements features and fixes bugs";
   try {
     if (logger) {
       await logger.startSession({
         id: crypto.randomUUID(),
-        agentType: args.mode === "review" ? "review" : "implementation",
-        model: args.model,
+        agentType: config.mode === "review" ? "review" : "implementation",
+        model: config.model,
         provider
       });
     }
     console.error("");
     const { client: client3, server: server2 } = await createOpencodeServer2({
       provider,
-      model: args.model,
+      model: config.model,
       agentName,
       agentDescription,
       agentPrompt: finalPrompt,
@@ -10849,14 +10786,14 @@ Do not include any text outside the JSON object.` : prompt;
     }
     const session = sessionResponse.data;
     console.error(`✓ Session created: ${session.id}`);
-    process.chdir(args.cwd);
-    console.error(`✓ Changed to working directory: ${args.cwd}`);
+    process.chdir(config.cwd);
+    console.error(`✓ Changed to working directory: ${config.cwd}`);
     console.error("Sending prompt to agent...");
     console.error("");
     const promptResponse = await client3.session.prompt({
       path: { id: session.id },
       body: {
-        model: { providerID: provider, modelID: args.model },
+        model: { providerID: provider, modelID: config.model },
         agent: agentName,
         parts: [{ type: "text", text: finalPrompt }]
       }
@@ -10882,7 +10819,7 @@ Do not include any text outside the JSON object.` : prompt;
       type: "result",
       subtype: "success",
       response: resultText,
-      mode: args.mode
+      mode: config.mode
     };
     console.log(JSON.stringify(result, null, 2));
     console.error("");
