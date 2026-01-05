@@ -1,30 +1,32 @@
 # Session Context: claude-parallel
 
 **Date**: January 5, 2026
-**Status**: Agent-core workspace package extraction complete
+**Status**: Agent consolidation complete - single entry point with opencode.json config
 
 ---
 
 ## Current State
 
-**Latest Work**: Extracted agent logic to @swellai/agent-core workspace package (Session 22)
+**Latest Work**: Consolidated all agents into single entry point (Session 23)
 **Repository**: Working on branch `refactor/simplify`
 **Latest Commits**:
+- `61b8026` - Consolidate agents into single entry point with opencode.json config
 - `03ad4e2` - Extract agent logic to @swellai/agent-core workspace package
 
 **Recent Accomplishments**:
-- Created `packages/agent-core/` workspace package with all core lib files
-- Added unified `scripts/run-agent.ts` wrapper for implementation and review modes
-- Updated workflows to use `run-agent.ts` instead of separate agent scripts
-- Removed redundant files (~13k lines removed)
-- Updated planning-agent.ts and linear-agent.ts to import from @swellai/agent-core
-- Version bumped to 2.0.0 for structural changes
+- Created `opencode.json` with declarative agent definitions (planning, linear, implementation, review)
+- Created `src/agent.ts` as unified CLI entry point using AGENT env var
+- Added `src/lib/input.ts` for agent-specific input assembly from env vars
+- Added `src/lib/auth.ts` with simplified OAuth/API key authentication
+- Updated GitHub workflows to use new `AGENT=<name>` pattern
+- Removed old agent files: planning-agent.ts, linear-agent.ts, run-agent.ts
 - All type checks passing, builds successful
 
 ---
 
 ## Recent Sessions
 
+*Session 23 (Jan 5, 2026) - Agent Consolidation*
 *Session 22 (Jan 5, 2026) - Agent-Core Package Extraction*
 *Session 21 (Jan 4, 2026) - OpenCode SDK Migration*
 *Session 20 (Jan 4, 2026) - Server-Inherited Authentication Refactor + Live Tool Call Logging*
@@ -55,8 +57,8 @@ Sessions 1-13 have been archived. Key milestones:
 
 1. Merge `refactor/simplify` branch to main
 2. Publish npm v2.0.0 with 2FA
-3. Test the refactored workflows with real Linear issues
-4. Update README.md to document new package structure
+3. Test the consolidated agent with real Linear issues
+4. Update README.md to document new usage: `AGENT=<name> bun run src/agent.ts`
 5. Consider publishing @swellai/agent-core to npm separately
 
 ---
@@ -75,6 +77,47 @@ Sessions 1-13 have been archived. Key milestones:
 ---
 
 ## Notes
+
+### Session 23 Accomplishments (Jan 5, 2026)
+
+**Agent Consolidation**
+
+Consolidated three separate agent entry points into a single unified system with declarative configuration.
+
+**Files Created**:
+- `opencode.json` - Declarative agent definitions with tools, permissions, providers, Linear MCP
+- `src/agent.ts` - Unified CLI entry point (AGENT env var selects agent type)
+- `src/lib/input.ts` - Agent-specific input assembly from environment variables
+- `src/lib/auth.ts` - Simplified OAuth/API key authentication for all providers
+
+**Files Deleted**:
+- `src/agents/planning-agent.ts` - Replaced by unified agent.ts
+- `src/agents/linear-agent.ts` - Replaced by unified agent.ts
+- `scripts/run-agent.ts` - Replaced by unified agent.ts
+- `src/agents/` directory - No longer needed
+
+**Files Modified**:
+- `.github/workflows/claude-implement.yml` - Uses `AGENT=<name> bun run src/agent.ts`
+- `.github/workflows/multi-provider-plan-v2.yml` - Uses `AGENT=<name> bun run src/agent.ts`
+
+**New Usage Pattern**:
+```bash
+AGENT=planning bun run src/agent.ts "Add user authentication"
+AGENT=linear bun run src/agent.ts
+AGENT=implementation bun run src/agent.ts "Implement the feature"
+AGENT=review bun run src/agent.ts
+```
+
+**Benefits**:
+- Single source of truth in opencode.json
+- Extensibility - add new agents by editing JSON
+- OpenCode native config pattern
+- Simpler maintenance - one entry point
+- Declarative tools/permissions configuration
+
+**Build Status**: All type checks passing, builds successful
+
+---
 
 ### Session 22 Accomplishments (Jan 5, 2026)
 
