@@ -163,3 +163,4 @@ The multi-provider plan workflow uses the API key with the OpenCode SDK's Linear
 - You the available LSP server to check for type errors and warnings. 
 - Prefer ast-grep over grep for code search and understanding
 - No emojies
+- Use rg to identify candidate files quickly, then use ast-grep to do the correct structural match + safe rewrite
