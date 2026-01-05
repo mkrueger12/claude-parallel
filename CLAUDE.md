@@ -43,11 +43,17 @@ bun run src/agents/linear-agent.ts  # Requires environment variables
 All local scripts use the OpenCode SDK (@opencode-ai/sdk) for AI interactions. Make sure you have Bun installed.
 
 ```bash
-# Set environment variables (or use .env file)
-# For Claude authentication, use the preferred method:
-export CLAUDE_CODE_OAUTH_TOKEN="..."  # Preferred for local runs
+# Authentication (choose one method):
+
+# Option 1: OAuth credentials (preferred)
+export ANTHROPIC_OAUTH_ACCESS="..."   # OAuth access token
+export ANTHROPIC_OAUTH_REFRESH="..."  # OAuth refresh token
+export ANTHROPIC_OAUTH_EXPIRES="..."  # Expiration timestamp (ms)
+
+# Option 2: API key (fallback)
+export ANTHROPIC_API_KEY="..."        # Anthropic API key
 # OR
-export ANTHROPIC_API_KEY="..."        # Fallback option
+export CLAUDE_CODE_OAUTH_TOKEN="..."  # Alternative API key env var
 
 # For multi-provider planning, you'll also need:
 export OPENAI_API_KEY="..."
@@ -68,26 +74,29 @@ export GITHUB_ISSUE_URL="https://github.com/org/repo/issues/123"
 export ISSUE_TITLE="Add user authentication"
 bun run src/agents/linear-agent.ts
 
-# Test local parallel implementation script
-./parallel-impl.sh "Add user authentication"
+# Test opencode-agent-runner (used by GitHub Actions workflows)
+# Uses environment variables: MODEL, MODE
+MODEL=claude-opus-4-5 MODE=implementation echo "Your prompt" | bun run scripts/opencode-agent-runner.ts
+MODEL=claude-opus-4-5 MODE=review echo "Your review prompt" | bun run scripts/opencode-agent-runner.ts
 ```
 
 ## Troubleshooting
 
-### "Required command not found" (Local Shell Script)
+### "Required command not found" (Development)
 
 Install missing dependencies:
 ```bash
-# Install Bun runtime (required for SDK)
+# Install Bun runtime (required for SDK and development)
 curl -fsSL https://bun.sh/install | bash
 # OR
 npm install -g bun
 
+# GitHub CLI (for GitHub integration)
 # Ubuntu/Debian
-sudo apt install gh jq
+sudo apt install gh
 
 # macOS
-brew install gh jq
+brew install gh
 ```
 
 ### "Linear API key is invalid"

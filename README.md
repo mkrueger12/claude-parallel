@@ -356,59 +356,6 @@ To get more diverse plans:
 
 ---
 
-## Local CLI Usage (Alternative)
-
-You can also run implementations locally using the shell script.
-
-### Prerequisites for Local CLI
-
-The local `parallel-impl.sh` script now uses the OpenCode SDK (@opencode-ai/sdk) for AI interactions. You need:
-
-**Required:**
-- **Git** - Version control
-- **Bun runtime** - The SDK and script execution requires Bun (`curl -fsSL https://bun.sh/install | bash` or `npm install -g bun`)
-- **GitHub CLI (gh)** - For creating PRs (`brew install gh` or `sudo apt install gh`)
-- **jq** - JSON parsing utility (`brew install jq` or `sudo apt install jq`)
-
-**Authentication** - Set the following environment variables:
-- **`GH_PAT`** (required) - GitHub Personal Access Token with `repo` scope for creating PRs and pushing branches. [Create one here](https://github.com/settings/tokens)
-- **`CLAUDE_CODE_OAUTH_TOKEN`** (recommended) - OAuth token for Claude Code. Get yours from [claude.ai/settings](https://claude.ai/settings)
-- **`ANTHROPIC_API_KEY`** (fallback) - Anthropic API key from [console.anthropic.com](https://console.anthropic.com)
-
-**Note:** The script uses the OpenCode SDK under the hood to execute AI queries, which provides better integration and features compared to direct CLI calls.
-
-### Installation
-
-```bash
-# Option 1: Add to PATH
-export PATH="$PATH:/path/to/claude-parallel"
-
-# Option 2: Create alias
-alias parallel-impl="/path/to/claude-parallel/parallel-impl.sh"
-```
-
-### Basic Usage
-
-```bash
-./parallel-impl.sh "Add user authentication with JWT tokens"
-```
-
-### From Any Git Repository
-
-```bash
-cd ~/my-project
-/path/to/claude-parallel/parallel-impl.sh "Implement dark mode toggle"
-```
-
-### What Happens
-
-The script will:
-1. Create 3 worktrees in `../parallel-impls/impl-{1,2,3}`
-2. Run Claude Code in each (this may take several minutes)
-3. Review all implementations and select the best
-4. Create a draft PR from the winning branch
-5. Clean up losing worktrees
-
 ## Customizing Prompts
 
 Prompts are stored in `prompts/` directory for easy editing:
@@ -445,25 +392,8 @@ Your task:
 Available placeholders:
 - `{{FEATURE_REQUEST}}` - Your feature request
 - `{{NUM_IMPLEMENTATIONS}}` - Number of parallel implementations (default: 3)
-- `{{WORKTREES_DIR}}` - Path to worktrees directory
 
 ## Configuration
-
-### Change Number of Implementations
-
-Edit `parallel-impl.sh` and modify:
-
-```bash
-NUM_IMPLEMENTATIONS=3  # Change to 2, 4, 5, etc.
-```
-
-### Customize Worktree Location
-
-Edit `parallel-impl.sh` and modify:
-
-```bash
-WORKTREES_DIR="../parallel-impls"  # Change to your preferred location
-```
 
 ### Review Criteria
 
@@ -477,57 +407,6 @@ You can add more criteria like:
 - Security
 - Documentation
 
-## Output
-
-### During Execution
-
-```
-=== Claude Code Parallel Implementation ===
-Feature Request: Add user authentication with JWT tokens
-Creating 3 parallel implementations...
-
-Step 1: Creating git worktrees
-✓ Worktrees created
-
-Step 2: Running Claude Code in parallel
-This may take several minutes...
-  → Implementation 1 starting...
-  → Implementation 2 starting...
-  → Implementation 3 starting...
-  ✓ Implementation 1 complete
-  ✓ Implementation 2 complete
-  ✓ Implementation 3 complete
-
-Step 3: Reviewing implementations
-✓ Review complete
-
-=== Review Results ===
-Winner: Implementation 2
-Quality Score: 92
-Completeness Score: 88
-
-Reasoning:
-Implementation 2 provides the most robust solution...
-
-Step 4: Creating draft PR
-✓ Draft PR created
-https://github.com/user/repo/pull/123
-
-Step 5: Cleanup
-✓ Cleanup complete
-
-=== Done! ===
-Winning implementation: impl-1234567890-2
-Worktree location: ../parallel-impls/impl-2
-```
-
-### Files Created
-
-- `../parallel-impls/impl-{1,2,3}/` - Worktree directories
-- `../parallel-impls/impl-X/result.json` - Claude output for each implementation
-- `review-result.json` - Review decision and reasoning
-- Draft PR on GitHub
-
 ## Troubleshooting
 
 ### "GH_PAT environment variable is not set"
@@ -538,45 +417,6 @@ The `GH_PAT` environment variable is required for GitHub operations:
 # Create a Personal Access Token at https://github.com/settings/tokens
 # Select "repo" scope for full repository access
 export GH_PAT="ghp_your_token_here"
-```
-
-### "Not in a git repository"
-
-Run the script from within a git repository:
-
-```bash
-cd ~/my-project
-/path/to/parallel-impl.sh "feature request"
-```
-
-### "Required command not found"
-
-Install missing dependencies:
-
-```bash
-# Install GitHub CLI
-sudo apt install gh  # or: brew install gh
-
-# Install jq
-sudo apt install jq  # or: brew install jq
-```
-
-### Claude Code fails
-
-Check error logs in each worktree:
-
-```bash
-cat ../parallel-impls/impl-1/error.log
-cat ../parallel-impls/impl-2/error.log
-cat ../parallel-impls/impl-3/error.log
-```
-
-### Review parsing fails
-
-The review output should be pure JSON. If Claude returns markdown or text, edit `prompts/review.md` to emphasize:
-
-```txt
-You MUST respond with ONLY valid JSON (no markdown, no code blocks)
 ```
 
 ### PR creation fails
@@ -611,21 +451,6 @@ Then reference your fork:
 uses: your-org/claude-parallel/.github/workflows/reusable-implement-issue.yml@main
 ```
 
-### Custom Review Logic
-
-For more sophisticated review (e.g., running tests, performance benchmarks), modify the review section in `parallel-impl.sh` or create a custom review script.
-
-### Keeping All Implementations
-
-Comment out the cleanup section in `parallel-impl.sh` to keep all worktrees for manual inspection:
-
-```bash
-# Cleanup non-winning worktrees
-# echo -e "${BLUE}Step 5: Cleanup${NC}"
-# for i in $(seq 1 $NUM_IMPLEMENTATIONS); do
-#   ...
-```
-
 ## Cost Considerations
 
 Running 3 parallel Claude Code instances will use 3x tokens. For a typical feature:
@@ -634,32 +459,6 @@ Running 3 parallel Claude Code instances will use 3x tokens. For a typical featu
 - Review: ~50k tokens
 
 Monitor your usage and adjust `NUM_IMPLEMENTATIONS` accordingly.
-
-## Examples
-
-### Add a new feature
-
-```bash
-./parallel-impl.sh "Add rate limiting middleware to API endpoints"
-```
-
-### Fix a bug
-
-```bash
-./parallel-impl.sh "Fix memory leak in WebSocket connection handler"
-```
-
-### Refactor code
-
-```bash
-./parallel-impl.sh "Refactor authentication logic to use OAuth 2.0"
-```
-
-### Add tests
-
-```bash
-./parallel-impl.sh "Add comprehensive unit tests for user service"
-```
 
 ## Features
 
