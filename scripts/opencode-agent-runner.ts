@@ -268,7 +268,6 @@ async function main() {
       agentPrompt: finalPrompt,
       agentTools,
       agentPermissions,
-      maxSteps: 30,
       linearApiKey,
     });
 
