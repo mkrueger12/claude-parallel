@@ -1,0 +1,321 @@
+name: Multi-Provider Plan Generation (v2 - Parallel Jobs)
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to generate plan for'
+        required: true
+        type: number
+      linear_project_id:
+        description: 'Linear project ID to add issues to (optional)'
+        required: false
+        type: string
+      run_anthropic:
+        description: 'Run Anthropic Claude provider'
+        required: false
+        type: boolean
+        default: true
+      run_openai:
+        description: 'Run OpenAI GPT provider'
+        required: false
+        type: boolean
+        default: true
+      run_google:
+        description: 'Run Google Gemini provider'
+        required: false
+        type: boolean
+        default: true
+      anthropic_model:
+        description: 'Anthropic model to use'
+        required: false
+        type: string
+        default: 'claude-opus-4-5'
+      openai_model:
+        description: 'OpenAI model to use'
+        required: false
+        type: string
+        default: 'gpt-5.2-pro'
+      google_model:
+        description: 'Google model to use'
+        required: false
+        type: string
+        default: 'gemini-2.5-pro'
+
+jobs:
+  # Get issue details once and share with all jobs
+  get-issue:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && contains(github.event.issue.labels.*.name, 'claude-plan-v2'))
+    runs-on: ubuntu-latest
+    outputs:
+      number: ${{ steps.issue.outputs.number }}
+      title: ${{ steps.issue.outputs.title }}
+      body: ${{ steps.body.outputs.content }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.GH_PAT }}" ]; then
+            echo "ERROR: GH_PAT secret is not set"
+            echo "Please add GH_PAT to your repository secrets"
+            exit 1
+          fi
+
+      - name: Get issue details
+        id: issue
+        uses: ./.github/actions/get-issue-details
+        with:
+          issue_number: ${{ github.event_name == 'workflow_dispatch' && inputs.issue_number || github.event.issue.number }}
+          github_token: ${{ secrets.GH_PAT }}
+          event_name: ${{ github.event_name }}
+          event_issue_number: ${{ github.event.issue.number || '' }}
+
+      - name: Read issue body
+        id: body
+        run: |
+          BODY=$(cat ${{ steps.issue.outputs.body_file }})
+          # Use multiline output format for GitHub Actions
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  # Generate plan from Anthropic Claude
+  generate-plan-anthropic:
+    needs: get-issue
+    if: github.event_name == 'issues' || inputs.run_anthropic
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.generate.outputs.plan }}
+      success: ${{ steps.generate.outputs.success }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          bun install -g opencode-ai@latest
+          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
+      - name: Generate plan
+        id: generate
+        env:
+          PROVIDER: anthropic
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.anthropic_model || 'claude-opus-4-5' }}
+          ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
+          ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: |
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
+          set +e
+          PLAN=$(.github/claude-parallel/scripts/planning-agent.js "$ISSUE_TITLE: $ISSUE_BODY")
+          EXIT_CODE=$?
+          set -e
+
+          # Check if generation was successful
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Error: Plan generation failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
+
+  # Generate plan from OpenAI GPT
+  generate-plan-openai:
+    needs: get-issue
+    if: github.event_name == 'issues' || inputs.run_openai
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.generate.outputs.plan }}
+      success: ${{ steps.generate.outputs.success }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          bun install -g opencode-ai@latest
+          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
+      - name: Generate plan
+        id: generate
+        env:
+          PROVIDER: openai
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.openai_model || 'gpt-5.2-pro' }}
+          ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
+          ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: |
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
+          set +e
+          PLAN=$(.github/claude-parallel/scripts/planning-agent.js "$ISSUE_TITLE: $ISSUE_BODY")
+          EXIT_CODE=$?
+          set -e
+
+          # Check if generation was successful
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Error: Plan generation failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
+
+  # Generate plan from Google Gemini
+  generate-plan-google:
+    needs: get-issue
+    if: github.event_name == 'issues' || inputs.run_google
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.generate.outputs.plan }}
+      success: ${{ steps.generate.outputs.success }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          bun install -g opencode-ai@latest
+          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
+      - name: Generate plan
+        id: generate
+        env:
+          PROVIDER: google
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          MODEL: ${{ github.event_name == 'workflow_dispatch' && inputs.google_model || 'gemini-2.5-pro' }}
+          ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
+          ISSUE_BODY: ${{ needs.get-issue.outputs.body }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: |
+          # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
+          set +e
+          PLAN=$(.github/claude-parallel/scripts/planning-agent.js "$ISSUE_TITLE: $ISSUE_BODY")
+          EXIT_CODE=$?
+          set -e
+
+          # Check if generation was successful
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Error: Plan generation failed with exit code $EXIT_CODE"
+            exit $EXIT_CODE
+          fi
+
+          # Use multiline output format
+          echo "plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "success=true" >> $GITHUB_OUTPUT
+
+  # Consolidate all plans and create Linear issues
+  consolidate-and-create-linear:
+    needs: [get-issue, generate-plan-anthropic, generate-plan-openai, generate-plan-google]
+    if: |
+      always() &&
+      (needs.generate-plan-anthropic.result == 'success' ||
+       needs.generate-plan-openai.result == 'success' ||
+       needs.generate-plan-google.result == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install OpenCode CLI
+        run: |
+          echo "Installing OpenCode CLI..."
+          bun install -g opencode-ai@latest
+          echo "OpenCode CLI installed: $(opencode --version || echo 'version check not supported')"
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install ast-grep
+        run: |
+          bun install -g @ast-grep/cli
+          bun pm -g trust @ast-grep/cli
+          ast-grep --version
+
+      - name: Consolidate plans and create Linear issues
+        id: consolidate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
+          LINEAR_PROJECT_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.linear_project_id || secrets.LINEAR_PROJECT_ID }}
+          GITHUB_ISSUE_URL: ${{ github.event.repository.html_url }}/issues/${{ needs.get-issue.outputs.number }}
+          ISSUE_TITLE: ${{ needs.get-issue.outputs.title }}
+          ANTHROPIC_PLAN: ${{ needs.generate-plan-anthropic.result == 'success' && needs.generate-plan-anthropic.outputs.plan || '' }}
+          OPENAI_PLAN: ${{ needs.generate-plan-openai.result == 'success' && needs.generate-plan-openai.outputs.plan || '' }}
+          GOOGLE_PLAN: ${{ needs.generate-plan-google.result == 'success' && needs.generate-plan-google.outputs.plan || '' }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+        run: |
+          # Run linear agent for consolidation and Linear issue creation
+          .github/claude-parallel/scripts/linear-agent.js

@@ -203,7 +203,7 @@ jobs:
           set +e
           MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
           MODE="implementation" \
-          echo "$IMPL_PROMPT" | bun run scripts/opencode-agent-runner.ts \
+          echo "$IMPL_PROMPT" | bun run scripts/run-agent.ts \
             > result.json 2> >(tee error.log >&2)
           RUNNER_EXIT=$?
           set -e
@@ -348,7 +348,7 @@ jobs:
           # Use tee to show stderr live in console AND capture to file
           MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
           MODE="review" \
-          echo "$REVIEW_PROMPT" | bun run scripts/opencode-agent-runner.ts \
+          echo "$REVIEW_PROMPT" | bun run scripts/run-agent.ts \
             > review-result.json 2> >(tee review-error.log >&2) || true
 
           cat review-result.json
@@ -757,7 +757,7 @@ jobs:
           # Use tee to show stderr live in console AND capture to file
           MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
           MODE="implementation" \
-          echo "$VERIFY_PROMPT" | bun run scripts/opencode-agent-runner.ts \
+          echo "$VERIFY_PROMPT" | bun run scripts/run-agent.ts \
             > verify-result.json 2> >(tee verify-error.log >&2) || true
 
           cat verify-result.json

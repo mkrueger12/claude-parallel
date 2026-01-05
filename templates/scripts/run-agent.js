@@ -29,7 +29,7 @@ var __export = (target, all) => {
 var __esm = (fn, res) => () => (fn && (res = fn(fn = 0)), res);
 var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
-// node_modules/@libsql/core/lib-esm/api.js
+// node_modules/.bun/@libsql+core@0.15.15/node_modules/@libsql/core/lib-esm/api.js
 var LibsqlError;
 var init_api = __esm(() => {
   LibsqlError = class LibsqlError extends Error {
@@ -47,7 +47,7 @@ var init_api = __esm(() => {
   };
 });
 
-// node_modules/@libsql/core/lib-esm/uri.js
+// node_modules/.bun/@libsql+core@0.15.15/node_modules/@libsql/core/lib-esm/uri.js
 function parseUri(text) {
   const match = URI_RE.exec(text);
   if (match === null) {
@@ -154,7 +154,7 @@ var init_uri = __esm(() => {
   })();
 });
 
-// node_modules/js-base64/base64.mjs
+// node_modules/.bun/js-base64@3.7.8/node_modules/js-base64/base64.mjs
 var version = "3.7.8", VERSION, _hasBuffer, _TD, _TE, b64ch = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=", b64chs, b64tab, b64re, _fromCC, _U8Afrom, _mkUriSafe = (src) => src.replace(/=/g, "").replace(/[+\/]/g, (m0) => m0 == "+" ? "-" : "_"), _tidyB64 = (s) => s.replace(/[^A-Za-z0-9\+\/]/g, ""), btoaPolyfill = (bin) => {
   let u32, c0, c1, c2, asc = "";
   const pad = bin.length % 3;
@@ -298,7 +298,7 @@ var init_base64 = __esm(() => {
   };
 });
 
-// node_modules/@libsql/core/lib-esm/util.js
+// node_modules/.bun/@libsql+core@0.15.15/node_modules/@libsql/core/lib-esm/util.js
 function transactionModeToBegin(mode) {
   if (mode === "write") {
     return "BEGIN IMMEDIATE";
@@ -351,7 +351,7 @@ var init_util = __esm(() => {
   init_base64();
 });
 
-// node_modules/@libsql/core/lib-esm/config.js
+// node_modules/.bun/@libsql+core@0.15.15/node_modules/@libsql/core/lib-esm/config.js
 function isInMemoryConfig(config) {
   return config.scheme === "file" && (config.path === ":memory:" || config.path.startsWith(":memory:?"));
 }
@@ -469,7 +469,7 @@ var init_config = __esm(() => {
   init_util();
 });
 
-// node_modules/@neon-rs/load/dist/index.js
+// node_modules/.bun/@neon-rs+load@0.0.4/node_modules/@neon-rs/load/dist/index.js
 var require_dist = __commonJS((exports) => {
   var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
     if (k2 === undefined)
@@ -577,7 +577,7 @@ var require_dist = __commonJS((exports) => {
   exports.load = load;
 });
 
-// node_modules/detect-libc/lib/process.js
+// node_modules/.bun/detect-libc@2.0.2/node_modules/detect-libc/lib/process.js
 var require_process = __commonJS((exports, module) => {
   var isLinux = () => process.platform === "linux";
   var report = null;
@@ -590,7 +590,7 @@ var require_process = __commonJS((exports, module) => {
   module.exports = { isLinux, getReport };
 });
 
-// node_modules/detect-libc/lib/filesystem.js
+// node_modules/.bun/detect-libc@2.0.2/node_modules/detect-libc/lib/filesystem.js
 var require_filesystem = __commonJS((exports, module) => {
   var fs = __require("fs");
   var LDD_PATH = "/usr/bin/ldd";
@@ -611,7 +611,7 @@ var require_filesystem = __commonJS((exports, module) => {
   };
 });
 
-// node_modules/detect-libc/lib/detect-libc.js
+// node_modules/.bun/detect-libc@2.0.2/node_modules/detect-libc/lib/detect-libc.js
 var require_detect_libc = __commonJS((exports, module) => {
   var childProcess = __require("child_process");
   var { isLinux, getReport } = require_process();
@@ -816,7 +816,7 @@ var require_detect_libc = __commonJS((exports, module) => {
   };
 });
 
-// node_modules/libsql/auth.js
+// node_modules/.bun/libsql@0.5.22/node_modules/libsql/auth.js
 var require_auth = __commonJS((exports, module) => {
   var Authorization = {
     ALLOW: 0,
@@ -825,7 +825,7 @@ var require_auth = __commonJS((exports, module) => {
   module.exports = Authorization;
 });
 
-// node_modules/libsql/sqlite-error.js
+// node_modules/.bun/libsql@0.5.22/node_modules/libsql/sqlite-error.js
 var require_sqlite_error = __commonJS((exports, module) => {
   var descriptor = { value: "SqliteError", writable: true, enumerable: false, configurable: true };
   function SqliteError(message, code, rawCode) {
@@ -848,9 +848,9 @@ var require_sqlite_error = __commonJS((exports, module) => {
   module.exports = SqliteError;
 });
 
-// node_modules/libsql/index.js
+// node_modules/.bun/libsql@0.5.22/node_modules/libsql/index.js
 var require_libsql = __commonJS((exports, module) => {
-  var __dirname = "/home/max/workspace/code/claude-parallel/node_modules/libsql";
+  var __dirname = "/home/max/workspace/code/claude-parallel/node_modules/.bun/libsql@0.5.22/node_modules/libsql";
   var { load, currentTarget } = require_dist();
   var { familySync, GLIBC, MUSL } = require_detect_libc();
   function requireNative() {
@@ -1171,7 +1171,7 @@ var require_libsql = __commonJS((exports, module) => {
   module.exports.SqliteError = SqliteError;
 });
 
-// node_modules/@libsql/client/lib-esm/sqlite3.js
+// node_modules/.bun/@libsql+client@0.15.15/node_modules/@libsql/client/lib-esm/sqlite3.js
 import { Buffer as Buffer2 } from "node:buffer";
 function _createClient(config) {
   if (config.scheme !== "file") {
@@ -1528,7 +1528,7 @@ var init_sqlite3 = __esm(() => {
   minInteger = -9223372036854775808n;
 });
 
-// node_modules/ws/lib/constants.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/constants.js
 var require_constants = __commonJS((exports, module) => {
   var BINARY_TYPES = ["nodebuffer", "arraybuffer", "fragments"];
   var hasBlob = typeof Blob !== "undefined";
@@ -1547,7 +1547,7 @@ var require_constants = __commonJS((exports, module) => {
   };
 });
 
-// node_modules/ws/lib/buffer-util.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/buffer-util.js
 var require_buffer_util = __commonJS((exports, module) => {
   var { EMPTY_BUFFER } = require_constants();
   var FastBuffer = Buffer[Symbol.species];
@@ -1625,7 +1625,7 @@ var require_buffer_util = __commonJS((exports, module) => {
   }
 });
 
-// node_modules/ws/lib/limiter.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/limiter.js
 var require_limiter = __commonJS((exports, module) => {
   var kDone = Symbol("kDone");
   var kRun = Symbol("kRun");
@@ -1657,7 +1657,7 @@ var require_limiter = __commonJS((exports, module) => {
   module.exports = Limiter;
 });
 
-// node_modules/ws/lib/permessage-deflate.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/permessage-deflate.js
 var require_permessage_deflate = __commonJS((exports, module) => {
   var zlib = __require("zlib");
   var bufferUtil = require_buffer_util();
@@ -1921,7 +1921,7 @@ var require_permessage_deflate = __commonJS((exports, module) => {
   }
 });
 
-// node_modules/ws/lib/validation.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/validation.js
 var require_validation = __commonJS((exports, module) => {
   var { isUtf8 } = __require("buffer");
   var { hasBlob } = require_constants();
@@ -2108,7 +2108,7 @@ var require_validation = __commonJS((exports, module) => {
   }
 });
 
-// node_modules/ws/lib/receiver.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/receiver.js
 var require_receiver = __commonJS((exports, module) => {
   var { Writable } = __require("stream");
   var PerMessageDeflate = require_permessage_deflate();
@@ -2489,7 +2489,7 @@ var require_receiver = __commonJS((exports, module) => {
   module.exports = Receiver;
 });
 
-// node_modules/ws/lib/sender.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/sender.js
 var require_sender = __commonJS((exports, module) => {
   var { Duplex } = __require("stream");
   var { randomFillSync } = __require("crypto");
@@ -2843,7 +2843,7 @@ var require_sender = __commonJS((exports, module) => {
   }
 });
 
-// node_modules/ws/lib/event-target.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/event-target.js
 var require_event_target = __commonJS((exports, module) => {
   var { kForOnEventAttribute, kListener } = require_constants();
   var kCode = Symbol("kCode");
@@ -2994,7 +2994,7 @@ var require_event_target = __commonJS((exports, module) => {
   }
 });
 
-// node_modules/ws/lib/extension.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/extension.js
 var require_extension = __commonJS((exports, module) => {
   var { tokenChars } = require_validation();
   function push(dest, name, elem) {
@@ -3159,7 +3159,7 @@ var require_extension = __commonJS((exports, module) => {
   module.exports = { format, parse };
 });
 
-// node_modules/ws/lib/websocket.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/websocket.js
 var require_websocket = __commonJS((exports, module) => {
   var EventEmitter = __require("events");
   var https = __require("https");
@@ -3918,7 +3918,7 @@ var require_websocket = __commonJS((exports, module) => {
   }
 });
 
-// node_modules/ws/lib/stream.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/stream.js
 var require_stream = __commonJS((exports, module) => {
   var WebSocket = require_websocket();
   var { Duplex } = __require("stream");
@@ -4021,7 +4021,7 @@ var require_stream = __commonJS((exports, module) => {
   module.exports = createWebSocketStream;
 });
 
-// node_modules/ws/lib/subprotocol.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/subprotocol.js
 var require_subprotocol = __commonJS((exports, module) => {
   var { tokenChars } = require_validation();
   function parse(header) {
@@ -4066,7 +4066,7 @@ var require_subprotocol = __commonJS((exports, module) => {
   module.exports = { parse };
 });
 
-// node_modules/ws/lib/websocket-server.js
+// node_modules/.bun/ws@8.18.3/node_modules/ws/lib/websocket-server.js
 var require_websocket_server = __commonJS((exports, module) => {
   var EventEmitter = __require("events");
   var http = __require("http");
@@ -4367,7 +4367,7 @@ var require_websocket_server = __commonJS((exports, module) => {
   }
 });
 
-// node_modules/ws/wrapper.mjs
+// node_modules/.bun/ws@8.18.3/node_modules/ws/wrapper.mjs
 var import_stream, import_receiver, import_sender, import_websocket, import_websocket_server;
 var init_wrapper = __esm(() => {
   import_stream = __toESM(require_stream(), 1);
@@ -4377,12 +4377,12 @@ var init_wrapper = __esm(() => {
   import_websocket_server = __toESM(require_websocket_server(), 1);
 });
 
-// node_modules/@libsql/isomorphic-ws/node.mjs
+// node_modules/.bun/@libsql+isomorphic-ws@0.1.5/node_modules/@libsql/isomorphic-ws/node.mjs
 var init_node = __esm(() => {
   init_wrapper();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/client.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/client.js
 class Client {
   constructor() {
     this.intMode = "number";
@@ -4390,7 +4390,7 @@ class Client {
   intMode;
 }
 
-// node_modules/@libsql/hrana-client/lib-esm/errors.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/errors.js
 var ClientError, ProtoError, ResponseError, ClosedError, WebSocketUnsupportedError, WebSocketError, HttpServerError, ProtocolVersionError, InternalError, MisuseError;
 var init_errors = __esm(() => {
   ClientError = class ClientError extends Error {
@@ -4467,7 +4467,7 @@ var init_errors = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/encoding/json/decode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/encoding/json/decode.js
 function string(value) {
   if (typeof value === "string") {
     return value;
@@ -4528,7 +4528,7 @@ var init_decode = __esm(() => {
   init_errors();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/encoding/json/encode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/encoding/json/encode.js
 class ObjectWriter {
   #output;
   #isFirst;
@@ -4601,10 +4601,10 @@ function writeJsonObject(value, fun) {
   return output.join("");
 }
 
-// node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/util.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/util.js
 var VARINT = 0, FIXED_64 = 1, LENGTH_DELIMITED = 2, FIXED_32 = 5;
 
-// node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/decode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/decode.js
 class MessageReader {
   #array;
   #view;
@@ -4753,7 +4753,7 @@ var init_decode2 = __esm(() => {
   init_errors();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/encode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/encoding/protobuf/encode.js
 class MessageWriter {
   #buf;
   #array;
@@ -4850,14 +4850,14 @@ function writeProtobufMessage(value, fun) {
 }
 var init_encode = () => {};
 
-// node_modules/@libsql/hrana-client/lib-esm/encoding/index.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/encoding/index.js
 var init_encoding = __esm(() => {
   init_decode();
   init_decode2();
   init_encode();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/id_alloc.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/id_alloc.js
 class IdAlloc {
   #usedIds;
   #freeIds;
@@ -4892,7 +4892,7 @@ var init_id_alloc = __esm(() => {
   init_errors();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/util.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/util.js
 function impossible(value, message) {
   throw new InternalError(message);
 }
@@ -4900,7 +4900,7 @@ var init_util2 = __esm(() => {
   init_errors();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/value.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/value.js
 function valueToProto(value) {
   if (value === null) {
     return null;
@@ -4966,7 +4966,7 @@ var init_value = __esm(() => {
   minInteger2 = -9223372036854775808n;
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/result.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/result.js
 function stmtResultFromProto(result) {
   return {
     affectedRowCount: result.affectedRowCount,
@@ -5017,7 +5017,7 @@ var init_result = __esm(() => {
   init_value();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/sql.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/sql.js
 class Sql {
   #owner;
   #sqlId;
@@ -5059,7 +5059,7 @@ var init_sql = __esm(() => {
   init_errors();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/queue.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/queue.js
 class Queue {
   #pushStack;
   #shiftStack;
@@ -5085,7 +5085,7 @@ class Queue {
   }
 }
 
-// node_modules/@libsql/hrana-client/lib-esm/stmt.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/stmt.js
 class Stmt {
   sql;
   _args;
@@ -5152,7 +5152,7 @@ var init_stmt = __esm(() => {
   init_value();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/batch.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/batch.js
 class Batch {
   _stream;
   #useCursor;
@@ -5376,7 +5376,7 @@ var init_batch = __esm(() => {
   init_util2();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/describe.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/describe.js
 function describeResultFromProto(result) {
   return {
     paramNames: result.params.map((p) => p.name),
@@ -5386,7 +5386,7 @@ function describeResultFromProto(result) {
   };
 }
 
-// node_modules/@libsql/hrana-client/lib-esm/stream.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/stream.js
 class Stream {
   constructor(intMode) {
     this.intMode = intMode;
@@ -5427,11 +5427,11 @@ var init_stream = __esm(() => {
   init_stmt();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/cursor.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/cursor.js
 class Cursor {
 }
 
-// node_modules/@libsql/hrana-client/lib-esm/ws/cursor.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/ws/cursor.js
 var fetchChunkSize = 1000, fetchQueueSize = 10, WsCursor;
 var init_cursor = __esm(() => {
   init_errors();
@@ -5508,7 +5508,7 @@ var init_cursor = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/ws/stream.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/ws/stream.js
 var WsStream;
 var init_stream2 = __esm(() => {
   init_errors();
@@ -5705,7 +5705,7 @@ var init_stream2 = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/shared/json_encode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/shared/json_encode.js
 function Stmt2(w, msg) {
   if (msg.sql !== undefined) {
     w.string("sql", msg.sql);
@@ -5766,7 +5766,7 @@ var init_json_encode = __esm(() => {
   init_util2();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/ws/json_encode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/ws/json_encode.js
 function ClientMsg(w, msg) {
   w.stringRaw("type", msg.type);
   if (msg.type === "hello") {
@@ -5833,7 +5833,7 @@ var init_json_encode2 = __esm(() => {
   init_util2();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/shared/protobuf_encode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/shared/protobuf_encode.js
 function Stmt3(w, msg) {
   if (msg.sql !== undefined) {
     w.string(1, msg.sql);
@@ -5906,7 +5906,7 @@ var init_protobuf_encode = __esm(() => {
   init_util2();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/ws/protobuf_encode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/ws/protobuf_encode.js
 function ClientMsg2(w, msg) {
   if (msg.type === "hello") {
     w.message(1, msg, HelloMsg);
@@ -6011,7 +6011,7 @@ var init_protobuf_encode2 = __esm(() => {
   init_util2();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/shared/json_decode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/shared/json_decode.js
 function Error2(obj) {
   const message = string(obj["message"]);
   const code = stringOpt(obj["code"]);
@@ -6109,7 +6109,7 @@ var init_json_decode = __esm(() => {
   init_decode();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/ws/json_decode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/ws/json_decode.js
 function ServerMsg(obj) {
   const type = string(obj["type"]);
   if (type === "hello_ok") {
@@ -6171,7 +6171,7 @@ var init_json_decode2 = __esm(() => {
   init_json_decode();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/shared/protobuf_decode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/shared/protobuf_decode.js
 var Error3, StmtResult2, Col2, Row, BatchResult2, BatchResultStepResult, BatchResultStepError, CursorEntry2, StepBeginEntry, StepEndEntry, StepErrorEntry, DescribeResult2, DescribeParam2, DescribeCol2, Value4;
 var init_protobuf_decode = __esm(() => {
   Error3 = {
@@ -6385,7 +6385,7 @@ var init_protobuf_decode = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/ws/protobuf_decode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/ws/protobuf_decode.js
 var ServerMsg2, HelloErrorMsg, ResponseErrorMsg, ResponseOkMsg, ExecuteResp, BatchResp, FetchCursorResp, DescribeResp, GetAutocommitResp;
 var init_protobuf_decode2 = __esm(() => {
   init_protobuf_decode();
@@ -6518,7 +6518,7 @@ var init_protobuf_decode2 = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/ws/client.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/ws/client.js
 var subprotocolsV2, subprotocolsV3, WsClient;
 var init_client = __esm(() => {
   init_encoding();
@@ -6788,7 +6788,7 @@ var init_client = __esm(() => {
   };
 });
 
-// node_modules/@libsql/isomorphic-fetch/node.js
+// node_modules/.bun/@libsql+isomorphic-fetch@0.3.1/node_modules/@libsql/isomorphic-fetch/node.js
 var _Request, _Headers, _fetch;
 var init_node2 = __esm(() => {
   _Request = Request;
@@ -6796,7 +6796,7 @@ var init_node2 = __esm(() => {
   _fetch = fetch;
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/queue_microtask.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/queue_microtask.js
 var _queueMicrotask;
 var init_queue_microtask = __esm(() => {
   if (typeof queueMicrotask !== "undefined") {
@@ -6809,7 +6809,7 @@ var init_queue_microtask = __esm(() => {
   }
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/byte_queue.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/byte_queue.js
 class ByteQueue {
   #array;
   #shiftPos;
@@ -6854,7 +6854,7 @@ class ByteQueue {
   }
 }
 
-// node_modules/@libsql/hrana-client/lib-esm/http/json_decode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/http/json_decode.js
 function PipelineRespBody(obj) {
   const baton = stringOpt(obj["baton"]);
   const baseUrl = stringOpt(obj["base_url"]);
@@ -6910,7 +6910,7 @@ var init_json_decode3 = __esm(() => {
   init_json_decode();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/http/protobuf_decode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/http/protobuf_decode.js
 var PipelineRespBody2, StreamResult2, StreamResponse2, ExecuteStreamResp, BatchStreamResp, DescribeStreamResp, GetAutocommitStreamResp, CursorRespBody2;
 var init_protobuf_decode3 = __esm(() => {
   init_protobuf_decode();
@@ -7013,7 +7013,7 @@ var init_protobuf_decode3 = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/http/cursor.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/http/cursor.js
 var HttpCursor;
 var init_cursor2 = __esm(() => {
   init_decode();
@@ -7141,7 +7141,7 @@ var init_cursor2 = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/http/json_encode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/http/json_encode.js
 function PipelineReqBody(w, msg) {
   if (msg.baton !== undefined) {
     w.string("baton", msg.baton);
@@ -7188,7 +7188,7 @@ var init_json_encode3 = __esm(() => {
   init_util2();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/http/protobuf_encode.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/http/protobuf_encode.js
 function PipelineReqBody2(w, msg) {
   if (msg.baton !== undefined) {
     w.string(1, msg.baton);
@@ -7260,7 +7260,7 @@ var init_protobuf_encode3 = __esm(() => {
   init_util2();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/http/stream.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/http/stream.js
 function handlePipelineResponse(pipeline, respBody) {
   if (respBody.results.length !== pipeline.length) {
     throw new ProtoError("Server returned unexpected number of pipeline results");
@@ -7604,7 +7604,7 @@ var init_stream3 = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/http/client.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/http/client.js
 async function findEndpoint(customFetch, clientUrl) {
   const fetch2 = customFetch;
   for (const endpoint of checkEndpoints) {
@@ -7706,12 +7706,12 @@ var init_client2 = __esm(() => {
   };
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/libsql_url.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/libsql_url.js
 var init_libsql_url = __esm(() => {
   init_errors();
 });
 
-// node_modules/@libsql/hrana-client/lib-esm/index.js
+// node_modules/.bun/@libsql+hrana-client@0.7.0/node_modules/@libsql/hrana-client/lib-esm/index.js
 function openWs(url, jwt, protocolVersion = 2) {
   if (typeof import_websocket.default === "undefined") {
     throw new WebSocketUnsupportedError("WebSockets are not supported in this environment");
@@ -7748,7 +7748,7 @@ var init_lib_esm = __esm(() => {
   init_errors();
 });
 
-// node_modules/@libsql/client/lib-esm/hrana.js
+// node_modules/.bun/@libsql+client@0.15.15/node_modules/@libsql/client/lib-esm/hrana.js
 class HranaTransaction {
   #mode;
   #version;
@@ -8004,7 +8004,7 @@ var init_hrana = __esm(() => {
   init_util();
 });
 
-// node_modules/@libsql/client/lib-esm/sql_cache.js
+// node_modules/.bun/@libsql+client@0.15.15/node_modules/@libsql/client/lib-esm/sql_cache.js
 class SqlCache {
   #owner;
   #sqls;
@@ -8080,7 +8080,7 @@ class Lru {
   }
 }
 
-// node_modules/promise-limit/index.js
+// node_modules/.bun/promise-limit@2.7.0/node_modules/promise-limit/index.js
 var require_promise_limit = __commonJS((exports, module) => {
   function limiter(count) {
     var outstanding = 0;
@@ -8159,7 +8159,7 @@ var require_promise_limit = __commonJS((exports, module) => {
   };
 });
 
-// node_modules/@libsql/client/lib-esm/ws.js
+// node_modules/.bun/@libsql+client@0.15.15/node_modules/@libsql/client/lib-esm/ws.js
 function _createClient2(config) {
   if (config.scheme !== "wss" && config.scheme !== "ws") {
     throw new LibsqlError('The WebSocket client supports only "libsql:", "wss:" and "ws:" URLs, ' + `got ${JSON.stringify(config.scheme + ":")}. For more information, please read ${supportedUrlLink}`, "URL_SCHEME_NOT_SUPPORTED");
@@ -8450,7 +8450,7 @@ var init_ws = __esm(() => {
   };
 });
 
-// node_modules/@libsql/client/lib-esm/http.js
+// node_modules/.bun/@libsql+client@0.15.15/node_modules/@libsql/client/lib-esm/http.js
 function _createClient3(config) {
   if (config.scheme !== "https" && config.scheme !== "http") {
     throw new LibsqlError('The HTTP client supports only "libsql:", "https:" and "http:" URLs, ' + `got ${JSON.stringify(config.scheme + ":")}. For more information, please read ${supportedUrlLink}`, "URL_SCHEME_NOT_SUPPORTED");
@@ -8647,7 +8647,7 @@ var init_http = __esm(() => {
   };
 });
 
-// node_modules/@libsql/client/lib-esm/node.js
+// node_modules/.bun/@libsql+client@0.15.15/node_modules/@libsql/client/lib-esm/node.js
 function createClient(config) {
   return _createClient4(expandConfig(config, true));
 }
@@ -8668,7 +8668,7 @@ var init_node3 = __esm(() => {
   init_api();
 });
 
-// src/lib/turso-schema.ts
+// packages/agent-core/dist/lib/turso-schema.js
 var SCHEMA_VERSION = 1, SCHEMA_STATEMENTS;
 var init_turso_schema = __esm(() => {
   SCHEMA_STATEMENTS = [
@@ -8725,7 +8725,7 @@ var init_turso_schema = __esm(() => {
   ];
 });
 
-// src/lib/turso.ts
+// packages/agent-core/dist/lib/turso.js
 var exports_turso = {};
 __export(exports_turso, {
   syncToCloud: () => syncToCloud,
@@ -8826,11 +8826,11 @@ var init_turso = __esm(() => {
   init_turso_schema();
 });
 
-// scripts/opencode-agent-runner.ts
-import { existsSync } from "node:fs";
-import { stdin } from "node:process";
+// packages/agent-core/dist/lib/agent-runner.js
+import { access, readFile } from "node:fs/promises";
+import { join as join2 } from "node:path";
 
-// src/lib/conversation-logger.ts
+// packages/agent-core/dist/lib/conversation-logger.js
 class ConversationLogger {
   client;
   sessionId = null;
@@ -8952,7 +8952,7 @@ async function createConversationLogger() {
   await initializeSchema2();
   return new ConversationLogger(client);
 }
-// node_modules/@opencode-ai/sdk/dist/gen/core/serverSentEvents.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/core/serverSentEvents.gen.js
 var createSseClient = ({ onSseError, onSseEvent, responseTransformer, responseValidator, sseDefaultRetryDelay, sseMaxRetryAttempts, sseMaxRetryDelay, sseSleepFn, url, ...options }) => {
   let lastEventId;
   const sleep = sseSleepFn ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -9061,7 +9061,7 @@ var createSseClient = ({ onSseError, onSseEvent, responseTransformer, responseVa
   return { stream };
 };
 
-// node_modules/@opencode-ai/sdk/dist/gen/core/auth.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/core/auth.gen.js
 var getAuthToken = async (auth, callback) => {
   const token = typeof callback === "function" ? await callback(auth) : callback;
   if (!token) {
@@ -9076,12 +9076,12 @@ var getAuthToken = async (auth, callback) => {
   return token;
 };
 
-// node_modules/@opencode-ai/sdk/dist/gen/core/bodySerializer.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/core/bodySerializer.gen.js
 var jsonBodySerializer = {
   bodySerializer: (body) => JSON.stringify(body, (_key, value) => typeof value === "bigint" ? value.toString() : value)
 };
 
-// node_modules/@opencode-ai/sdk/dist/gen/core/pathSerializer.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/core/pathSerializer.gen.js
 var separatorArrayExplode = (style) => {
   switch (style) {
     case "label":
@@ -9184,7 +9184,7 @@ var serializeObjectParam = ({ allowReserved, explode, name, style, value, valueO
   return style === "label" || style === "matrix" ? separator + joinedValues : joinedValues;
 };
 
-// node_modules/@opencode-ai/sdk/dist/gen/core/utils.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/core/utils.gen.js
 var PATH_PARAM_RE = /\{[^{}]+\}/g;
 var defaultPathSerializer = ({ path, url: _url }) => {
   let url = _url;
@@ -9252,7 +9252,7 @@ var getUrl = ({ baseUrl, path, query, querySerializer, url: _url }) => {
   return url;
 };
 
-// node_modules/@opencode-ai/sdk/dist/gen/client/utils.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/client/utils.gen.js
 var createQuerySerializer = ({ allowReserved, array: array2, object: object2 } = {}) => {
   const querySerializer = (queryParams) => {
     const search = [];
@@ -9460,7 +9460,7 @@ var createConfig = (override = {}) => ({
   ...override
 });
 
-// node_modules/@opencode-ai/sdk/dist/gen/client/client.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/client/client.gen.js
 var createClient2 = (config = {}) => {
   let _config = mergeConfigs(createConfig(), config);
   const getConfig = () => ({ ..._config });
@@ -9607,7 +9607,7 @@ var createClient2 = (config = {}) => {
     trace: makeMethod("TRACE")
   };
 };
-// node_modules/@opencode-ai/sdk/dist/gen/core/params.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/core/params.gen.js
 var extraPrefixesMap = {
   $body_: "body",
   $headers_: "headers",
@@ -9615,12 +9615,12 @@ var extraPrefixesMap = {
   $query_: "query"
 };
 var extraPrefixes = Object.entries(extraPrefixesMap);
-// node_modules/@opencode-ai/sdk/dist/gen/client.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/client.gen.js
 var client = createClient2(createConfig({
   baseUrl: "http://localhost:4096"
 }));
 
-// node_modules/@opencode-ai/sdk/dist/gen/sdk.gen.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/gen/sdk.gen.js
 class _HeyApiClient {
   _client = client;
   constructor(args) {
@@ -10290,7 +10290,7 @@ class OpencodeClient extends _HeyApiClient {
   event = new Event({ client: this._client });
 }
 
-// node_modules/@opencode-ai/sdk/dist/client.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/client.js
 function createOpencodeClient(config) {
   if (!config?.fetch) {
     const customFetch = (req) => {
@@ -10311,7 +10311,7 @@ function createOpencodeClient(config) {
   const client2 = createClient2(config);
   return new OpencodeClient({ client: client2 });
 }
-// node_modules/@opencode-ai/sdk/dist/server.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/server.js
 import { spawn } from "node:child_process";
 async function createOpencodeServer(options) {
   options = Object.assign({
@@ -10377,7 +10377,7 @@ Server output: ${output}`;
     }
   };
 }
-// node_modules/@opencode-ai/sdk/dist/index.js
+// node_modules/.bun/@opencode-ai+sdk@1.0.163/node_modules/@opencode-ai/sdk/dist/index.js
 async function createOpencode(options) {
   const server2 = await createOpencodeServer({
     ...options
@@ -10391,7 +10391,7 @@ async function createOpencode(options) {
   };
 }
 
-// src/lib/types.ts
+// packages/agent-core/dist/lib/types.js
 var API_KEY_ENV_VARS = {
   anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
   openai: ["OPENAI_API_KEY"],
@@ -10401,12 +10401,25 @@ var OAUTH_ENV_VARS = {
   anthropic: ["ANTHROPIC_OAUTH_ACCESS", "ANTHROPIC_OAUTH_REFRESH", "ANTHROPIC_OAUTH_EXPIRES"]
 };
 
-// src/lib/utils.ts
+// packages/agent-core/dist/lib/utils.js
 function extractTextFromParts(parts) {
   if (!Array.isArray(parts))
     return "";
   return parts.filter((part) => part.type === "text").map((part) => part.text || "").join(`
 `);
+}
+function validateEnvVars(requiredVars) {
+  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
+  if (missingVars.length > 0) {
+    const errorMsg = [
+      "Error: Missing required environment variables:",
+      ...missingVars.map((varName) => `  - ${varName}`),
+      "",
+      "Please set all required environment variables and try again."
+    ].join(`
+`);
+    throw new Error(errorMsg);
+  }
 }
 function getAuthCredentials(provider) {
   const oauthVars = OAUTH_ENV_VARS[provider];
@@ -10442,7 +10455,7 @@ function getAuthCredentials(provider) {
   return null;
 }
 
-// src/lib/opencode.ts
+// packages/agent-core/dist/lib/opencode.js
 async function setProviderAuth(client3, provider) {
   const credentials = getAuthCredentials(provider);
   if (!credentials) {
@@ -10478,17 +10491,7 @@ async function setProviderAuth(client3, provider) {
   }
 }
 async function createOpencodeServer2(options) {
-  const {
-    provider,
-    model,
-    agentName,
-    agentDescription,
-    agentPrompt,
-    agentTools = {},
-    agentPermissions = {},
-    maxSteps = 30,
-    linearApiKey
-  } = options;
+  const { provider, model, agentName, agentDescription, agentPrompt, agentTools = {}, agentPermissions = {}, maxSteps = 30, linearApiKey } = options;
   const opcodeConfig = {
     provider: {
       [provider]: {
@@ -10616,186 +10619,97 @@ function setupEventMonitoring(client3, logger) {
   })();
 }
 
-// scripts/opencode-agent-runner.ts
-var REVIEW_DECISION_SCHEMA = {
-  type: "object",
-  properties: {
-    best: {
-      type: "integer",
-      minimum: 1,
-      description: "The number (1-based) of the best implementation"
-    },
-    reasoning: {
-      type: "string",
-      description: "Detailed explanation for why this implementation was chosen"
-    }
-  },
-  required: ["best", "reasoning"],
-  additionalProperties: false
-};
-function getConfig() {
-  const cwd = process.cwd();
-  const model = process.env.MODEL || "claude-opus-4-5";
-  const modeEnv = process.env.MODE || "implementation";
-  if (modeEnv !== "implementation" && modeEnv !== "review") {
-    console.error(`Error: Invalid MODE "${modeEnv}". Must be "implementation" or "review".`);
-    process.exit(1);
+// packages/agent-core/dist/lib/agent-runner.js
+async function findPromptFile(fileName) {
+  const possiblePaths = [
+    join2(process.cwd(), ".github", "claude-parallel", "prompts", fileName),
+    join2(process.cwd(), "prompts", fileName)
+  ];
+  for (const path of possiblePaths) {
+    try {
+      await access(path);
+      return path;
+    } catch {}
   }
-  return {
-    cwd,
-    model,
-    mode: modeEnv
-  };
+  throw new Error(`Could not find ${fileName} in any of these locations:
+${possiblePaths.map((p) => `  - ${p}`).join(`
+`)}`);
 }
-async function readStdin() {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    stdin.on("data", (chunk) => {
-      chunks.push(chunk);
-    });
-    stdin.on("end", () => {
-      resolve(Buffer.concat(chunks).toString("utf-8"));
-    });
-    stdin.on("error", (error) => {
-      reject(error);
-    });
-  });
-}
-function checkAuthentication() {
-  if (process.env.ANTHROPIC_OAUTH_ACCESS && process.env.ANTHROPIC_OAUTH_REFRESH && process.env.ANTHROPIC_OAUTH_EXPIRES) {
-    return { configured: true, method: "ANTHROPIC_OAUTH (access, refresh, expires)" };
-  }
-  if (process.env.ANTHROPIC_API_KEY) {
-    return { configured: true, method: "ANTHROPIC_API_KEY" };
-  }
-  if (process.env.CLAUDE_CODE_OAUTH_TOKEN) {
-    return { configured: true, method: "CLAUDE_CODE_OAUTH_TOKEN" };
-  }
-  return {
-    configured: false,
-    error: "No authentication configured. Set ANTHROPIC_OAUTH_* or ANTHROPIC_API_KEY"
-  };
-}
-async function main() {
-  const config = getConfig();
-  console.error("");
-  console.error("=".repeat(60));
-  console.error("OpenCode Agent Runner");
-  console.error("=".repeat(60));
-  console.error(`CWD: ${config.cwd}`);
-  console.error(`Model: ${config.model}`);
-  console.error(`Mode: ${config.mode}`);
-  console.error("");
-  console.error("Running pre-flight checks...");
-  const authValidation = checkAuthentication();
-  if (authValidation.configured) {
-    console.error(`✓ Authentication: ${authValidation.method}`);
-  } else {
-    console.error(`❌ Authentication: ${authValidation.error}`);
-    console.error("=".repeat(60));
+async function runAgent(config) {
+  try {
+    validateEnvVars(config.requiredEnvVars);
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
-  if (existsSync(config.cwd)) {
-    console.error(`✓ Working directory exists`);
-  } else {
-    console.error(`❌ Working directory does not exist: ${config.cwd}`);
-    console.error("=".repeat(60));
-    process.exit(1);
-  }
-  console.error("");
-  console.error("Reading prompt from stdin...");
-  const prompt = await readStdin();
-  if (!prompt.trim()) {
-    console.error("Error: Empty prompt received from stdin");
-    process.exit(1);
-  }
-  console.error(`✓ Received prompt: ${prompt.length} characters`);
+  const provider = process.env.PROVIDER || "anthropic";
+  const model = process.env.MODEL || (provider === "anthropic" ? "claude-opus-4-5" : "");
+  const linearApiKey = process.env.LINEAR_API_KEY;
+  console.error(`
+${"=".repeat(60)}`);
+  console.error(`${config.name}`);
+  console.error(`${"=".repeat(60)}`);
+  console.error(`Provider: ${provider}`);
+  console.error(`Model: ${model}`);
   console.error("");
   const logger = await createConversationLogger();
   if (logger) {
     console.error(`✓ Conversation logging enabled`);
   }
-  const linearApiKey = process.env.LINEAR_API_KEY;
-  if (linearApiKey) {
-    console.error(`✓ LINEAR_API_KEY found - enabling Linear MCP`);
-  } else {
-    console.error(`⚠️  LINEAR_API_KEY not found - Linear MCP disabled`);
-    console.error(`   Set LINEAR_API_KEY to enable Linear issue fetching`);
+  let prompt;
+  try {
+    const promptFile = await findPromptFile(config.promptFileName);
+    const template = await readFile(promptFile, "utf-8");
+    prompt = config.processPrompt ? config.processPrompt(template, process.env) : template;
+    console.error(`✓ Loaded and processed prompt from ${promptFile}`);
+  } catch (error) {
+    console.error(`✗ Failed to load prompt: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
   }
-  const agentTools = config.mode === "implementation" ? {
-    write: true,
-    edit: true,
-    bash: true,
-    read: true,
-    list: true,
-    glob: true,
-    grep: true,
-    webfetch: true
-  } : {
-    read: true,
-    list: true,
-    glob: true,
-    grep: true,
-    webfetch: true
-  };
-  const agentPermissions = config.mode === "implementation" ? {
-    edit: "allow",
-    bash: "allow",
-    webfetch: "allow"
-  } : {
-    webfetch: "allow"
-  };
-  const finalPrompt = config.mode === "review" ? `${prompt}
-
-IMPORTANT: You MUST respond with valid JSON matching this schema:
-${JSON.stringify(REVIEW_DECISION_SCHEMA, null, 2)}
-
-Do not include any text outside the JSON object.` : prompt;
-  const provider = "anthropic";
-  const agentName = config.mode === "review" ? "review-agent" : "implementation-agent";
-  const agentDescription = config.mode === "review" ? "Reviews multiple implementations and selects the best one" : "Implements features and fixes bugs";
+  const { client: client3, server: server2 } = await createOpencodeServer2({
+    provider,
+    model,
+    agentName: config.name,
+    agentDescription: config.description,
+    agentPrompt: prompt,
+    agentTools: config.getAgentTools ? config.getAgentTools(linearApiKey) : {
+      read: true,
+      list: true,
+      glob: true,
+      grep: true,
+      webfetch: true
+    },
+    agentPermissions: config.getAgentPermissions ? config.getAgentPermissions(linearApiKey) : {
+      bash: "allow",
+      webfetch: "allow"
+    },
+    maxSteps: config.maxSteps || 30,
+    linearApiKey
+  });
+  setupEventMonitoring(client3, logger);
   try {
     if (logger) {
       await logger.startSession({
         id: crypto.randomUUID(),
-        agentType: config.mode === "review" ? "review" : "implementation",
-        model: config.model,
+        agentType: config.name,
+        model,
         provider
       });
     }
-    console.error("");
-    const { client: client3, server: server2 } = await createOpencodeServer2({
-      provider,
-      model: config.model,
-      agentName,
-      agentDescription,
-      agentPrompt: finalPrompt,
-      agentTools,
-      agentPermissions,
-      maxSteps: 30,
-      linearApiKey
-    });
-    setupEventMonitoring(client3, logger);
-    console.error("");
-    console.error("Starting agent session...");
     const sessionResponse = await client3.session.create({
-      body: { title: `${agentName}: ${new Date().toISOString()}` }
+      body: { title: `${config.name}: ${new Date().toISOString()}` }
     });
     if (!sessionResponse.data) {
       throw new Error("Failed to create session");
     }
     const session = sessionResponse.data;
     console.error(`✓ Session created: ${session.id}`);
-    process.chdir(config.cwd);
-    console.error(`✓ Changed to working directory: ${config.cwd}`);
-    console.error("Sending prompt to agent...");
-    console.error("");
     const promptResponse = await client3.session.prompt({
       path: { id: session.id },
       body: {
-        model: { providerID: provider, modelID: config.model },
-        agent: agentName,
-        parts: [{ type: "text", text: finalPrompt }]
+        model: { providerID: provider, modelID: model },
+        agent: config.name,
+        parts: [{ type: "text", text: prompt }]
       }
     });
     if (!promptResponse.data) {
@@ -10804,55 +10718,71 @@ Do not include any text outside the JSON object.` : prompt;
     const responseInfo = promptResponse.data.info;
     if (responseInfo?.error) {
       const err = responseInfo.error;
-      const errMessage = err.data?.message || err.name;
-      throw new Error(`Provider error: ${errMessage}`);
+      throw new Error(`Provider error: ${err.name}`);
     }
     const resultText = extractTextFromParts(promptResponse.data.parts);
     if (resultText.length === 0) {
       throw new Error("Empty response from agent");
     }
-    console.error("");
-    console.error("=".repeat(60));
-    console.error("SUCCESS: Agent completed");
-    console.error("=".repeat(60));
-    const result = {
-      type: "result",
-      subtype: "success",
-      response: resultText,
-      mode: config.mode
-    };
-    console.log(JSON.stringify(result, null, 2));
-    console.error("");
-    console.error("Result written to stdout");
-    console.error("=".repeat(60));
-    console.error("");
+    console.log(resultText);
     if (logger) {
       await logger.endSession("completed");
       await logger.syncToCloud();
     }
-    server2.close();
     process.exit(0);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("");
-    console.error("=".repeat(60));
-    console.error("ERROR!");
-    console.error("=".repeat(60));
-    console.error(`Error: ${errorMessage}`);
-    if (error instanceof Error && error.stack) {
-      console.error("");
-      console.error("Stack trace:");
-      console.error(error.stack);
-    }
-    console.error("");
+    console.error(`
+ERROR: ${errorMessage}`);
     if (logger) {
       await logger.endSession("error", errorMessage);
       await logger.syncToCloud();
     }
     process.exit(1);
+  } finally {
+    server2.close();
   }
 }
-main().catch((error) => {
-  console.error("FATAL ERROR:", error);
-  process.exit(1);
-});
+// scripts/run-agent.ts
+var MODE = process.env.MODE || "implementation";
+var config = MODE === "review" ? {
+  name: "review-agent",
+  description: "Reviews multiple implementations and selects the best one",
+  requiredEnvVars: ["NUM_IMPLEMENTATIONS", "WORKTREES_DIR", "LINEAR_ISSUE"],
+  promptFileName: "review.md",
+  getAgentTools: () => ({
+    read: true,
+    list: true,
+    glob: true,
+    grep: true,
+    webfetch: false
+  }),
+  getAgentPermissions: () => ({
+    webfetch: "allow"
+  }),
+  processPrompt: (template, env) => {
+    return template.replace(/\{\{NUM_IMPLEMENTATIONS\}\}/g, env.NUM_IMPLEMENTATIONS || "3").replace(/\{\{WORKTREES_DIR\}\}/g, env.WORKTREES_DIR || "").replace(/\{\{LINEAR_ISSUE\}\}/g, env.LINEAR_ISSUE || "");
+  }
+} : {
+  name: "implementation-agent",
+  description: "Implements features based on a given description",
+  requiredEnvVars: [],
+  promptFileName: "implementation.md",
+  getAgentTools: () => ({
+    write: true,
+    edit: true,
+    bash: true,
+    read: true,
+    list: true,
+    glob: true,
+    grep: true,
+    webfetch: true
+  }),
+  getAgentPermissions: () => ({
+    edit: "allow",
+    bash: "allow",
+    webfetch: "allow"
+  }),
+  processPrompt: (template) => template
+};
+await runAgent(config);

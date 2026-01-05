@@ -9,7 +9,7 @@
  *   linear-agent.ts
  */
 
-import { runAgent } from "../lib/agent-runner.js";
+import { runAgent } from "@swellai/agent-core";
 
 async function main() {
   await runAgent({

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Restructure the `claude-parallel` repository by extracting the core agent logic into a separate npm package (`@swellai/agent-core`). This will simplify the main repository, improve reusability, and make the GitHub Actions workflows cleaner.
+Restructure the `claude-parallel` repository by extracting the core agent logic into a separate npm package (`@swellai/agent-core`). This will simplify the main repository, improve reusability, and make the GitHub Actions workflows cleaner. No backwards compatability.
 
 ## Goals
 
@@ -27,11 +27,11 @@ packages/
         turso-schema.ts
         types.ts
         utils.ts
-      cli/
-        index.ts
     package.json
     tsconfig.json
     README.md
+scripts/
+  run-agent.ts  # Simple wrapper script
 ```
 
 ### 1.2 Create Package Configuration
@@ -45,9 +45,6 @@ packages/
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "agent-runner": "./dist/cli/index.js"
-  },
   "files": [
     "dist/",
     "README.md"
@@ -76,9 +73,6 @@ packages/
   "engines": {
     "node": ">=20.0.0",
     "bun": ">=1.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }
 ```
@@ -131,13 +125,13 @@ Move the following files from `src/lib/` to `packages/agent-core/src/lib/`:
 - `types.ts`
 - `utils.ts`
 
-### 2.2 Create CLI Interface
+### 2.2 Create Simple Wrapper Script
 
-**packages/agent-core/src/cli/index.ts**
+**scripts/run-agent.ts**
 ```typescript
 #!/usr/bin/env node
 
-import { runAgent } from "../lib/agent-runner.js";
+import { runAgent } from "@swellai/agent-core";
 
 const MODE = process.env.MODE || "implementation";
 const MODEL = process.env.MODEL || "claude-opus-4-5";
@@ -245,8 +239,10 @@ Delete from root repository:
 - `src/index.ts`
 - `scripts/opencode-agent-runner.ts`
 
-### 3.3 Keep Only CLI Installer
-Retain `src/cli/` for the `swellai` CLI that installs workflows and templates.
+### 3.3 Keep Only CLI Installer and Wrapper Script
+Retain:
+- `src/cli/` for the `swellai` CLI that installs workflows and templates
+- `scripts/run-agent.ts` for the new agent wrapper script
 
 ## Phase 4: Update GitHub Actions Workflows
 
@@ -282,8 +278,11 @@ Replace the agent execution steps:
   with:
     bun-version: latest
 
-- name: Install agent package
-  run: bun install @swellai/agent-core@latest
+- name: Install dependencies
+  run: bun install
+
+- name: Build package
+  run: bun run build
 
 - name: Run implementation agent
   env:
@@ -291,7 +290,7 @@ Replace the agent execution steps:
     MODE: implementation
     LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
   run: |
-    echo "$IMPLEMENTATION_PROMPT" | bunx @swellai/agent-core run
+    echo "$IMPLEMENTATION_PROMPT" | bun run scripts/run-agent.ts
 ```
 
 ### 4.2 Update Review Agent Step
@@ -318,7 +317,7 @@ Replace the agent execution steps:
     WORKTREES_DIR: ./worktrees
     LINEAR_ISSUE: ${{ needs.generate-matrix.outputs.linear_issue }}
   run: |
-    bunx @swellai/agent-core run
+    bun run scripts/run-agent.ts
 ```
 
 ### 4.3 Update Other Workflows
@@ -326,7 +325,7 @@ Apply similar changes to:
 - `claude-plan.yml`
 - `multi-provider-plan-v2.yml`
 
-## Phase 5: Build and Publish Package
+## Phase 5: Build and Test Package
 
 ### 5.1 Build the Package
 ```bash
@@ -337,19 +336,10 @@ bun run build
 
 ### 5.2 Test Locally
 ```bash
-# Test in workspace
-bun link
-
-# Test in main repo
+# Test the wrapper script
 cd ../..
-bun link @swellai/agent-core
-bun run test
-```
-
-### 5.3 Publish to npm
-```bash
-cd packages/agent-core
-npm publish
+MODE=implementation MODEL=claude-opus-4-5 echo "Test prompt" | bun run scripts/run-agent.ts
+MODE=review MODEL=claude-opus-4-5 echo "Test prompt" | bun run scripts/run-agent.ts
 ```
 
 ## Phase 6: Cleanup and Validation
@@ -371,9 +361,9 @@ Update `README.md` to reflect new structure:
 ### 6.3 Update CLAUDE.md
 Update development commands:
 ```bash
-# Local testing with package
-MODE=implementation MODEL=claude-opus-4-5 echo "Your prompt" | bunx @swellai/agent-core run
-MODE=review MODEL=claude-opus-4-5 echo "Your prompt" | bunx @swellai/agent-core run
+# Local testing with wrapper script
+MODE=implementation MODEL=claude-opus-4-5 echo "Your prompt" | bun run scripts/run-agent.ts
+MODE=review MODEL=claude-opus-4-5 echo "Your prompt" | bun run scripts/run-agent.ts
 ```
 
 ### 6.4 Run E2E Tests
@@ -382,47 +372,30 @@ MODE=review MODEL=claude-opus-4-5 echo "Your prompt" | bunx @swellai/agent-core 
 ./.github/scripts/run-e2e-test.sh
 ```
 
-## Phase 7: Migration Guide
-
-Create `MIGRATION.md` documenting:
-1. How to update existing installations
-2. Breaking changes (if any)
-3. New environment variables
-4. Updated workflow examples
-
 ## Success Criteria
 
 - [ ] `@swellai/agent-core` package builds successfully
-- [ ] Package published to npm
+- [ ] Wrapper script `scripts/run-agent.ts` works correctly
 - [ ] All GitHub Actions workflows updated
 - [ ] E2E tests pass with new structure
 - [ ] Root repository size reduced by ~40%
 - [ ] Documentation updated
 - [ ] No breaking changes for end users
 
-## Rollback Plan
-
-If issues arise:
-1. Keep old code in a branch (`backup/pre-refactor`)
-2. Can revert workflows to use old scripts
-3. Unpublish package version if needed
-4. Restore old `package.json` structure
-
-## Estimated Timeline
-
-- Phase 1-2: 2-3 hours (package creation and extraction)
-- Phase 3: 1 hour (repository cleanup)
-- Phase 4: 1-2 hours (workflow updates)
-- Phase 5: 1-2 hours (build, test, publish)
-- Phase 6: 1 hour (cleanup and validation)
-- Phase 7: 1 hour (documentation)
-
-**Total: 7-10 hours**
-
 ## Notes
 
-- The package will use semantic versioning
+- Package uses workspace dependency (no npm publishing required)
 - Major version bump (2.0.0) for main repo to indicate structural change
-- Consider using `changesets` for managing package versions
-- Package will be scoped to `@swellai` organization
+- Simple wrapper script keeps workflows clean
+- Can publish to npm later if needed for external use
+- Package scoped to `@swellai` organization
 - Consider adding automated tests for the package itself
+
+## Simplification Benefits
+
+This approach (Option 2) provides:
+- **No npm registry overhead** - package stays in workspace
+- **Simpler package** - no CLI bin, just library exports
+- **Clear separation** - wrapper script in root, logic in package
+- **Easy to publish later** - can add npm publishing when needed
+- **Faster development** - no version management during development
