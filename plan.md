@@ -1,371 +1,428 @@
-# Refactor to Server-Inherited Authentication Implementation Plan
+# Plan: Extract Agent Logic to Separate TypeScript Package
 
 ## Overview
 
-Refactor claude-parallel to use the OpenCode SDK's `client.auth.set()` API instead of passing API keys explicitly through environment variables. This allows agents to inherit credentials via the SDK's auth infrastructure, providing a cleaner authentication flow.
+Restructure the `claude-parallel` repository by extracting the core agent logic into a separate npm package (`@swellai/agent-core`). This will simplify the main repository, improve reusability, and make the GitHub Actions workflows cleaner.
 
-## Implementation Task List
+## Goals
 
-1. Create new authentication module with `setProviderAuth()` function
-2. Update `OpencodeServerOptions` to remove `apiKey` requirement
-3. Refactor `createOpencodeServer()` to call auth setup after client creation
-4. Update `agent-runner.ts` to stop passing `apiKey` explicitly
-5. Update environment variable validation logic
-6. Update GitHub Actions setup workflow
-7. Add tests for the new authentication flow
+1. Create a standalone npm package containing all agent execution logic
+2. Simplify the main repository to only contain workflows, templates, and prompts
+3. Enable the agent package to be versioned and reused independently
+4. Reduce repository complexity and maintenance burden
 
-## Current State Analysis
+## Phase 1: Create New Package Structure
 
-### Current Authentication Flow
-
-1. **Agent Runner** (`src/lib/agent-runner.ts:48`) calls `getApiKey(provider)` to retrieve API key from env vars
-2. **API Key is passed** to `createOpencodeServer()` as part of `OpencodeServerOptions` (line 79)
-3. **OpenCode configuration** (`src/lib/opencode.ts:154-162`) embeds the key directly in provider config:
-   ```typescript
-   provider: {
-     [provider]: {
-       options: {
-         apiKey,
-         timeout: false,
-       },
-     },
-   },
-   ```
-
-### Current Files Involved
-
-- `src/lib/agent-runner.ts` - Retrieves API key and passes to server creation
-- `src/lib/opencode.ts` - Accepts `apiKey` in options, embeds in config
-- `src/lib/utils.ts` - Contains `getApiKey()` helper function
-- `src/lib/types.ts` - Contains `API_KEY_ENV_VARS` mapping
-
-## Desired End State
-
-After implementation:
-
-1. `createOpencodeServer()` creates the client first, then calls `client.auth.set()` for each configured provider
-2. API keys are no longer passed through the config object; they are set via the SDK's auth API
-3. Support for OAuth credentials (Anthropic) via `ANTHROPIC_OAUTH_ACCESS`, `ANTHROPIC_OAUTH_REFRESH`, `ANTHROPIC_OAUTH_EXPIRES`
-4. Support for API key auth for all providers as fallback
-5. Clear error messages when authentication fails
-
-### Verification Criteria
-
-- Run `bun run type-check` - no TypeScript errors
-- Run planning agent locally with `ANTHROPIC_API_KEY` set
-- Run planning agent locally with Anthropic OAuth credentials set
-- Verify error messages are clear when credentials are missing
-
-## What We're NOT Doing
-
-- Not changing the Claude Agent SDK authentication (`src/lib/claude-agent-sdk.ts`) - that's a separate code path
-- Not implementing `auth.json` file reading (the SDK server handles that internally)
-- Not adding automatic credential refresh - OAuth refresh is handled by the SDK
-- Not changing the Linear MCP authentication approach (already uses Authorization header)
-
-## Implementation Approach
-
-We will:
-1. Create a new `setProviderAuth()` function in `src/lib/opencode.ts` that calls `client.auth.set()`
-2. Make `apiKey` optional in `OpencodeServerOptions`
-3. Call `setProviderAuth()` after `createOpencode()` returns the client
-4. Remove the `apiKey` from the provider config object
-5. Update validation to check for either OAuth or API key credentials
-
-## Files to Edit
-
-| File | Lines | Change Description |
-|------|-------|-------------------|
-| `src/lib/opencode.ts` | 95-121, 137-197 | Remove apiKey from interface, add auth setup function, refactor server creation |
-| `src/lib/agent-runner.ts` | 48, 77-101 | Remove getApiKey call and apiKey param |
-| `src/lib/utils.ts` | 50-67 | Refactor getApiKey or add getAuthCredentials |
-| `src/lib/types.ts` | 39-43 | Add OAuth environment variable names |
-| `.github/actions/setup-opencode/action.yml` | 46-79 | Add OAuth env var support |
-
----
-
-## Task 1: Add OAuth Environment Variable Types
-
-**File**: `src/lib/types.ts`
-
-**Description of Changes**:
-
-Add new type definitions for OAuth credentials and extend the `API_KEY_ENV_VARS` mapping to include OAuth environment variable names. Create a new `OAUTH_ENV_VARS` constant that maps providers to their OAuth credential environment variable names.
-
-Add these new exports:
-- `OAUTH_ENV_VARS` constant mapping `anthropic` to `["ANTHROPIC_OAUTH_ACCESS", "ANTHROPIC_OAUTH_REFRESH", "ANTHROPIC_OAUTH_EXPIRES"]`
-- Keep existing `API_KEY_ENV_VARS` for backward compatibility
-
-**Lines to modify**: After line 43, add new constant
-
-### Success Criteria:
-
-#### Automated Verification:
-- [ ] TypeScript compiles: `bun run type-check`
-- [ ] No linting errors: `bun run lint` (if configured)
-
-#### Manual Verification:
-- [ ] New types are properly exported and importable
-
----
-
-## Task 2: Create Authentication Setup Function in opencode.ts
-
-**File**: `src/lib/opencode.ts`
-
-**Description of Changes**:
-
-1. Remove `apiKey` from the `OpencodeServerOptions` interface (line 97)
-2. Add a new `provider` field to specify which provider to authenticate (already present)
-3. Create a new async function `setProviderAuth()` that:
-   - Accepts the OpenCode client and provider name
-   - Checks for OAuth credentials first (`ANTHROPIC_OAUTH_ACCESS`, etc.)
-   - Falls back to API key authentication
-   - Calls `client.auth.set()` with the appropriate auth type
-   - Throws a descriptive error if no credentials are found
-
-The function signature:
-```typescript
-async function setProviderAuth(
-  client: OpencodeClient,
-  provider: Provider
-): Promise<void>
+### 1.1 Create Package Directory
+```
+packages/
+  agent-core/
+    src/
+      index.ts
+      lib/
+        agent-runner.ts
+        opencode.ts
+        conversation-logger.ts
+        turso.ts
+        turso-schema.ts
+        types.ts
+        utils.ts
+      cli/
+        index.ts
+    package.json
+    tsconfig.json
+    README.md
 ```
 
-4. Update `createOpencodeServer()` to:
-   - Remove `apiKey` from the destructured options
-   - Remove `apiKey` from the provider options in `opcodeConfig`
-   - Call `setProviderAuth()` after client creation but before returning
+### 1.2 Create Package Configuration
 
-**Lines to modify**:
-- Line 97: Remove `apiKey: string;`
-- Lines 140-151: Remove apiKey destructuring
-- Lines 154-162: Remove apiKey from provider options
-- Add new function after line 130
+**packages/agent-core/package.json**
+```json
+{
+  "name": "@swellai/agent-core",
+  "version": "1.0.0",
+  "description": "Core agent execution logic for Claude Parallel workflows",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "agent-runner": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "keywords": [
+    "claude",
+    "agent",
+    "ai",
+    "automation",
+    "github-actions"
+  ],
+  "dependencies": {
+    "@libsql/client": "^0.15.0",
+    "@linear/sdk": "^30.0.0",
+    "@opencode-ai/sdk": "^1.0.153"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
+```
 
-### Success Criteria:
+**packages/agent-core/tsconfig.json**
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
+```
 
-#### Automated Verification:
-- [ ] TypeScript compiles: `bun run type-check`
-- [ ] Type imports resolve correctly
+### 1.3 Create Main Export File
 
-#### Manual Verification:
-- [ ] `setProviderAuth` properly handles OAuth flow
-- [ ] `setProviderAuth` properly handles API key flow
-- [ ] Error messages are clear when no credentials are provided
-
----
-
-## Task 3: Update Agent Runner to Remove API Key Handling
-
-**File**: `src/lib/agent-runner.ts`
-
-**Description of Changes**:
-
-1. Remove the import of `getApiKey` from utils (line 6)
-2. Remove line 48: `const apiKey = getApiKey(provider);`
-3. Remove `apiKey` from the options passed to `createOpencodeServer()` (line 79)
-
-The agent runner should now simply pass the provider name, and let `createOpencodeServer()` handle authentication internally via `client.auth.set()`.
-
-**Lines to modify**:
-- Line 6: Remove `getApiKey` from imports
-- Line 48: Remove `const apiKey = getApiKey(provider);`
-- Line 79: Remove `apiKey,`
-
-### Success Criteria:
-
-#### Automated Verification:
-- [ ] TypeScript compiles: `bun run type-check`
-- [ ] No unused import warnings
-
-#### Manual Verification:
-- [ ] Agent still authenticates correctly when run
-
----
-
-## Task 4: Refactor getApiKey and Add getAuthCredentials
-
-**File**: `src/lib/utils.ts`
-
-**Description of Changes**:
-
-1. Add a new function `getAuthCredentials()` that returns structured auth credentials:
-   ```typescript
-   export function getAuthCredentials(provider: Provider): {
-     type: 'oauth' | 'api';
-     oauth?: { access: string; refresh: string; expires: number };
-     apiKey?: string;
-   } | null
-   ```
-
-2. This function should:
-   - Check for OAuth credentials first (for Anthropic)
-   - Fall back to API key
-   - Return `null` if no credentials are found (let caller decide on error)
-
-3. Keep `getApiKey()` for backward compatibility but mark it with a JSDoc deprecation notice
-
-**Lines to modify**:
-- After line 67, add new `getAuthCredentials()` function
-- Line 43-67: Add `@deprecated` JSDoc to `getApiKey()`
-
-### Success Criteria:
-
-#### Automated Verification:
-- [ ] TypeScript compiles: `bun run type-check`
-- [ ] Function returns correct types
-
-#### Manual Verification:
-- [ ] OAuth credentials are detected when all three env vars are set
-- [ ] API key fallback works correctly
-
----
-
-## Task 5: Update GitHub Actions Setup Workflow
-
-**File**: `.github/actions/setup-opencode/action.yml`
-
-**Description of Changes**:
-
-1. Add new optional inputs for OAuth credentials:
-   - `anthropic_oauth_access` - Anthropic OAuth access token
-   - `anthropic_oauth_refresh` - Anthropic OAuth refresh token
-   - `anthropic_oauth_expires` - Anthropic OAuth expiration timestamp
-
-2. Update the "Set environment variables" step to:
-   - Set `ANTHROPIC_OAUTH_ACCESS`, `ANTHROPIC_OAUTH_REFRESH`, `ANTHROPIC_OAUTH_EXPIRES` when provided
-   - Keep existing `ANTHROPIC_API_KEY` as fallback
-
-3. Update validation to require either OAuth credentials OR API key (not both required)
-
-**Lines to modify**:
-- After line 9: Add new OAuth input definitions
-- Lines 101-128: Update environment variable setting logic
-- Lines 46-79: Update validation logic to accept either auth method
-
-### Success Criteria:
-
-#### Automated Verification:
-- [ ] GitHub Actions syntax is valid (validate with `actionlint` if available)
-
-#### Manual Verification:
-- [ ] Workflow accepts OAuth credentials
-- [ ] Workflow accepts API key as fallback
-- [ ] Error message is clear when neither is provided
-
----
-
-## Task 6: Extend OpencodeClient Interface for Auth
-
-**File**: `src/lib/opencode.ts`
-
-**Description of Changes**:
-
-The current `OpencodeClient` interface (lines 49-90) doesn't include the `auth` property. We need to extend it to include the auth methods.
-
-Add to the interface:
+**packages/agent-core/src/index.ts**
 ```typescript
-auth: {
-  set(options: {
-    path: { id: string };
-    body: {
-      type: 'oauth' | 'api';
-      // OAuth fields
-      access?: string;
-      refresh?: string;
-      expires?: number;
-      // API key fields
-      key?: string;
+export { runAgent, type AgentConfig } from "./lib/agent-runner.js";
+export { createOpencodeServer, setupEventMonitoring } from "./lib/opencode.js";
+export { createConversationLogger } from "./lib/conversation-logger.js";
+export { type Provider } from "./lib/types.js";
+export { extractTextFromParts, validateEnvVars } from "./lib/utils.js";
+```
+
+## Phase 2: Extract Agent Logic
+
+### 2.1 Copy Core Library Files
+Move the following files from `src/lib/` to `packages/agent-core/src/lib/`:
+- `agent-runner.ts`
+- `opencode.ts`
+- `conversation-logger.ts`
+- `turso.ts`
+- `turso-schema.ts`
+- `types.ts`
+- `utils.ts`
+
+### 2.2 Create CLI Interface
+
+**packages/agent-core/src/cli/index.ts**
+```typescript
+#!/usr/bin/env node
+
+import { runAgent } from "../lib/agent-runner.js";
+
+const MODE = process.env.MODE || "implementation";
+const MODEL = process.env.MODEL || "claude-opus-4-5";
+
+const config = MODE === "review"
+  ? {
+      name: "review-agent",
+      description: "Reviews multiple implementations and selects the best one",
+      requiredEnvVars: ["NUM_IMPLEMENTATIONS", "WORKTREES_DIR", "LINEAR_ISSUE"],
+      promptFileName: "review.md",
+      getAgentTools: () => ({
+        read: true,
+        list: true,
+        glob: true,
+        grep: true,
+        webfetch: false,
+      }),
+      getAgentPermissions: () => ({
+        webfetch: "allow",
+      }),
+      processPrompt: (template: string, env: NodeJS.ProcessEnv) => {
+        return template
+          .replace(/\{\{NUM_IMPLEMENTATIONS\}\}/g, env.NUM_IMPLEMENTATIONS || "3")
+          .replace(/\{\{WORKTREES_DIR\}\}/g, env.WORKTREES_DIR || "")
+          .replace(/\{\{LINEAR_ISSUE\}\}/g, env.LINEAR_ISSUE || "");
+      },
+    }
+  : {
+      name: "implementation-agent",
+      description: "Implements features based on a given description",
+      requiredEnvVars: [],
+      promptFileName: "implementation.md",
+      getAgentTools: () => ({
+        write: true,
+        edit: true,
+        bash: true,
+        read: true,
+        list: true,
+        glob: true,
+        grep: true,
+        webfetch: true,
+      }),
+      getAgentPermissions: () => ({
+        edit: "allow",
+        bash: "allow",
+        webfetch: "allow",
+      }),
+      processPrompt: (template: string) => template,
     };
-  }): Promise<{ data?: boolean; error?: unknown }>;
-};
+
+await runAgent(config);
 ```
 
-**Lines to modify**: After line 89, add the `auth` property to the interface
+## Phase 3: Update Main Repository
 
-### Success Criteria:
+### 3.1 Update Root package.json
 
-#### Automated Verification:
-- [ ] TypeScript compiles: `bun run type-check`
-- [ ] Type checking passes for `client.auth.set()` calls
-
-#### Manual Verification:
-- [ ] IDE provides proper autocomplete for auth methods
-
----
-
-## Task 7: Add Integration Test for Authentication
-
-**File**: `src/lib/__tests__/auth.test.ts` (new file)
-
-**Description of Changes**:
-
-Create a test file that verifies:
-1. OAuth credentials are correctly detected from environment
-2. API key fallback works when OAuth is not available
-3. Error is thrown with clear message when no credentials exist
-4. `client.auth.set()` is called with correct parameters
-
-Use Bun's test runner:
-```typescript
-import { describe, test, expect, mock } from "bun:test";
+Simplify the main repository's `package.json`:
+```json
+{
+  "name": "swellai",
+  "version": "2.0.0",
+  "description": "Install claude-parallel workflows and templates into any repository",
+  "type": "module",
+  "bin": {
+    "swellai": "./dist/src/cli/index.js"
+  },
+  "files": [
+    "dist/",
+    "templates/",
+    ".github/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:templates": "bun run scripts/build-templates.ts",
+    "type-check": "tsc --noEmit",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint . --write",
+    "format": "biome format .",
+    "format:fix": "biome format . --write",
+    "check": "biome check .",
+    "check:fix": "biome check . --write",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@swellai/agent-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.10",
+    "@types/node": "^25.0.2",
+    "bun-types": "^1.3.5",
+    "husky": "^9.1.7",
+    "typescript": "^5.9.3"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}
 ```
 
-### Success Criteria:
+### 3.2 Remove Old Files
+Delete from root repository:
+- `src/agents/` directory
+- `src/lib/` directory
+- `src/index.ts`
+- `scripts/opencode-agent-runner.ts`
 
-#### Automated Verification:
-- [ ] Tests pass: `bun test src/lib/__tests__/auth.test.ts`
+### 3.3 Keep Only CLI Installer
+Retain `src/cli/` for the `swellai` CLI that installs workflows and templates.
 
-#### Manual Verification:
-- [ ] Test coverage includes all auth paths
+## Phase 4: Update GitHub Actions Workflows
 
----
+### 4.1 Update claude-implement.yml
 
-## Testing Strategy
+Replace the agent execution steps:
 
-### Unit Tests
+**Before:**
+```yaml
+- name: Setup Bun for Agent Runner
+  uses: oven-sh/setup-bun@v2
+  with:
+    bun-version: latest
 
-- Test `getAuthCredentials()` returns correct structure for OAuth and API key scenarios
-- Test `setProviderAuth()` calls `client.auth.set()` with correct parameters
-- Test error handling when no credentials are available
+- name: Install dependencies
+  run: bun install
 
-### Integration Tests
+- name: Build TypeScript
+  run: bun run build
 
-End-to-end test with real SDK:
+- name: Run implementation agent
+  env:
+    MODEL: ${{ inputs.claude_model }}
+    LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+  run: |
+    echo "$IMPLEMENTATION_PROMPT" | bun run scripts/opencode-agent-runner.ts
+```
+
+**After:**
+```yaml
+- name: Setup Bun
+  uses: oven-sh/setup-bun@v2
+  with:
+    bun-version: latest
+
+- name: Install agent package
+  run: bun install @swellai/agent-core@latest
+
+- name: Run implementation agent
+  env:
+    MODEL: ${{ inputs.claude_model }}
+    MODE: implementation
+    LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+  run: |
+    echo "$IMPLEMENTATION_PROMPT" | bunx @swellai/agent-core run
+```
+
+### 4.2 Update Review Agent Step
+
+**Before:**
+```yaml
+- name: Run review agent
+  env:
+    MODEL: ${{ inputs.claude_model }}
+    NUM_IMPLEMENTATIONS: ${{ inputs.num_implementations }}
+    WORKTREES_DIR: ./worktrees
+    LINEAR_ISSUE: ${{ needs.generate-matrix.outputs.linear_issue }}
+  run: |
+    bun run src/agents/review-agent.ts
+```
+
+**After:**
+```yaml
+- name: Run review agent
+  env:
+    MODEL: ${{ inputs.claude_model }}
+    MODE: review
+    NUM_IMPLEMENTATIONS: ${{ inputs.num_implementations }}
+    WORKTREES_DIR: ./worktrees
+    LINEAR_ISSUE: ${{ needs.generate-matrix.outputs.linear_issue }}
+  run: |
+    bunx @swellai/agent-core run
+```
+
+### 4.3 Update Other Workflows
+Apply similar changes to:
+- `claude-plan.yml`
+- `multi-provider-plan-v2.yml`
+
+## Phase 5: Build and Publish Package
+
+### 5.1 Build the Package
 ```bash
-# Test with API key
-ANTHROPIC_API_KEY="test-key" bun run src/agents/planning-agent.ts "Test feature"
-
-# Test with OAuth (requires valid tokens)
-ANTHROPIC_OAUTH_ACCESS="access-token" \
-ANTHROPIC_OAUTH_REFRESH="refresh-token" \
-ANTHROPIC_OAUTH_EXPIRES="1234567890" \
-bun run src/agents/planning-agent.ts "Test feature"
+cd packages/agent-core
+bun install
+bun run build
 ```
 
-### Manual Testing Steps
+### 5.2 Test Locally
+```bash
+# Test in workspace
+bun link
 
-1. Set only `ANTHROPIC_API_KEY` - verify agent runs successfully
-2. Set only OAuth credentials - verify agent runs successfully
-3. Unset all credentials - verify clear error message is shown
-4. Run full workflow in GitHub Actions with secrets configured
+# Test in main repo
+cd ../..
+bun link @swellai/agent-core
+bun run test
+```
 
-## Migration Notes
+### 5.3 Publish to npm
+```bash
+cd packages/agent-core
+npm publish
+```
 
-This is a **non-breaking change** for users:
-- Existing API key environment variables continue to work
-- OAuth support is additive
-- No changes required to existing GitHub workflow configurations unless OAuth is desired
+## Phase 6: Cleanup and Validation
 
-For users who want to switch to OAuth:
-1. Obtain OAuth credentials from Anthropic
-2. Add `ANTHROPIC_OAUTH_ACCESS`, `ANTHROPIC_OAUTH_REFRESH`, `ANTHROPIC_OAUTH_EXPIRES` to GitHub Secrets
-3. Update workflow to pass OAuth secrets to the setup action
+### 6.1 Remove Unused Dependencies
+From root `package.json`, remove:
+- `@libsql/client`
+- `@linear/sdk`
+- `@opencode-ai/sdk`
 
-## References
+These are now dependencies of `@swellai/agent-core`.
 
-- Original ticket: GitHub Issue #54
-- OpenCode SDK Types: `node_modules/@opencode-ai/sdk/dist/gen/types.gen.d.ts:1434-1450`
-- Auth API: `node_modules/@opencode-ai/sdk/dist/gen/sdk.gen.d.ts:265-286`
-- Current auth flow: `src/lib/agent-runner.ts:48`, `src/lib/opencode.ts:154-162`
+### 6.2 Update Documentation
+Update `README.md` to reflect new structure:
+- Remove references to `src/agents/`
+- Update installation instructions
+- Document the new package approach
+
+### 6.3 Update CLAUDE.md
+Update development commands:
+```bash
+# Local testing with package
+MODE=implementation MODEL=claude-opus-4-5 echo "Your prompt" | bunx @swellai/agent-core run
+MODE=review MODEL=claude-opus-4-5 echo "Your prompt" | bunx @swellai/agent-core run
+```
+
+### 6.4 Run E2E Tests
+```bash
+./.github/scripts/run-simple-e2e-test.sh
+./.github/scripts/run-e2e-test.sh
+```
+
+## Phase 7: Migration Guide
+
+Create `MIGRATION.md` documenting:
+1. How to update existing installations
+2. Breaking changes (if any)
+3. New environment variables
+4. Updated workflow examples
+
+## Success Criteria
+
+- [ ] `@swellai/agent-core` package builds successfully
+- [ ] Package published to npm
+- [ ] All GitHub Actions workflows updated
+- [ ] E2E tests pass with new structure
+- [ ] Root repository size reduced by ~40%
+- [ ] Documentation updated
+- [ ] No breaking changes for end users
+
+## Rollback Plan
+
+If issues arise:
+1. Keep old code in a branch (`backup/pre-refactor`)
+2. Can revert workflows to use old scripts
+3. Unpublish package version if needed
+4. Restore old `package.json` structure
+
+## Estimated Timeline
+
+- Phase 1-2: 2-3 hours (package creation and extraction)
+- Phase 3: 1 hour (repository cleanup)
+- Phase 4: 1-2 hours (workflow updates)
+- Phase 5: 1-2 hours (build, test, publish)
+- Phase 6: 1 hour (cleanup and validation)
+- Phase 7: 1 hour (documentation)
+
+**Total: 7-10 hours**
+
+## Notes
+
+- The package will use semantic versioning
+- Major version bump (2.0.0) for main repo to indicate structural change
+- Consider using `changesets` for managing package versions
+- Package will be scoped to `@swellai` organization
+- Consider adding automated tests for the package itself
