@@ -29,7 +29,7 @@
 ## Recent Sessions
 
 *Session 21 (Jan 4, 2026) - OpenCode SDK Migration*
-*Session 20 (Jan 4, 2026) - Server-Inherited Authentication Refactor*
+*Session 20 (Jan 4, 2026) - Server-Inherited Authentication Refactor + Live Tool Call Logging*
 *Session 19 (Dec 30, 2025) - Claude CLI Path Resolution Fix*
 *Session 18 (Dec 30, 2025) - Critical Bug Fixes for npm Package*
 *Session 17 (Dec 29, 2025) - npm Package Publishing & Rebranding*
@@ -152,6 +152,17 @@ Implemented OpenCode SDK's `client.auth.set()` API for cleaner authentication:
 **E2E Test**: Verified with real OAuth credentials from `~/.local/share/opencode/auth.json`
 
 **Tests**: 14/14 passing, TypeScript type-check passing, build successful
+
+**Live Tool Call Logging for GitHub Actions**
+
+Added visibility into agent tool calls during GitHub Actions workflow execution.
+
+**Problem**: Console logs weren't showing in GitHub Actions because stderr was redirected to `error.log` file only.
+
+**Solution**:
+1. Updated workflow to use `tee` for stderr: `2> >(tee error.log >&2)`
+   - Shows logs live in GitHub Actions console
+   - Still captures to error.log for artifacts
 
 ---
 

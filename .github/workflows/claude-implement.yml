@@ -199,11 +199,12 @@ jobs:
           echo "Prompt size: $(echo "$IMPL_PROMPT" | wc -c) bytes"
 
           # Run agent runner and capture exit code
+          # Use tee to show stderr live in console AND capture to file
           set +e
           MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
           MODE="implementation" \
           echo "$IMPL_PROMPT" | bun run scripts/opencode-agent-runner.ts \
-            > result.json 2> error.log
+            > result.json 2> >(tee error.log >&2)
           RUNNER_EXIT=$?
           set -e
 
@@ -344,10 +345,11 @@ jobs:
           echo "Linear issue: ${{ needs.generate-matrix.outputs.linear_issue }}"
 
           # Run agent runner in review mode (schema automatically applied)
+          # Use tee to show stderr live in console AND capture to file
           MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
           MODE="review" \
           echo "$REVIEW_PROMPT" | bun run scripts/opencode-agent-runner.ts \
-            > review-result.json 2> review-error.log || true
+            > review-result.json 2> >(tee review-error.log >&2) || true
 
           cat review-result.json
 
@@ -752,10 +754,11 @@ jobs:
           echo "Linear issue: ${{ needs.generate-matrix.outputs.linear_issue }}"
 
           # Run agent runner in implementation mode
+          # Use tee to show stderr live in console AND capture to file
           MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
           MODE="implementation" \
           echo "$VERIFY_PROMPT" | bun run scripts/opencode-agent-runner.ts \
-            > verify-result.json 2> verify-error.log || true
+            > verify-result.json 2> >(tee verify-error.log >&2) || true
 
           cat verify-result.json
 
