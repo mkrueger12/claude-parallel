@@ -1,15 +1,16 @@
 # Session Context: claude-parallel
 
 **Date**: January 5, 2026
-**Status**: Agent consolidation complete - single entry point with opencode.json config
+**Status**: Agent consolidation tested and verified working
 
 ---
 
 ## Current State
 
-**Latest Work**: Consolidated all agents into single entry point (Session 23)
+**Latest Work**: Fixed opencode.json schema and verified agent execution (Session 23 continued)
 **Repository**: Working on branch `refactor/simplify`
 **Latest Commits**:
+- `49ca8ad` - Fix opencode.json schema and improve error handling
 - `61b8026` - Consolidate agents into single entry point with opencode.json config
 - `03ad4e2` - Extract agent logic to @swellai/agent-core workspace package
 
@@ -20,6 +21,8 @@
 - Added `src/lib/auth.ts` with simplified OAuth/API key authentication
 - Updated GitHub workflows to use new `AGENT=<name>` pattern
 - Removed old agent files: planning-agent.ts, linear-agent.ts, run-agent.ts
+- Fixed opencode.json schema (use `provider`, `mcp`, `agent` not `providers`, `mcpServers`, `agents`)
+- Tested planning agent - session creation and tool execution verified working
 - All type checks passing, builds successful
 
 ---
@@ -57,7 +60,7 @@ Sessions 1-13 have been archived. Key milestones:
 
 1. Merge `refactor/simplify` branch to main
 2. Publish npm v2.0.0 with 2FA
-3. Test the consolidated agent with real Linear issues
+3. Test implementation, review, and linear agents end-to-end
 4. Update README.md to document new usage: `AGENT=<name> bun run src/agent.ts`
 5. Consider publishing @swellai/agent-core to npm separately
 
@@ -99,6 +102,19 @@ Consolidated three separate agent entry points into a single unified system with
 **Files Modified**:
 - `.github/workflows/claude-implement.yml` - Uses `AGENT=<name> bun run src/agent.ts`
 - `.github/workflows/multi-provider-plan-v2.yml` - Uses `AGENT=<name> bun run src/agent.ts`
+
+**Schema Fix** (Session 23 continued):
+- Fixed `opencode.json` to use correct OpenCode SDK field names:
+  - `provider` (not `providers`)
+  - `mcp` (not `mcpServers`)
+  - `agent` (not `agents`)
+- Added `$schema` reference for validation
+- Improved error handling in agent-runner.ts to show config validation errors
+
+**Test Results**:
+- Planning agent successfully creates sessions
+- Tool execution (read files) works correctly
+- Session ID generated: `ses_470c879feffeZSA6sCniu8gprN`
 
 **New Usage Pattern**:
 ```bash
