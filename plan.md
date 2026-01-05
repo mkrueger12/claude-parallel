@@ -1,401 +1,403 @@
-# Plan: Extract Agent Logic to Separate TypeScript Package
+# Agent Consolidation Plan
 
 ## Overview
 
-Restructure the `claude-parallel` repository by extracting the core agent logic into a separate npm package (`@swellai/agent-core`). This will simplify the main repository, improve reusability, and make the GitHub Actions workflows cleaner. No backwards compatability.
+Consolidate `linear-agent.ts`, `planning-agent.ts`, and `run-agent.ts` into a single extensible agent system using OpenCode's native `opencode.json` configuration pattern.
 
-## Goals
+## Current State
 
-1. Create a standalone npm package containing all agent execution logic
-2. Simplify the main repository to only contain workflows, templates, and prompts
-3. Enable the agent package to be versioned and reused independently
-4. Reduce repository complexity and maintenance burden
+Three separate agent entry points, all using `runAgent` from `@swellai/agent-core`:
 
-## Phase 1: Create New Package Structure
+| Agent | File | Mode | Key Features |
+|-------|------|------|--------------|
+| Planning | `src/agents/planning-agent.ts` | Read-only | Web research, CLI args |
+| Linear | `src/agents/linear-agent.ts` | Read + MCP | Linear MCP, env templating |
+| Implementation/Review | `scripts/run-agent.ts` | Full or Read-only | MODE env var switches |
 
-### 1.1 Create Package Directory
-```
-packages/
-  agent-core/
-    src/
-      index.ts
-      lib/
-        agent-runner.ts
-        opencode.ts
-        conversation-logger.ts
-        turso.ts
-        turso-schema.ts
-        types.ts
-        utils.ts
-    package.json
-    tsconfig.json
-    README.md
-scripts/
-  run-agent.ts  # Simple wrapper script
-```
+**Problems:**
+- Duplicated boilerplate across files
+- Agent config embedded in code, not declarative
+- Custom auth handling duplicates some OpenCode functionality
 
-### 1.2 Create Package Configuration
+## Target Architecture
 
-**packages/agent-core/package.json**
+### 1. Agent Definitions in `opencode.json`
+
 ```json
 {
-  "name": "@swellai/agent-core",
-  "version": "1.0.0",
-  "description": "Core agent execution logic for Claude Parallel workflows",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist/",
-    "README.md"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "type-check": "tsc --noEmit",
-    "test": "bun test"
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "anthropic": {
+      "options": { "timeout": false }
+    },
+    "openai": {
+      "options": { "timeout": false }
+    },
+    "google": {
+      "options": { "timeout": false }
+    }
   },
-  "keywords": [
-    "claude",
-    "agent",
-    "ai",
-    "automation",
-    "github-actions"
-  ],
-  "dependencies": {
-    "@libsql/client": "^0.15.0",
-    "@linear/sdk": "^30.0.0",
-    "@opencode-ai/sdk": "^1.0.153"
+  "mcp": {
+    "linear": {
+      "type": "remote",
+      "url": "https://mcp.linear.app/mcp",
+      "headers": {
+        "Authorization": "Bearer {env:LINEAR_API_KEY}"
+      }
+    }
   },
-  "devDependencies": {
-    "@types/node": "^25.0.2",
-    "typescript": "^5.9.3"
-  },
-  "engines": {
-    "node": ">=20.0.0",
-    "bun": ">=1.0.0"
+  "agent": {
+    "planning": {
+      "mode": "primary",
+      "description": "Generate comprehensive implementation plans for features",
+      "prompt": "{file:./prompts/plan-generation.md}",
+      "maxSteps": 30,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "read": true,
+        "list": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": true
+      },
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "webfetch": "allow"
+      }
+    },
+    "linear": {
+      "mode": "primary",
+      "description": "Consolidate implementation plans and create Linear issues",
+      "prompt": "{file:./prompts/consolidate-and-create-linear.md}",
+      "maxSteps": 30,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": true,
+        "read": true,
+        "list": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": true,
+        "mcp__linear__*": true
+      },
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "webfetch": "allow",
+        "mcp__linear__*": "allow"
+      }
+    },
+    "implementation": {
+      "mode": "primary",
+      "description": "Implement features based on specifications",
+      "prompt": "{file:./prompts/implementation.md}",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "read": true,
+        "list": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": true
+      },
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "review": {
+      "mode": "primary",
+      "description": "Review multiple implementations and select the best one",
+      "prompt": "{file:./prompts/review.md}",
+      "maxSteps": 30,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "read": true,
+        "list": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": false
+      },
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
+      }
+    }
   }
 }
 ```
 
-**packages/agent-core/tsconfig.json**
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "bundler",
-    "lib": ["ES2022"],
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
-}
-```
+### 2. Single CLI Entry Point
 
-### 1.3 Create Main Export File
+**New file: `src/agent.ts`**
 
-**packages/agent-core/src/index.ts**
-```typescript
-export { runAgent, type AgentConfig } from "./lib/agent-runner.js";
-export { createOpencodeServer, setupEventMonitoring } from "./lib/opencode.js";
-export { createConversationLogger } from "./lib/conversation-logger.js";
-export { type Provider } from "./lib/types.js";
-export { extractTextFromParts, validateEnvVars } from "./lib/utils.js";
-```
-
-## Phase 2: Extract Agent Logic
-
-### 2.1 Copy Core Library Files
-Move the following files from `src/lib/` to `packages/agent-core/src/lib/`:
-- `agent-runner.ts`
-- `opencode.ts`
-- `conversation-logger.ts`
-- `turso.ts`
-- `turso-schema.ts`
-- `types.ts`
-- `utils.ts`
-
-### 2.2 Create Simple Wrapper Script
-
-**scripts/run-agent.ts**
 ```typescript
 #!/usr/bin/env node
+import { createOpencode } from "@opencode-ai/sdk";
+import { setupAuth } from "./lib/auth.js";
+import { setupEventMonitoring } from "./lib/events.js";
+import { createConversationLogger } from "./lib/conversation-logger.js";
+import { assembleAgentInput } from "./lib/input.js";
 
-import { runAgent } from "@swellai/agent-core";
+const agent = process.env.AGENT || process.argv[2];
+if (!agent) {
+  console.error("Usage: AGENT=<name> bun run agent.ts [prompt]");
+  console.error("       bun run agent.ts <agent-name> [prompt]");
+  console.error("\nAvailable agents: planning, linear, implementation, review");
+  process.exit(1);
+}
 
-const MODE = process.env.MODE || "implementation";
-const MODEL = process.env.MODEL || "claude-opus-4-5";
+const provider = process.env.PROVIDER || "anthropic";
+const model = process.env.MODEL || "claude-opus-4-5";
 
-const config = MODE === "review"
-  ? {
-      name: "review-agent",
-      description: "Reviews multiple implementations and selects the best one",
-      requiredEnvVars: ["NUM_IMPLEMENTATIONS", "WORKTREES_DIR", "LINEAR_ISSUE"],
-      promptFileName: "review.md",
-      getAgentTools: () => ({
-        read: true,
-        list: true,
-        glob: true,
-        grep: true,
-        webfetch: false,
-      }),
-      getAgentPermissions: () => ({
-        webfetch: "allow",
-      }),
-      processPrompt: (template: string, env: NodeJS.ProcessEnv) => {
-        return template
-          .replace(/\{\{NUM_IMPLEMENTATIONS\}\}/g, env.NUM_IMPLEMENTATIONS || "3")
-          .replace(/\{\{WORKTREES_DIR\}\}/g, env.WORKTREES_DIR || "")
-          .replace(/\{\{LINEAR_ISSUE\}\}/g, env.LINEAR_ISSUE || "");
-      },
+// Start OpenCode with config from opencode.json
+const { client, server } = await createOpencode();
+
+// Setup OAuth for Anthropic (our value-add)
+await setupAuth(client, provider);
+
+// Setup logging and monitoring
+const logger = await createConversationLogger();
+setupEventMonitoring(client, logger);
+
+try {
+  const session = await client.session.create({
+    body: { title: `${agent}: ${new Date().toISOString()}` }
+  });
+
+  // Assemble agent-specific input from env vars and CLI args
+  const input = assembleAgentInput(agent, process.argv.slice(3));
+
+  const result = await client.session.prompt({
+    path: { id: session.data.id },
+    body: {
+      agent,
+      model: { providerID: provider, modelID: model },
+      parts: [{ type: "text", text: input }]
     }
-  : {
-      name: "implementation-agent",
-      description: "Implements features based on a given description",
-      requiredEnvVars: [],
-      promptFileName: "implementation.md",
-      getAgentTools: () => ({
-        write: true,
-        edit: true,
-        bash: true,
-        read: true,
-        list: true,
-        glob: true,
-        grep: true,
-        webfetch: true,
-      }),
-      getAgentPermissions: () => ({
-        edit: "allow",
-        bash: "allow",
-        webfetch: "allow",
-      }),
-      processPrompt: (template: string) => template,
-    };
+  });
 
-await runAgent(config);
-```
+  // Output result
+  const text = result.data.parts
+    .filter(p => p.type === "text")
+    .map(p => p.text)
+    .join("\n");
 
-## Phase 3: Update Main Repository
-
-### 3.1 Update Root package.json
-
-Simplify the main repository's `package.json`:
-```json
-{
-  "name": "swellai",
-  "version": "2.0.0",
-  "description": "Install claude-parallel workflows and templates into any repository",
-  "type": "module",
-  "bin": {
-    "swellai": "./dist/src/cli/index.js"
-  },
-  "files": [
-    "dist/",
-    "templates/",
-    ".github/"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "build:templates": "bun run scripts/build-templates.ts",
-    "type-check": "tsc --noEmit",
-    "lint": "biome lint .",
-    "lint:fix": "biome lint . --write",
-    "format": "biome format .",
-    "format:fix": "biome format . --write",
-    "check": "biome check .",
-    "check:fix": "biome check . --write",
-    "prepare": "husky"
-  },
-  "dependencies": {
-    "@swellai/agent-core": "workspace:*"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.3.10",
-    "@types/node": "^25.0.2",
-    "bun-types": "^1.3.5",
-    "husky": "^9.1.7",
-    "typescript": "^5.9.3"
-  },
-  "workspaces": [
-    "packages/*"
-  ]
+  console.log(text);
+  process.exit(0);
+} finally {
+  server.close();
 }
 ```
 
-### 3.2 Remove Old Files
-Delete from root repository:
-- `src/agents/` directory
-- `src/lib/` directory
-- `src/index.ts`
-- `scripts/opencode-agent-runner.ts`
+### 3. Input Assembly Module
 
-### 3.3 Keep Only CLI Installer and Wrapper Script
-Retain:
-- `src/cli/` for the `swellai` CLI that installs workflows and templates
-- `scripts/run-agent.ts` for the new agent wrapper script
+**New file: `src/lib/input.ts`**
 
-## Phase 4: Update GitHub Actions Workflows
+Handles agent-specific input construction from env vars:
 
-### 4.1 Update claude-implement.yml
+```typescript
+export function assembleAgentInput(agent: string, args: string[]): string {
+  switch (agent) {
+    case "planning":
+      // CLI args are the feature description
+      return args.join(" ") || process.env.FEATURE_DESCRIPTION || "";
 
-Replace the agent execution steps:
+    case "linear":
+      // Env vars contain the plans to consolidate
+      return `## Plans to Consolidate
 
-**Before:**
-```yaml
-- name: Setup Bun for Agent Runner
-  uses: oven-sh/setup-bun@v2
-  with:
-    bun-version: latest
+### Plan 1
+${process.env.PLAN_1 || "(not provided)"}
 
-- name: Install dependencies
-  run: bun install
+### Plan 2
+${process.env.PLAN_2 || "(not provided)"}
 
-- name: Build TypeScript
-  run: bun run build
+### Plan 3
+${process.env.PLAN_3 || "(not provided)"}
 
-- name: Run implementation agent
-  env:
-    MODEL: ${{ inputs.claude_model }}
-    LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-  run: |
-    echo "$IMPLEMENTATION_PROMPT" | bun run scripts/opencode-agent-runner.ts
+## Context
+- GitHub Issue: ${process.env.GITHUB_ISSUE_URL || "(not provided)"}
+- Title: ${process.env.ISSUE_TITLE || "(not provided)"}
+- Linear Team: ${process.env.LINEAR_TEAM_ID || "(not provided)"}
+- Linear Project: ${process.env.LINEAR_PROJECT_ID || "(optional)"}`;
+
+    case "implementation":
+      // Stdin or args contain the task description
+      return args.join(" ") || process.env.TASK_DESCRIPTION || "";
+
+    case "review":
+      // Env vars specify what to review
+      return `## Review Task
+
+Review ${process.env.NUM_IMPLEMENTATIONS || "3"} implementations in:
+${process.env.WORKTREES_DIR || "(worktrees dir not specified)"}
+
+Linear Issue: ${process.env.LINEAR_ISSUE || "(not specified)"}`;
+
+    default:
+      return args.join(" ");
+  }
+}
 ```
 
-**After:**
-```yaml
-- name: Setup Bun
-  uses: oven-sh/setup-bun@v2
-  with:
-    bun-version: latest
+### 4. Auth Module (OAuth for Anthropic)
 
-- name: Install dependencies
-  run: bun install
+**Keep in: `src/lib/auth.ts`**
 
-- name: Build package
-  run: bun run build
+```typescript
+import type { OpencodeClient, Provider } from "./types.js";
 
-- name: Run implementation agent
-  env:
-    MODEL: ${{ inputs.claude_model }}
-    MODE: implementation
-    LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
-  run: |
-    echo "$IMPLEMENTATION_PROMPT" | bun run scripts/run-agent.ts
+export async function setupAuth(client: OpencodeClient, provider: Provider): Promise<void> {
+  switch (provider) {
+    case "anthropic": {
+      const access = process.env.ANTHROPIC_OAUTH_ACCESS;
+      const refresh = process.env.ANTHROPIC_OAUTH_REFRESH;
+      const expires = process.env.ANTHROPIC_OAUTH_EXPIRES;
+
+      if (!access || !refresh || !expires) {
+        throw new Error(
+          "Anthropic OAuth required. Set ANTHROPIC_OAUTH_ACCESS, ANTHROPIC_OAUTH_REFRESH, ANTHROPIC_OAUTH_EXPIRES"
+        );
+      }
+
+      await client.auth.set({
+        path: { id: "anthropic" },
+        body: {
+          type: "oauth",
+          access,
+          refresh,
+          expires: parseInt(expires, 10)
+        }
+      });
+      console.error("✓ Anthropic OAuth configured");
+      break;
+    }
+
+    case "openai": {
+      if (!process.env.OPENAI_API_KEY) {
+        throw new Error("OpenAI API key required. Set OPENAI_API_KEY");
+      }
+      console.error("✓ OpenAI API key found");
+      break;
+    }
+
+    case "google": {
+      if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+        throw new Error("Google API key required. Set GOOGLE_GENERATIVE_AI_API_KEY");
+      }
+      console.error("✓ Google API key found");
+      break;
+    }
+
+    default:
+      throw new Error(`Unsupported provider: ${provider}`);
+  }
+}
 ```
 
-### 4.2 Update Review Agent Step
+## Files to Delete
 
-**Before:**
-```yaml
-- name: Run review agent
-  env:
-    MODEL: ${{ inputs.claude_model }}
-    NUM_IMPLEMENTATIONS: ${{ inputs.num_implementations }}
-    WORKTREES_DIR: ./worktrees
-    LINEAR_ISSUE: ${{ needs.generate-matrix.outputs.linear_issue }}
-  run: |
-    bun run src/agents/review-agent.ts
+After consolidation:
+
+- `src/agents/linear-agent.ts`
+- `src/agents/planning-agent.ts`
+- `scripts/run-agent.ts`
+- `src/agents/` directory (empty)
+
+## Files to Create/Modify
+
+| File | Action |
+|------|--------|
+| `opencode.json` | Create - agent definitions |
+| `src/agent.ts` | Create - single entry point |
+| `src/lib/input.ts` | Create - agent input assembly |
+| `src/lib/auth.ts` | Modify - simplify, OAuth focus |
+| `packages/agent-core/src/index.ts` | Modify - export new structure |
+
+## Package Structure After
+
+```
+@swellai/agent-core/
+├── src/
+│   ├── agent.ts              # Single CLI entry point
+│   └── lib/
+│       ├── auth.ts           # OAuth for Anthropic
+│       ├── input.ts          # Agent-specific input assembly
+│       ├── events.ts         # Event monitoring
+│       ├── conversation-logger.ts
+│       └── types.ts
+├── opencode.json             # Agent definitions
+└── prompts/
+    ├── plan-generation.md
+    ├── consolidate-and-create-linear.md
+    ├── implementation.md
+    └── review.md
 ```
 
-**After:**
-```yaml
-- name: Run review agent
-  env:
-    MODEL: ${{ inputs.claude_model }}
-    MODE: review
-    NUM_IMPLEMENTATIONS: ${{ inputs.num_implementations }}
-    WORKTREES_DIR: ./worktrees
-    LINEAR_ISSUE: ${{ needs.generate-matrix.outputs.linear_issue }}
-  run: |
-    bun run scripts/run-agent.ts
-```
+## Usage After Consolidation
 
-### 4.3 Update Other Workflows
-Apply similar changes to:
-- `claude-plan.yml`
-- `multi-provider-plan-v2.yml`
-
-## Phase 5: Build and Test Package
-
-### 5.1 Build the Package
 ```bash
-cd packages/agent-core
-bun install
-bun run build
+# Planning agent
+AGENT=planning bun run src/agent.ts "Add user authentication"
+
+# Linear agent (env vars for plans)
+PLAN_1="..." PLAN_2="..." PLAN_3="..." \
+AGENT=linear bun run src/agent.ts
+
+# Implementation agent
+AGENT=implementation bun run src/agent.ts "Implement the auth feature"
+
+# Review agent
+NUM_IMPLEMENTATIONS=3 WORKTREES_DIR=/tmp/worktrees LINEAR_ISSUE=ENG-123 \
+AGENT=review bun run src/agent.ts
 ```
 
-### 5.2 Test Locally
-```bash
-# Test the wrapper script
-cd ../..
-MODE=implementation MODEL=claude-opus-4-5 echo "Test prompt" | bun run scripts/run-agent.ts
-MODE=review MODEL=claude-opus-4-5 echo "Test prompt" | bun run scripts/run-agent.ts
+## GitHub Actions Integration
+
+```yaml
+env:
+  # Anthropic OAuth (preferred)
+  ANTHROPIC_OAUTH_ACCESS: ${{ secrets.ANTHROPIC_OAUTH_ACCESS }}
+  ANTHROPIC_OAUTH_REFRESH: ${{ secrets.ANTHROPIC_OAUTH_REFRESH }}
+  ANTHROPIC_OAUTH_EXPIRES: ${{ secrets.ANTHROPIC_OAUTH_EXPIRES }}
+  # Other providers
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+  # Linear
+  LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+
+steps:
+  - uses: actions/checkout@v4
+
+  - name: Run planning agent
+    run: AGENT=planning PROVIDER=anthropic bun run src/agent.ts "${{ github.event.issue.body }}"
 ```
 
-## Phase 6: Cleanup and Validation
+## Benefits
 
-### 6.1 Remove Unused Dependencies
-From root `package.json`, remove:
-- `@libsql/client`
-- `@linear/sdk`
-- `@opencode-ai/sdk`
+1. **Single source of truth** - Agent configs in `opencode.json`, not scattered in code
+2. **Extensibility** - Add new agents by editing JSON, not writing new files
+3. **OpenCode native** - Leverages OpenCode's config system directly
+4. **OAuth support** - Anthropic OAuth as a value-add feature
+5. **Simpler maintenance** - One entry point instead of three
+6. **Declarative** - Tools, permissions, prompts all visible in config
 
-These are now dependencies of `@swellai/agent-core`.
+## Migration Steps
 
-### 6.2 Update Documentation
-Update `README.md` to reflect new structure:
-- Remove references to `src/agents/`
-- Update installation instructions
-- Document the new package approach
-
-### 6.3 Update CLAUDE.md
-Update development commands:
-```bash
-# Local testing with wrapper script
-MODE=implementation MODEL=claude-opus-4-5 echo "Your prompt" | bun run scripts/run-agent.ts
-MODE=review MODEL=claude-opus-4-5 echo "Your prompt" | bun run scripts/run-agent.ts
-```
-
-### 6.4 Run E2E Tests
-```bash
-./.github/scripts/run-simple-e2e-test.sh
-./.github/scripts/run-e2e-test.sh
-```
-
-## Success Criteria
-
-- [ ] `@swellai/agent-core` package builds successfully
-- [ ] Wrapper script `scripts/run-agent.ts` works correctly
-- [ ] All GitHub Actions workflows updated
-- [ ] E2E tests pass with new structure
-- [ ] Root repository size reduced by ~40%
-- [ ] Documentation updated
-- [ ] No breaking changes for end users
-
-## Notes
-
-- Package uses workspace dependency (no npm publishing required)
-- Major version bump (2.0.0) for main repo to indicate structural change
-- Simple wrapper script keeps workflows clean
-- Can publish to npm later if needed for external use
-- Package scoped to `@swellai` organization
-- Consider adding automated tests for the package itself
-
-## Simplification Benefits
-
-This approach (Option 2) provides:
-- **No npm registry overhead** - package stays in workspace
-- **Simpler package** - no CLI bin, just library exports
-- **Clear separation** - wrapper script in root, logic in package
-- **Easy to publish later** - can add npm publishing when needed
-- **Faster development** - no version management during development
+1. Create `opencode.json` with all agent definitions
+2. Create `src/lib/input.ts` for agent-specific input assembly
+3. Create `src/agent.ts` as single entry point
+4. Simplify `src/lib/auth.ts` to focus on OAuth
+5. Update `packages/agent-core/src/index.ts` exports
+6. Update GitHub Actions workflows to use new CLI
+7. Delete old agent files
+8. Update documentation

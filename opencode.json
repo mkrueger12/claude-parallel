@@ -1,0 +1,46 @@
+{
+  "agents": {
+    "planning": {
+      "mode": "read-only",
+      "prompt": "{file:./prompts/plan-generation.md}",
+      "tools": ["read", "list", "glob", "grep", "webfetch"],
+      "maxSteps": 30
+    },
+    "linear": {
+      "mode": "read-mcp",
+      "prompt": "{file:./prompts/consolidate-and-create-linear.md}",
+      "tools": ["read", "list", "glob", "grep", "mcp__linear__*"],
+      "maxSteps": 30
+    },
+    "implementation": {
+      "mode": "full",
+      "prompt": "{file:./prompts/implementation.md}",
+      "tools": ["*"]
+    },
+    "review": {
+      "mode": "read-only",
+      "prompt": "{file:./prompts/review.md}",
+      "tools": ["read", "list", "glob", "grep"],
+      "maxSteps": 30
+    }
+  },
+  "providers": {
+    "anthropic": {
+      "timeout": false
+    },
+    "openai": {
+      "timeout": false
+    },
+    "google": {
+      "timeout": false
+    }
+  },
+  "mcpServers": {
+    "linear": {
+      "url": "https://mcp.linear.app/mcp",
+      "headers": {
+        "Authorization": "{env:LINEAR_API_KEY}"
+      }
+    }
+  }
+}

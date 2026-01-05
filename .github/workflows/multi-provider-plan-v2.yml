@@ -122,7 +122,7 @@ jobs:
         run: |
           # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(AGENT=planning bun run src/agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -183,7 +183,7 @@ jobs:
         run: |
           # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(AGENT=planning bun run src/agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -244,7 +244,7 @@ jobs:
         run: |
           # Generate plan - stderr (logs) flows to console, stdout (plan) is captured
           set +e
-          PLAN=$(bun run src/agents/planning-agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
+          PLAN=$(AGENT=planning bun run src/agent.ts "$ISSUE_TITLE: $ISSUE_BODY")
           EXIT_CODE=$?
           set -e
 
@@ -310,4 +310,4 @@ jobs:
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
           # Run linear agent for consolidation and Linear issue creation
-          bun run src/agents/linear-agent.ts
+          AGENT=linear bun run src/agent.ts
