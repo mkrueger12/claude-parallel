@@ -1,45 +1,108 @@
 {
-  "agents": {
-    "planning": {
-      "mode": "read-only",
-      "prompt": "{file:./prompts/plan-generation.md}",
-      "tools": ["read", "list", "glob", "grep", "webfetch"],
-      "maxSteps": 30
-    },
-    "linear": {
-      "mode": "read-mcp",
-      "prompt": "{file:./prompts/consolidate-and-create-linear.md}",
-      "tools": ["read", "list", "glob", "grep", "mcp__linear__*"],
-      "maxSteps": 30
-    },
-    "implementation": {
-      "mode": "full",
-      "prompt": "{file:./prompts/implementation.md}",
-      "tools": ["*"]
-    },
-    "review": {
-      "mode": "read-only",
-      "prompt": "{file:./prompts/review.md}",
-      "tools": ["read", "list", "glob", "grep"],
-      "maxSteps": 30
-    }
-  },
-  "providers": {
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
     "anthropic": {
-      "timeout": false
+      "options": { "timeout": false }
     },
     "openai": {
-      "timeout": false
+      "options": { "timeout": false }
     },
     "google": {
-      "timeout": false
+      "options": { "timeout": false }
     }
   },
-  "mcpServers": {
+  "mcp": {
     "linear": {
+      "type": "remote",
       "url": "https://mcp.linear.app/mcp",
       "headers": {
-        "Authorization": "{env:LINEAR_API_KEY}"
+        "Authorization": "Bearer {env:LINEAR_API_KEY}"
+      }
+    }
+  },
+  "agent": {
+    "planning": {
+      "mode": "primary",
+      "description": "Generate comprehensive implementation plans for features",
+      "prompt": "{file:./prompts/plan-generation.md}",
+      "maxSteps": 30,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "read": true,
+        "list": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": true
+      },
+      "permission": {
+        "edit": "deny",
+        "bash": "deny",
+        "webfetch": "allow"
+      }
+    },
+    "linear": {
+      "mode": "primary",
+      "description": "Consolidate implementation plans and create Linear issues",
+      "prompt": "{file:./prompts/consolidate-and-create-linear.md}",
+      "maxSteps": 30,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": true,
+        "read": true,
+        "list": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": true,
+        "mcp__linear__*": true
+      },
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "webfetch": "allow",
+        "mcp__linear__*": "allow"
+      }
+    },
+    "implementation": {
+      "mode": "primary",
+      "description": "Implement features based on specifications",
+      "prompt": "{file:./prompts/implementation.md}",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "read": true,
+        "list": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": true
+      },
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "review": {
+      "mode": "primary",
+      "description": "Review multiple implementations and select the best one",
+      "prompt": "{file:./prompts/review.md}",
+      "maxSteps": 30,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "read": true,
+        "list": true,
+        "glob": true,
+        "grep": true,
+        "webfetch": false
+      },
+      "permission": {
+        "edit": "deny",
+        "bash": "deny"
       }
     }
   }

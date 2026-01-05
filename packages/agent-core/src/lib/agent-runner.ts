@@ -115,6 +115,10 @@ export async function runAgent(config: AgentConfig) {
     });
 
     if (!sessionResponse.data) {
+      const response = sessionResponse as { error?: { name?: string; data?: unknown } };
+      if (response.error) {
+        console.error("Session error:", JSON.stringify(response.error, null, 2));
+      }
       throw new Error("Failed to create session");
     }
 
