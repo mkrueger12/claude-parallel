@@ -1,39 +1,36 @@
 # Session Context: claude-parallel
 
-**Date**: January 4, 2026
-**Status**: OpenCode SDK migration complete - Claude Agent SDK removed
+**Date**: January 5, 2026
+**Status**: Agent-core workspace package extraction complete
 
 ---
 
 ## Current State
 
-**Latest Work**: Migrated implementation workflow from Claude Agent SDK to OpenCode SDK (Session 21)
-**Repository**: Working on branch `refactor/server-inherited-auth`
+**Latest Work**: Extracted agent logic to @swellai/agent-core workspace package (Session 22)
+**Repository**: Working on branch `refactor/simplify`
 **Latest Commits**:
-- `595eab6` - Simplify opencode-agent-runner.ts by removing CLI argument parsing
-- `ddc9da5` - Rebuild bundled templates with OpenCode agent runner
-- `b043bf5` - Update bun.lock after removing Claude Agent SDK dependency
-- `17f53a5` - Remove Claude Agent SDK dependency and related files
+- `03ad4e2` - Extract agent logic to @swellai/agent-core workspace package
 
 **Recent Accomplishments**:
-- Removed `@anthropic-ai/claude-agent-sdk` dependency entirely
-- Created `opencode-agent-runner.ts` using OpenCode SDK
-- Created `implementation-agent.ts` and `review-agent.ts`
-- Removed Claude CLI requirement from workflows
-- Simplified runner to use environment variables (MODEL, MODE) instead of CLI args
-- E2E tested both implementation and review modes - working
-- All 28 tests passing, type-check clean
+- Created `packages/agent-core/` workspace package with all core lib files
+- Added unified `scripts/run-agent.ts` wrapper for implementation and review modes
+- Updated workflows to use `run-agent.ts` instead of separate agent scripts
+- Removed redundant files (~13k lines removed)
+- Updated planning-agent.ts and linear-agent.ts to import from @swellai/agent-core
+- Version bumped to 2.0.0 for structural changes
+- All type checks passing, builds successful
 
 ---
 
 ## Recent Sessions
 
+*Session 22 (Jan 5, 2026) - Agent-Core Package Extraction*
 *Session 21 (Jan 4, 2026) - OpenCode SDK Migration*
 *Session 20 (Jan 4, 2026) - Server-Inherited Authentication Refactor + Live Tool Call Logging*
 *Session 19 (Dec 30, 2025) - Claude CLI Path Resolution Fix*
 *Session 18 (Dec 30, 2025) - Critical Bug Fixes for npm Package*
 *Session 17 (Dec 29, 2025) - npm Package Publishing & Rebranding*
-*Session 16 (Dec 23, 2025) - Turso Database Documentation*
 
 ---
 
@@ -56,33 +53,17 @@ Sessions 1-13 have been archived. Key milestones:
 
 ## Next Session Priorities
 
-1. ✅ ~~Resolve SDK exit code 1 issue~~ - **RESOLVED**
-2. ✅ ~~Merge PR #36 for the SDK migration (DEL-1295 implementation)~~ - **MERGED**
-3. ✅ ~~Migrate implementation workflow from GitHub to Linear~~ - **COMPLETED**
-4. ✅ ~~Simplify Linear integration using MCP~~ - **COMPLETED**
-5. ✅ ~~Rebuild as installer CLI (DEL-1307)~~ - **COMPLETED**
-6. ✅ ~~Run manual tests to verify installer functionality~~ - **COMPLETED**
-7. ✅ ~~Publish to npm~~ - **COMPLETED** (published as "install-claude-parallel" and "swellai")
-8. ✅ ~~Fix missing GitHub Actions bug~~ - **COMPLETED** (v1.0.2)
-9. ✅ ~~Fix "Module not found" workflow bug~~ - **COMPLETED** (v1.0.3)
-10. ✅ ~~Fix Claude CLI path resolution bug~~ - **COMPLETED** (v1.0.5)
-11. ✅ ~~Refactor to server-inherited authentication (Issue #54)~~ - **COMPLETED**
-12. ✅ ~~Migrate implementation workflow to OpenCode SDK~~ - **COMPLETED**
-13. Create PR for OpenCode SDK migration and merge to main
-13. Complete npm publish v1.0.5 with 2FA (requires user's OTP code)
-14. Verify published package works in production: `npx swellai@1.0.5`
-15. Create GitHub release v1.0.5 and tag
-16. Update README.md with npm package badge and installation instructions
-17. Test the Linear implementation workflow with a real Linear issue
-18. Verify Linear MCP tools work correctly in GitHub Actions environment
-19. Test the refactored multi-provider plan v2 workflow with a real issue
-20. Consider adding Linear issue commenting to workflows for status updates
+1. Merge `refactor/simplify` branch to main
+2. Publish npm v2.0.0 with 2FA
+3. Test the refactored workflows with real Linear issues
+4. Update README.md to document new package structure
+5. Consider publishing @swellai/agent-core to npm separately
 
 ---
 
 ## Active Plans
 
-- ~~**OpenCode SDK Migration**~~ - **COMPLETED** (see [plans/2026-01-04-opencode-sdk-migration.md](plans/2026-01-04-opencode-sdk-migration.md))
+- **Agent-Core Package Extraction** - **COMPLETED** (see [plans/2026-01-05-agent-core-extraction.md](plans/2026-01-05-agent-core-extraction.md))
 
 ---
 
@@ -94,6 +75,55 @@ Sessions 1-13 have been archived. Key milestones:
 ---
 
 ## Notes
+
+### Session 22 Accomplishments (Jan 5, 2026)
+
+**Agent-Core Package Extraction**
+
+Extracted core agent execution logic into a separate workspace package to simplify the repository structure.
+
+**Package Created: `packages/agent-core/`**
+- `package.json` - Package config with @opencode-ai/sdk, @libsql/client, @linear/sdk dependencies
+- `tsconfig.json` - TypeScript configuration
+- `src/index.ts` - Main exports (runAgent, createOpencodeServer, etc.)
+- `src/lib/` - All core library files moved here:
+  - `agent-runner.ts` - Agent execution orchestration
+  - `opencode.ts` - OpenCode SDK server setup
+  - `turso.ts`, `turso-schema.ts` - Database logging
+  - `conversation-logger.ts` - Session logging
+  - `types.ts`, `utils.ts` - Shared types and utilities
+- `README.md` - Comprehensive API documentation
+
+**New Files**:
+- `scripts/run-agent.ts` - Unified wrapper for implementation and review modes
+- `templates/scripts/run-agent.js` - Bundled version
+
+**Updated Files**:
+- `.github/workflows/claude-implement.yml` - Uses `run-agent.ts`
+- `templates/workflows/claude-implement.yml` - Uses `run-agent.js`
+- `src/agents/planning-agent.ts` - Imports from `@swellai/agent-core`
+- `src/agents/linear-agent.ts` - Imports from `@swellai/agent-core`
+- `package.json` - v2.0.0, workspaces enabled, workspace dependency
+- `tsconfig.json` - Excludes packages/ directory
+
+**Deleted Files**:
+- `src/lib/` - Moved to packages/agent-core
+- `src/index.ts` - No longer needed
+- `src/agents/implementation-agent.ts` - Replaced by run-agent.ts
+- `src/agents/review-agent.ts` - Replaced by run-agent.ts
+- `scripts/opencode-agent-runner.ts` - Replaced by run-agent.ts
+- `templates/scripts/opencode-agent-runner.js` - Replaced by run-agent.js
+
+**Benefits**:
+- Cleaner separation of concerns
+- Reusable agent-core package (can publish to npm later)
+- Simpler workflow configuration
+- Reduced repository complexity (~13k lines removed)
+- Single unified script for both agent modes
+
+**Build Status**: All type checks passing, templates built successfully
+
+---
 
 ### Session 21 Accomplishments (Jan 4, 2026)
 
@@ -163,89 +193,3 @@ Added visibility into agent tool calls during GitHub Actions workflow execution.
 1. Updated workflow to use `tee` for stderr: `2> >(tee error.log >&2)`
    - Shows logs live in GitHub Actions console
    - Still captures to error.log for artifacts
-
----
-
-### Session 19 Accomplishments (Dec 30, 2025)
-
-**Claude CLI Path Resolution Fix (v1.0.5)**
-
-Fixed critical bug where agent runner couldn't locate Claude Code executable:
-
-**Root Cause**: The SDK's `query()` function needs `pathToClaudeCodeExecutable` parameter to locate the Claude CLI. Without it, the bundled agent runner defaulted to looking for a non-existent `cli.js` file in the scripts directory.
-
-**Error**: `Error: Claude Code executable not found at /home/runner/work/.../scripts/cli.js`
-
-**The Fix**:
-1. Added `--claude-cli-path <path>` CLI argument to `scripts/claude-agent-runner.ts`
-2. Updated `src/lib/claude-agent-sdk.ts` interface to accept `pathToClaudeCodeExecutable`
-3. Modified SDK wrapper to pass the path to SDK's `query()` function
-4. Updated all 3 workflow invocations to pass `--claude-cli-path "$HOME/.local/bin/claude"`:
-   - Implementation step (line 234)
-   - Review step (line 407)
-   - Verification step (line 837)
-5. Rebuilt bundled templates with new functionality
-
-**Files Modified**:
-- `src/lib/claude-agent-sdk.ts` (added interface field + pass to SDK)
-- `scripts/claude-agent-runner.ts` (added CLI argument)
-- `templates/workflows/claude-implement.yml` (3 locations)
-- `.github/workflows/claude-implement.yml` (3 locations)
-- `templates/scripts/claude-agent-runner.js` (rebuilt bundle)
-- `package.json` (version 1.0.5)
-
-**Package Status**: v1.0.5 ready (329.2 KB, 83 files) - awaiting 2FA code for npm publish
-
-### Session 18 Accomplishments (Dec 30, 2025)
-
-**Critical Bug Fixes for npm Package**
-
-Fixed two critical bugs discovered by user in production testing:
-
-**Bug #1 - Missing GitHub Actions (v1.0.2)**
-- **Root Cause**: Workflows referenced local GitHub Actions in `.github/actions/` that weren't included in npm package
-- **Error**: "Can't find 'action.yml' under '.github/actions/get-issue-details'"
-- **Fix**:
-  - Copied `.github/actions/` → `templates/actions/`
-  - Added installer mapping: `actions/*` → `.github/actions/*`
-  - Fixed `getPackageDir()` function (changed from 2 to 3 directory levels)
-  - Fixed package.json bin path: `./dist/src/cli/index.js`
-- **Files Modified**: `src/cli/install.ts`, `package.json`, created `templates/actions/`
-
-**Bug #2 - Module Not Found (v1.0.3)**
-- **Root Cause**: Workflows referenced TypeScript source files (`src/agents/*.ts`) that aren't distributed to users
-- **Error**: "Module not found 'src/agents/planning-agent.ts'"
-- **Fix**: Updated 4 workflow references to use bundled scripts:
-  - `bun run src/agents/planning-agent.ts` → `.github/claude-parallel/scripts/planning-agent.js`
-  - `bun run src/agents/linear-agent.ts` → `.github/claude-parallel/scripts/linear-agent.js`
-- **Files Modified**: `templates/workflows/claude-plan.yml` (lines 125, 186, 247, 313)
-
-**Testing**: Verified in clean test repository - all files install correctly and scripts are executable
-
-**Package Status**: v1.0.3 ready (328.7 KB, 83 files) - awaiting 2FA code for npm publish
-
-### Session 17 Accomplishments (Dec 29, 2025) - [Archived](archive/2025-12-29-npm-publishing-swellai.md)
-
-**npm Package Publishing & Rebranding**
-
-Published package to npm and rebranded to "swellai":
-- Published "install-claude-parallel@1.0.0" successfully
-- Rebranded to "swellai" (verified available)
-- Updated all documentation and CLI references
-- Built and verified package (172 KB, 130 files)
-
-**Blocker**: Requires 2FA OTP code to complete "swellai" publish
-
-### Session 16 Accomplishments (Dec 23, 2025) - [Archived](archive/2025-12-23-turso-documentation.md)
-
-**Turso Database Documentation**
-
-Created comprehensive documentation for the Turso database implementation:
-- Architecture overview with embedded replica mode
-- Complete database schema (4 tables, 7 indexes)
-- Integration points with planning agent, Linear agent, and OpenCode
-- Performance optimizations and design trade-offs
-- Configuration guide and troubleshooting
-- SQL query examples and security best practices
-
-Documentation available at: [docs/turso-database.md](docs/turso-database.md)
