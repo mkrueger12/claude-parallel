@@ -1,32 +1,35 @@
 # Session Context: claude-parallel
 
 **Date**: January 4, 2026
-**Status**: Live tool call logging added to GitHub Actions workflow
+**Status**: OpenCode SDK migration complete - Claude Agent SDK removed
 
 ---
 
 ## Current State
 
-**Latest Work**: Added live tool call logging to GitHub Actions (Session 20)
-**Repository**: Working on branch `main` - modified files
+**Latest Work**: Migrated implementation workflow from Claude Agent SDK to OpenCode SDK (Session 21)
+**Repository**: Working on branch `refactor/server-inherited-auth`
 **Latest Commits**:
-- `82aedb6` - Refactor agents to use shared agent-runner module
-- `1abc7f9` - Add pre-flight validation and error diagnostics to agent runner
-- `d3e5c4a` - Document GH_PAT requirement in README
-- `df42f22` - error when GH_PAT is not set
-- `524b6c3` - bump versions
+- `595eab6` - Simplify opencode-agent-runner.ts by removing CLI argument parsing
+- `ddc9da5` - Rebuild bundled templates with OpenCode agent runner
+- `b043bf5` - Update bun.lock after removing Claude Agent SDK dependency
+- `17f53a5` - Remove Claude Agent SDK dependency and related files
 
 **Recent Accomplishments**:
-- Added live tool call logging to agent runner for GitHub Actions visibility
-- Updated workflow to use `tee` for stderr so logs appear in console AND are captured to file
-- Tool calls now show: tool name, input preview (200 chars), result preview (200 chars)
-- Text outputs from assistant also logged (300 chars preview)
+- Removed `@anthropic-ai/claude-agent-sdk` dependency entirely
+- Created `opencode-agent-runner.ts` using OpenCode SDK
+- Created `implementation-agent.ts` and `review-agent.ts`
+- Removed Claude CLI requirement from workflows
+- Simplified runner to use environment variables (MODEL, MODE) instead of CLI args
+- E2E tested both implementation and review modes - working
+- All 28 tests passing, type-check clean
 
 ---
 
 ## Recent Sessions
 
-*Session 20 (Jan 4, 2026) - Live Tool Call Logging*
+*Session 21 (Jan 4, 2026) - OpenCode SDK Migration*
+*Session 20 (Jan 4, 2026) - Server-Inherited Authentication Refactor + Live Tool Call Logging*
 *Session 19 (Dec 30, 2025) - Claude CLI Path Resolution Fix*
 *Session 18 (Dec 30, 2025) - Critical Bug Fixes for npm Package*
 *Session 17 (Dec 29, 2025) - npm Package Publishing & Rebranding*
@@ -63,15 +66,23 @@ Sessions 1-13 have been archived. Key milestones:
 8. ✅ ~~Fix missing GitHub Actions bug~~ - **COMPLETED** (v1.0.2)
 9. ✅ ~~Fix "Module not found" workflow bug~~ - **COMPLETED** (v1.0.3)
 10. ✅ ~~Fix Claude CLI path resolution bug~~ - **COMPLETED** (v1.0.5)
-11. **BLOCKER**: Complete npm publish v1.0.5 with 2FA (requires user's OTP code)
-12. Verify published package works in production: `npx swellai@1.0.5`
-13. Create GitHub release v1.0.5 and tag
-14. Update README.md with npm package badge and installation instructions
-15. Test the Linear implementation workflow with a real Linear issue
-16. Verify Linear MCP tools work correctly in GitHub Actions environment
-17. Test the refactored multi-provider plan v2 workflow with a real issue
-18. Consider adding unit tests for the new utility functions in `src/lib/`
-19. Consider adding Linear issue commenting to workflows for status updates
+11. ✅ ~~Refactor to server-inherited authentication (Issue #54)~~ - **COMPLETED**
+12. ✅ ~~Migrate implementation workflow to OpenCode SDK~~ - **COMPLETED**
+13. Create PR for OpenCode SDK migration and merge to main
+13. Complete npm publish v1.0.5 with 2FA (requires user's OTP code)
+14. Verify published package works in production: `npx swellai@1.0.5`
+15. Create GitHub release v1.0.5 and tag
+16. Update README.md with npm package badge and installation instructions
+17. Test the Linear implementation workflow with a real Linear issue
+18. Verify Linear MCP tools work correctly in GitHub Actions environment
+19. Test the refactored multi-provider plan v2 workflow with a real issue
+20. Consider adding Linear issue commenting to workflows for status updates
+
+---
+
+## Active Plans
+
+- ~~**OpenCode SDK Migration**~~ - **COMPLETED** (see [plans/2026-01-04-opencode-sdk-migration.md](plans/2026-01-04-opencode-sdk-migration.md))
 
 ---
 
@@ -84,39 +95,76 @@ Sessions 1-13 have been archived. Key milestones:
 
 ## Notes
 
+### Session 21 Accomplishments (Jan 4, 2026)
+
+**OpenCode SDK Migration**
+
+Removed the Claude Agent SDK and unified on OpenCode SDK for all agent operations:
+
+**Files Created**:
+- `src/agents/implementation-agent.ts` - Write/edit/bash enabled agent
+- `src/agents/review-agent.ts` - Read-only agent with JSON schema enforcement
+- `scripts/opencode-agent-runner.ts` - CLI wrapper using OpenCode SDK
+
+**Files Deleted**:
+- `src/lib/claude-agent-sdk.ts` - No longer needed
+- `scripts/claude-agent-runner.ts` - Replaced by opencode-agent-runner.ts
+- `.github/actions/setup-claude/` - Claude CLI no longer needed
+
+**Files Modified**:
+- `package.json` - Removed `@anthropic-ai/claude-agent-sdk` dependency
+- `.github/workflows/claude-implement.yml` - Updated to use new runner
+- `.github/workflows/reusable-implement-issue.yml` - Updated to use new runner
+- `templates/scripts/` - Rebuilt bundles
+
+**Key Changes**:
+- No Claude CLI required - OpenCode SDK runs embedded server
+- Environment variables instead of CLI args: `MODEL`, `MODE`
+- Simpler workflow YAML files (removed Claude CLI installation steps)
+- Unified authentication via `getAuthCredentials()` from utils.ts
+
+**E2E Test Results**: Both implementation and review modes verified working
+
+---
+
 ### Session 20 Accomplishments (Jan 4, 2026)
+
+**Server-Inherited Authentication Refactor (Issue #54)**
+
+Implemented OpenCode SDK's `client.auth.set()` API for cleaner authentication:
+
+**What Changed**:
+1. **`src/lib/types.ts`**: Added `OAUTH_ENV_VARS` constant for Anthropic OAuth env vars
+2. **`src/lib/utils.ts`**: Added `getAuthCredentials()` that returns OAuth or API key credentials
+3. **`src/lib/opencode.ts`**:
+   - Removed `apiKey` from `OpencodeServerOptions`
+   - Added `auth` property to `OpencodeClient` interface
+   - Created `setProviderAuth()` function that calls `client.auth.set()`
+4. **`src/lib/agent-runner.ts`**: Removed API key handling - delegated to server creation
+5. **`.github/actions/setup-opencode/action.yml`**: Added OAuth credential inputs with validation
+6. **`src/lib/__tests__/auth.test.ts`**: Added 14 unit tests
+
+**OAuth Environment Variables**:
+- `ANTHROPIC_OAUTH_ACCESS` - Access token
+- `ANTHROPIC_OAUTH_REFRESH` - Refresh token
+- `ANTHROPIC_OAUTH_EXPIRES` - Expiration timestamp (milliseconds)
+
+**E2E Test**: Verified with real OAuth credentials from `~/.local/share/opencode/auth.json`
+
+**Tests**: 14/14 passing, TypeScript type-check passing, build successful
 
 **Live Tool Call Logging for GitHub Actions**
 
 Added visibility into agent tool calls during GitHub Actions workflow execution.
 
-**Problem**: Console logs from `claude-agent-sdk.ts` weren't showing in GitHub Actions because stderr was redirected to `error.log` file only.
+**Problem**: Console logs weren't showing in GitHub Actions because stderr was redirected to `error.log` file only.
 
 **Solution**:
 1. Updated workflow to use `tee` for stderr: `2> >(tee error.log >&2)`
    - Shows logs live in GitHub Actions console
    - Still captures to error.log for artifacts
-2. Added detailed tool call logging to `scripts/claude-agent-runner.ts`:
-   - `[Tool] <name>` with input preview (200 chars max)
-   - `[Tool Result]` with result preview (200 chars max)
-   - `[Text]` for assistant text output (300 chars max)
 
-**Files Modified**:
-- `.github/workflows/claude-implement.yml` (3 locations - implementation, review, verify steps)
-- `scripts/claude-agent-runner.ts` (added tool call logging in message loop)
-- `templates/scripts/claude-agent-runner.js` (rebuilt bundle)
-- `.github/claude-parallel/scripts/claude-agent-runner.js` (copied rebuilt bundle)
-
-**Logging Output Example**:
-```
-[Message 1] Type: assistant
-[Tool] Read
-       Input: {"file_path":"/home/user/project/src/index.ts"}
-[Message 2] Type: user
-[Tool Result] // src/index.ts contents...
-[Message 3] Type: assistant
-[Text] I'll analyze this file and...
-```
+---
 
 ### Session 19 Accomplishments (Dec 30, 2025)
 

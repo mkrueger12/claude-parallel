@@ -93,31 +93,6 @@ jobs:
           git checkout -b "$BRANCH"
           echo "BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: Setup Claude CLI
-        if: ${{ inputs.dry_run != true }}
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          # Validate authentication
-          if [[ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]] && [[ -z "$ANTHROPIC_API_KEY" ]]; then
-            echo "Error: At least one authentication method must be provided"
-            exit 1
-          fi
-
-          # Install Claude CLI
-          curl -fsSL https://claude.ai/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-          # Set authentication method
-          if [[ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]]; then
-            echo "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" >> $GITHUB_ENV
-            echo "Using OAuth token for authentication"
-          elif [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> $GITHUB_ENV
-            echo "Using API key for authentication"
-          fi
-
       - name: Setup Bun for Agent Runner
         if: ${{ inputs.dry_run != true }}
         uses: oven-sh/setup-bun@v2
@@ -213,8 +188,6 @@ jobs:
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-
           # Read implementation prompt template from installed location
           IMPL_TEMPLATE=$(cat .github/claude-parallel/prompts/implementation.md)
 
@@ -228,11 +201,9 @@ jobs:
           # Run agent runner and capture exit code
           # Use tee to show stderr live in console AND capture to file
           set +e
-          echo "$IMPL_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
-            --cwd "$(pwd)" \
-            --model ${{ inputs.claude_model || 'claude-opus-4-5-20251101' }} \
-            --mode implementation \
-            --claude-cli-path "$HOME/.local/bin/claude" \
+          MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
+          MODE="implementation" \
+          echo "$IMPL_PROMPT" | bun run scripts/opencode-agent-runner.ts \
             > result.json 2> >(tee error.log >&2)
           RUNNER_EXIT=$?
           set -e
@@ -334,31 +305,6 @@ jobs:
             fi
           done
 
-      - name: Setup Claude CLI
-        if: ${{ inputs.dry_run != true }}
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          # Validate authentication
-          if [[ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]] && [[ -z "$ANTHROPIC_API_KEY" ]]; then
-            echo "Error: At least one authentication method must be provided"
-            exit 1
-          fi
-
-          # Install Claude CLI
-          curl -fsSL https://claude.ai/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-          # Set authentication method
-          if [[ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]]; then
-            echo "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" >> $GITHUB_ENV
-            echo "Using OAuth token for authentication"
-          elif [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> $GITHUB_ENV
-            echo "Using API key for authentication"
-          fi
-
       - name: Setup Bun for Agent Runner
         if: ${{ inputs.dry_run != true }}
         uses: oven-sh/setup-bun@v2
@@ -386,8 +332,6 @@ jobs:
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-
           # Read review prompt template from installed location
           REVIEW_TEMPLATE=$(cat .github/claude-parallel/prompts/review.md)
 
@@ -402,11 +346,9 @@ jobs:
 
           # Run agent runner in review mode (schema automatically applied)
           # Use tee to show stderr live in console AND capture to file
-          echo "$REVIEW_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
-            --cwd "$(pwd)" \
-            --model ${{ inputs.claude_model || 'claude-opus-4-5-20251101' }} \
-            --mode review \
-            --claude-cli-path "$HOME/.local/bin/claude" \
+          MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
+          MODE="review" \
+          echo "$REVIEW_PROMPT" | bun run scripts/opencode-agent-runner.ts \
             > review-result.json 2> >(tee review-error.log >&2) || true
 
           cat review-result.json
@@ -516,31 +458,6 @@ jobs:
           ref: ${{ needs.review.outputs.winning_branch }}
           fetch-depth: 0
           token: ${{ secrets.GH_PAT }}
-
-      - name: Setup Claude CLI
-        if: ${{ inputs.dry_run != true }}
-        env:
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          # Validate authentication
-          if [[ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]] && [[ -z "$ANTHROPIC_API_KEY" ]]; then
-            echo "Error: At least one authentication method must be provided"
-            exit 1
-          fi
-
-          # Install Claude CLI
-          curl -fsSL https://claude.ai/install.sh | bash
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-          # Set authentication method
-          if [[ -n "$CLAUDE_CODE_OAUTH_TOKEN" ]]; then
-            echo "CLAUDE_CODE_OAUTH_TOKEN=$CLAUDE_CODE_OAUTH_TOKEN" >> $GITHUB_ENV
-            echo "Using OAuth token for authentication"
-          elif [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            echo "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> $GITHUB_ENV
-            echo "Using API key for authentication"
-          fi
 
       - name: Setup Bun for Agent Runner
         if: ${{ inputs.dry_run != true }}
@@ -816,8 +733,6 @@ jobs:
         env:
           LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
-
           # Read verify prompt template from installed location
           VERIFY_TEMPLATE=$(cat .github/claude-parallel/prompts/verify.md)
 
@@ -840,11 +755,9 @@ jobs:
 
           # Run agent runner in implementation mode
           # Use tee to show stderr live in console AND capture to file
-          echo "$VERIFY_PROMPT" | node .github/claude-parallel/scripts/claude-agent-runner.js \
-            --cwd "$(pwd)" \
-            --model ${{ inputs.claude_model || 'claude-opus-4-5-20251101' }} \
-            --mode implementation \
-            --claude-cli-path "$HOME/.local/bin/claude" \
+          MODEL="${{ inputs.claude_model || 'claude-opus-4-5-20251101' }}" \
+          MODE="implementation" \
+          echo "$VERIFY_PROMPT" | bun run scripts/opencode-agent-runner.ts \
             > verify-result.json 2> >(tee verify-error.log >&2) || true
 
           cat verify-result.json

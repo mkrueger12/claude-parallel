@@ -10391,11 +10391,108 @@ async function createOpencode(options) {
   };
 }
 
+// src/lib/types.ts
+var API_KEY_ENV_VARS = {
+  anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
+  openai: ["OPENAI_API_KEY"],
+  google: ["GOOGLE_GENERATIVE_AI_API_KEY"]
+};
+var OAUTH_ENV_VARS = {
+  anthropic: ["ANTHROPIC_OAUTH_ACCESS", "ANTHROPIC_OAUTH_REFRESH", "ANTHROPIC_OAUTH_EXPIRES"]
+};
+
+// src/lib/utils.ts
+function extractTextFromParts(parts) {
+  if (!Array.isArray(parts))
+    return "";
+  return parts.filter((part) => part.type === "text").map((part) => part.text || "").join(`
+`);
+}
+function validateEnvVars(requiredVars) {
+  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
+  if (missingVars.length > 0) {
+    const errorMsg = [
+      "Error: Missing required environment variables:",
+      ...missingVars.map((varName) => `  - ${varName}`),
+      "",
+      "Please set all required environment variables and try again."
+    ].join(`
+`);
+    throw new Error(errorMsg);
+  }
+}
+function getAuthCredentials(provider) {
+  const oauthVars = OAUTH_ENV_VARS[provider];
+  if (oauthVars && oauthVars.length === 3) {
+    const accessVar = oauthVars[0];
+    const refreshVar = oauthVars[1];
+    const expiresVar = oauthVars[2];
+    if (accessVar && refreshVar && expiresVar) {
+      const access = process.env[accessVar];
+      const refresh = process.env[refreshVar];
+      const expiresStr = process.env[expiresVar];
+      if (access && refresh && expiresStr) {
+        const expires = Number.parseInt(expiresStr, 10);
+        if (!Number.isNaN(expires)) {
+          return {
+            type: "oauth",
+            oauth: { access, refresh, expires }
+          };
+        }
+      }
+    }
+  }
+  const envVars = API_KEY_ENV_VARS[provider];
+  for (const envVar of envVars) {
+    const apiKey = process.env[envVar];
+    if (apiKey) {
+      return {
+        type: "api",
+        apiKey
+      };
+    }
+  }
+  return null;
+}
+
 // src/lib/opencode.ts
+async function setProviderAuth(client3, provider) {
+  const credentials = getAuthCredentials(provider);
+  if (!credentials) {
+    const errorMsg = [
+      `Error: No authentication credentials found for provider "${provider}"`,
+      `Please set one of the following environment variables:`,
+      provider === "anthropic" ? "  OAuth (preferred): ANTHROPIC_OAUTH_ACCESS, ANTHROPIC_OAUTH_REFRESH, ANTHROPIC_OAUTH_EXPIRES" : "",
+      provider === "anthropic" ? "  OR API Key: ANTHROPIC_API_KEY, CLAUDE_CODE_OAUTH_TOKEN" : "",
+      provider === "openai" ? "  API Key: OPENAI_API_KEY" : "",
+      provider === "google" ? "  API Key: GOOGLE_GENERATIVE_AI_API_KEY" : ""
+    ].filter((line) => line !== "").join(`
+`);
+    throw new Error(errorMsg);
+  }
+  if (credentials.type === "oauth") {
+    await client3.auth.set({
+      path: { id: provider },
+      body: {
+        type: "oauth",
+        access: credentials.oauth.access,
+        refresh: credentials.oauth.refresh,
+        expires: credentials.oauth.expires
+      }
+    });
+  } else {
+    await client3.auth.set({
+      path: { id: provider },
+      body: {
+        type: "api",
+        key: credentials.apiKey
+      }
+    });
+  }
+}
 async function createOpencodeServer2(options) {
   const {
     provider,
-    apiKey,
     model,
     agentName,
     agentDescription,
@@ -10409,7 +10506,6 @@ async function createOpencodeServer2(options) {
     provider: {
       [provider]: {
         options: {
-          apiKey,
           timeout: false
         }
       }
@@ -10444,6 +10540,7 @@ async function createOpencodeServer2(options) {
     config: opcodeConfig
   });
   console.error(`✓ OpenCode server started at ${server2.url}`);
+  await setProviderAuth(client3, provider);
   return { client: client3, server: server2 };
 }
 function setupEventMonitoring(client3, logger) {
@@ -10532,50 +10629,6 @@ function setupEventMonitoring(client3, logger) {
   })();
 }
 
-// src/lib/types.ts
-var API_KEY_ENV_VARS = {
-  anthropic: ["ANTHROPIC_API_KEY", "CLAUDE_CODE_OAUTH_TOKEN"],
-  openai: ["OPENAI_API_KEY"],
-  google: ["GOOGLE_GENERATIVE_AI_API_KEY"]
-};
-
-// src/lib/utils.ts
-function extractTextFromParts(parts) {
-  if (!Array.isArray(parts))
-    return "";
-  return parts.filter((part) => part.type === "text").map((part) => part.text || "").join(`
-`);
-}
-function validateEnvVars(requiredVars) {
-  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
-  if (missingVars.length > 0) {
-    const errorMsg = [
-      "Error: Missing required environment variables:",
-      ...missingVars.map((varName) => `  - ${varName}`),
-      "",
-      "Please set all required environment variables and try again."
-    ].join(`
-`);
-    throw new Error(errorMsg);
-  }
-}
-function getApiKey(provider) {
-  const envVars = API_KEY_ENV_VARS[provider];
-  for (const envVar of envVars) {
-    const apiKey = process.env[envVar];
-    if (apiKey) {
-      return apiKey;
-    }
-  }
-  const errorMsg = [
-    `Error: No API key found for provider "${provider}"`,
-    `Required environment variables (at least one):`,
-    ...envVars.map((envVar) => `  - ${envVar}`)
-  ].join(`
-`);
-  throw new Error(errorMsg);
-}
-
 // src/lib/agent-runner.ts
 async function findPromptFile(fileName) {
   const possiblePaths = [
@@ -10600,7 +10653,6 @@ async function runAgent(config) {
     process.exit(1);
   }
   const provider = process.env.PROVIDER || "anthropic";
-  const apiKey = getApiKey(provider);
   const model = process.env.MODEL || (provider === "anthropic" ? "claude-opus-4-5" : "");
   const linearApiKey = process.env.LINEAR_API_KEY;
   console.error(`
@@ -10626,7 +10678,6 @@ ${"=".repeat(60)}`);
   }
   const { client: client3, server: server2 } = await createOpencodeServer2({
     provider,
-    apiKey,
     model,
     agentName: config.name,
     agentDescription: config.description,

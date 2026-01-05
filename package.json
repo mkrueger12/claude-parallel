@@ -1,6 +1,6 @@
 {
   "name": "swellai",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Install claude-parallel workflows, scripts, and agents into any repository",
   "type": "module",
   "bin": {
@@ -22,7 +22,6 @@
     "check:fix": "biome check . --write",
     "planning-agent": "bun run src/agents/planning-agent.ts",
     "linear-agent": "bun run src/agents/linear-agent.ts",
-    "claude-agent-runner": "bun run scripts/claude-agent-runner.ts",
     "prepare": "husky"
   },
   "keywords": [
@@ -41,7 +40,6 @@
     "url": "https://github.com/mkrueger12/claude-parallel"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.1.70",
     "@libsql/client": "^0.15.0",
     "@linear/sdk": "^30.0.0",
     "@opencode-ai/sdk": "^1.0.153"
